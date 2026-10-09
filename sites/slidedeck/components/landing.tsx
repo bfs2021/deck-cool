@@ -2,6 +2,7 @@
 // of deck.cool's home page. A server component: it ships no JavaScript of its
 // own. Its one deck is an island, rendered once per skin.
 import { umbrella } from "@deck-cool/brand/decks";
+import { SkinSheet } from "@deck-cool/brand/skin-sheet";
 import SkinDeck from "./skin-deck.tsx";
 import { slidedeck } from "./slidedeck.ts";
 import { install, quickstart, size, version } from "../src/facts.ts";
@@ -105,6 +106,9 @@ export default function Landing() {
           <a className="home-button" href="/docs/">
             Read the docs
           </a>
+          <a className="home-more" href="/examples/">
+            See it in action ›
+          </a>
         </div>
       </section>
 
@@ -150,11 +154,14 @@ export default function Landing() {
               <div className={`home-skin__stage ${skin.className}`}>
                 <SkinDeck label={`${skin.name} deck`} />
               </div>
-              <pre tabIndex={0} aria-label={`${skin.name} CSS`} data-fw-search="ignore">
-                <code>{skin.css}</code>
-              </pre>
+              <SkinSheet name={skin.name} css={skin.css} html={skin.html} />
             </figure>
           ))}
+        </div>
+        <div className="home-skins__more">
+          <a className="home-button" href="/examples/">
+            See all examples ›
+          </a>
         </div>
       </section>
 

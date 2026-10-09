@@ -1,4 +1,5 @@
 import { decks, umbrella, type Deck } from "@deck-cool/brand/decks";
+import { SkinSheet } from "@deck-cool/brand/skin-sheet";
 import { formatBytes, utf8Bytes } from "../src/bytes.ts";
 import { PICKER, PRODUCT } from "../src/product.ts";
 import type { Skin } from "../src/skins.ts";
@@ -159,11 +160,17 @@ export default function LandingPage({ skins }: { skins: readonly Skin[] }) {
               <div className={`fw-skin__stage ${skin.className}`}>
                 <Teaser />
               </div>
-              <pre tabIndex={0} aria-label={`${skin.name} CSS`}>
-                <code>{skin.css}</code>
-              </pre>
+              <SkinSheet name={skin.name} css={skin.css} html={skin.html} />
             </figure>
           ))}
+        </div>
+        <div className="fw-skins__more">
+          <a className="fw-button" href={PATHS.interactive}>
+            See an island ›
+          </a>
+          <a className="fw-button" href={PATHS.serverData}>
+            See the server data ›
+          </a>
         </div>
       </section>
 

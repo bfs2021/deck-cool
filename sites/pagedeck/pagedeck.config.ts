@@ -10,6 +10,7 @@ import { cpSync, realpathSync, rmSync } from "node:fs";
 import { z } from "zod";
 import { DOCS_ORIGIN, PATHS, REPO } from "./components/links.ts";
 import { components, COUNTER, FAMILY_BAR, FOOTER, ISLAND_PAGE, SEARCH, SEARCH_PAGE } from "./src/catalog.ts";
+import { CODE_THEME } from "./src/code-theme.ts";
 import { FEATURES_HEAD, featuresContent, FONTS, SCRIPTS, SOCIAL_IMAGES } from "./src/features.ts";
 import { HASHED_FILE_HEADERS, HASHED_PREFIXES, RESPONSE_HEADERS } from "./src/headers.ts";
 import { SERVER_DATA_HEAD, serverDataContent } from "./src/server-data.ts";
@@ -58,10 +59,6 @@ const BUDGET = {
   [PATHS.serverData]: "59kb",
   [PATHS.search]: "59kb",
 } as const;
-
-// Dark only, as the brand is. The `-default` theme's every token clears 4.5:1,
-// where `github-dark`'s do not all.
-const CODE_THEME = "github-dark-default";
 
 /**
  * One directory to publish from: the brand kit's icons and .assetsignore, then
@@ -194,6 +191,7 @@ export default defineConfig({
     css: [
       "./node_modules/@deck-cool/brand/styles/brand.css",
       "./node_modules/@deck-cool/brand/styles/family-bar.css",
+      "./node_modules/@deck-cool/brand/styles/skin-sheet.css",
       "./styles/pagedeck.css",
       ...SKINS.map((skin) => `./${skin.file}`),
     ].map((sheet) => realpathSync(sheet)),

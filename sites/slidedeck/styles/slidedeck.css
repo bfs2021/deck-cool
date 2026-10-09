@@ -705,10 +705,12 @@ main .home-more:hover {
   line-height: 1.47;
 }
 
-/* Two skins: one deck, the same markup twice, each sheet shown below it. */
+/* Two skins: one deck, the same markup twice, each sheet folded below it. */
 .home-skins {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 400px), 1fr));
+  /* Each tile as tall as its own sheet, open or closed. */
+  align-items: start;
   gap: 20px;
 }
 
@@ -729,7 +731,7 @@ main .home-more:hover {
   font-weight: 600;
 }
 
-/* One height for both stages, so the two decks sit level and the longer
+/* One height for both stages, so the two decks sit level and an open
    sheet runs on below. */
 .home-skin__stage {
   display: grid;
@@ -741,16 +743,9 @@ main .home-more:hover {
   padding: 24px 32px 32px;
 }
 
-.home-skin pre {
-  flex: 1;
-  margin: 0;
-  padding: 24px 32px 32px;
-  overflow-x: auto;
-  border-top: 1px solid var(--rule);
-  background: var(--ground-raised);
-  color: var(--text);
-  font-size: 13px;
-  line-height: 1.6;
+/* Every example, after the one deck shown twice. */
+.home-skins__more {
+  display: flex;
 }
 
 /* The README's quickstart. The highlighter gives the block its theme's
@@ -819,6 +814,7 @@ main .home-family .home-more {
 
   .home-skin figcaption,
   .home-skin__stage,
+  .home-skin summary,
   .home-skin pre {
     padding-inline: 20px;
   }

@@ -1,4 +1,6 @@
+import { createMarkdownRenderer } from "@pagedeck/markdown-loader";
 import { readFileSync } from "node:fs";
+import { CODE_THEME } from "./code-theme.ts";
 
 /**
  * The home page's two skins for one teaser. Each is a stylesheet the build
@@ -10,9 +12,19 @@ export const SKINS = [
   { name: "Signal", className: "signal", file: "styles/skins/signal.css" },
 ] as const;
 
-export type Skin = (typeof SKINS)[number] & { readonly css: string };
+export type Skin = (typeof SKINS)[number] & { readonly css: string; readonly html: string };
 
-/** Each skin with its stylesheet's text, read at build time. */
+const renderer = await createMarkdownRenderer({ languages: ["css"], theme: CODE_THEME });
+
+const highlighted = await Promise.all(
+  SKINS.map(async (skin) => {
+    const css = readFileSync(new URL(`../${skin.file}`, import.meta.url), "utf8").trim();
+    const { html } = await renderer.render(`\`\`\`css\n${css}\n\`\`\`\n`, skin.file);
+    return { ...skin, css, html };
+  }),
+);
+
+/** Each skin with its stylesheet's text and the same text highlighted, read at build time. */
 export function skins(): Skin[] {
-  return SKINS.map((skin) => ({ ...skin, css: readFileSync(new URL(`../${skin.file}`, import.meta.url), "utf8").trim() }));
+  return highlighted;
 }

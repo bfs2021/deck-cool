@@ -451,6 +451,31 @@ describe("the home page", () => {
       );
       for (const skin of SKINS) expect(css).toContain(`.${skin.className} .teaser{`);
     });
+
+    test("folds each skin's sheet, highlighted and named, into a <details> that starts closed", () => {
+      for (const [i, skin] of skins().entries()) {
+        const { name, file } = present(SKINS[i], "a skin");
+        const fold = present(skin.querySelector("details"), `${name}'s fold`);
+        expect(fold.hasAttribute("open")).toBe(false);
+        // A stylesheet is no answer to a search.
+        expect(fold.getAttribute("data-fw-search")).toBe("ignore");
+        const lines = readFileSync(`${SITE}${file}`, "utf8").trim().split("\n").length;
+        expect(text(fold.querySelector("summary"))).toBe(`${name} CSS · ${lines} lines`);
+        const pre = present(fold.querySelector("pre.shiki"), `${name}'s highlighted sheet`);
+        expect(pre.getAttribute("aria-label")).toBe(`${name} CSS`);
+        expect(pre.getAttribute("tabindex")).toBe("0");
+        const colours = new Set([...pre.querySelectorAll("code span[style]")].map((span) => span.getAttribute("style")));
+        expect(colours.size).toBeGreaterThan(1);
+        for (const colour of colours) expect(colour).toMatch(/^color:#[0-9a-f]{6}$/i);
+      }
+    });
+
+    test("links the live demos under the skins", () => {
+      expect(links(section()?.querySelector(".fw-skins__more") ?? undefined)).toEqual([
+        ["See an island ›", PATHS.interactive],
+        ["See the server data ›", PATHS.serverData],
+      ]);
+    });
   });
 
   test("small: HTML first, budgets that hold, and data that stays on the server, with /server-data's own figures", () => {

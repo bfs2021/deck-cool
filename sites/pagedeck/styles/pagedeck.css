@@ -353,10 +353,12 @@ main .fw-more:hover {
   line-height: 1.47;
 }
 
-/* Two skins: one teaser, the same markup twice, each sheet shown below it. */
+/* Two skins: one teaser, the same markup twice, each sheet folded below it. */
 .fw-skins {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 400px), 1fr));
+  /* Each tile as tall as its own sheet, open or closed. */
+  align-items: start;
   gap: 20px;
 }
 .fw-skin {
@@ -374,7 +376,7 @@ main .fw-more:hover {
   font-size: 15px;
   font-weight: 600;
 }
-/* One height for both stages, so the two teasers sit level and the longer
+/* One height for both stages, so the two teasers sit level and an open
    sheet runs on below. */
 .fw-skin__stage {
   display: grid;
@@ -382,16 +384,11 @@ main .fw-more:hover {
   min-height: 300px;
   padding: 24px 32px 32px;
 }
-.fw-skin pre {
-  flex: 1;
-  margin: 0;
-  padding: 24px 32px 32px;
-  overflow-x: auto;
-  border-top: 1px solid var(--rule);
-  background: var(--ground-raised);
-  color: var(--text);
-  font-size: 13px;
-  line-height: 1.6;
+/* The live demos the skins stand in for. */
+.fw-skins__more {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
 /* One line back to deck.cool. */
@@ -435,6 +432,7 @@ main .fw-family .fw-more {
   }
   .fw-skin figcaption,
   .fw-skin__stage,
+  .fw-skin summary,
   .fw-skin pre {
     padding-inline: 24px;
   }

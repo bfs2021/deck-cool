@@ -64,6 +64,7 @@ export default defineConfig({
     css: [
       brandSheet("brand.css"),
       brandSheet("family-bar.css"),
+      brandSheet("skin-sheet.css"),
       "./styles/slidedeck.css",
       ...SKINS.map((skin) => `./${skin.file}`),
     ],

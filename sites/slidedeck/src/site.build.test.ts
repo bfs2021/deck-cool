@@ -278,7 +278,10 @@ describe("the home page", () => {
     ]);
     expect(text(hero?.querySelector(".home-install code"))).toBe("pnpm add @slidedeck/react");
     expect(install).toBe("pnpm add @slidedeck/react");
-    expect(links(hero)).toEqual([["Read the docs", "/docs/"]]);
+    expect(links(hero)).toEqual([
+      ["Read the docs", "/docs/"],
+      ["See it in action ›", "/examples/"],
+    ]);
   });
 
   // The shapes, not the values: each release of slidedeck brings its own.
@@ -374,6 +377,30 @@ describe("the home page", () => {
           }
         }
       }
+    });
+
+    test("folds each skin's sheet, highlighted and named, into a <details> that starts closed", () => {
+      for (const [i, skin] of skins().entries()) {
+        const { name, file } = present(SKINS[i], "a skin");
+        const fold = present(skin.querySelector("details"), `${name}'s fold`);
+        expect(fold.hasAttribute("open")).toBe(false);
+        // A stylesheet is no answer to a search.
+        expect(fold.getAttribute("data-fw-search")).toBe("ignore");
+        const lines = readFileSync(`${SITE}${file}`, "utf8").trim().split("\n").length;
+        expect(text(fold.querySelector("summary"))).toBe(`${name} CSS · ${lines} lines`);
+        const pre = present(fold.querySelector("pre.shiki"), `${name}'s highlighted sheet`);
+        expect(pre.getAttribute("aria-label")).toBe(`${name} CSS`);
+        expect(pre.getAttribute("tabindex")).toBe("0");
+        const colours = new Set([...pre.querySelectorAll("code span[style]")].map((span) => span.getAttribute("style")));
+        expect(colours.size).toBeGreaterThan(1);
+        for (const colour of colours) expect(colour).toMatch(/^color:#[0-9a-f]{6}$/i);
+      }
+    });
+
+    test("links every example under the skins, as a call to action", () => {
+      const more = present(section()?.querySelector(".home-skins__more"), "the link under the skins");
+      expect(links(more)).toEqual([["See all examples ›", "/examples/"]]);
+      expect(more.querySelector("a")?.className).toBe("home-button");
     });
   });
 

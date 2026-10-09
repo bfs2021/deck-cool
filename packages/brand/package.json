@@ -5,7 +5,8 @@
   "type": "module",
   "exports": {
     "./decks": "./src/decks.ts",
-    "./family-bar": "./src/family-bar.tsx"
+    "./family-bar": "./src/family-bar.tsx",
+    "./skin-sheet": "./src/skin-sheet.tsx"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
