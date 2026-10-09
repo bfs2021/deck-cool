@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "build": "pagedeck sync && pagedeck build",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "check-live": "node src/check-live.bin.ts"
   },
   "dependencies": {
     "@deck-cool/brand": "workspace:*",
@@ -18,6 +19,7 @@
   },
   "devDependencies": {
     "@types/react": "19.3.0",
-    "happy-dom": "20.14.5"
+    "happy-dom": "20.14.5",
+    "wrangler": "4.148.0"
   }
 }

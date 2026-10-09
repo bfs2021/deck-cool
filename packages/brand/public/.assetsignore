@@ -1,0 +1,4 @@
+# Here because every site's build copies this directory; docs/deploy.md says why each line.
+/manifest.json
+/.pagedeck
+/404.html

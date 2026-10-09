@@ -5,6 +5,7 @@ import { describe, expect, test } from "vitest";
 import { decks, umbrella } from "@deck-cool/brand/decks";
 import { GITHUB, NPM } from "../components/links.ts";
 import { CONTENT_SECURITY_POLICY } from "./csp.ts";
+import { headersFor, parseHeaders } from "./serve-site.ts";
 
 const SITE = fileURLToPath(new URL("..", import.meta.url));
 const BRAND = fileURLToPath(new URL("../../../packages/brand/public/", import.meta.url));
@@ -63,10 +64,78 @@ test("the home page opens with the Family bar, after the stylesheets it needs", 
   expect(served.equals(readFileSync(`${BRAND}family-bar.css`))).toBe(true);
 });
 
-test("_headers sends the Content-Security-Policy on every path", () => {
-  const headers = readFileSync(`${SITE}site/_headers`, "utf8");
-  expect(headers).toContain(`/*\n`);
-  expect(headers).toContain(`  ${CONTENT_SECURITY_POLICY.name}: ${CONTENT_SECURITY_POLICY.value}\n`);
+const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null;
+
+/** manifest.json's file paths and each tree's declared 404 page, checked as they are read. */
+function readManifest(): { paths: string[]; notFound: unknown[] } {
+  const value: unknown = JSON.parse(readFileSync(`${SITE}site/manifest.json`, "utf8"));
+  if (!isRecord(value) || !Array.isArray(value.files) || !isRecord(value.routing) || !Array.isArray(value.routing.trees)) {
+    throw new Error("manifest.json has no files or no routing.trees");
+  }
+  return {
+    paths: value.files.map((file: unknown) =>
+      present(isRecord(file) && typeof file.path === "string" ? file.path : undefined, "a manifest file's path"),
+    ),
+    notFound: value.routing.trees.map((tree: unknown) => (isRecord(tree) ? tree.notFound : undefined)),
+  };
+}
+
+const manifest = readManifest();
+const rules = parseHeaders(readFileSync(`${SITE}site/_headers`, "utf8"));
+/** Every path the Worker serves: the home page, and each file but the ones wrangler reads as configuration. */
+const served = ["/", ...manifest.paths.filter((path) => !/^\/_(headers|redirects)$/.test(path))];
+
+/** The headers every response carries, page or file. */
+const EVERY_RESPONSE = {
+  [CONTENT_SECURITY_POLICY.name]: CONTENT_SECURITY_POLICY.value,
+  "X-Content-Type-Options": "nosniff",
+  "X-Frame-Options": "DENY",
+  "Referrer-Policy": "strict-origin-when-cross-origin",
+  "Cross-Origin-Opener-Policy": "same-origin",
+  "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
+};
+
+test("_headers sends the CSP, the security headers and HSTS on the home page and every file", () => {
+  for (const path of served) {
+    expect(Object.fromEntries(headersFor(rules, path)), path).toMatchObject(EVERY_RESPONSE);
+  }
+});
+
+test("_headers sends a Permissions-Policy that turns off every powerful feature", () => {
+  for (const path of served) {
+    const features = headersFor(rules, path).get("Permissions-Policy")?.split(", ") ?? [];
+    for (const feature of features) expect(feature, path).toMatch(/^[a-z-]+=\(\)$/);
+    expect(features, path).toEqual(expect.arrayContaining(["camera=()", "microphone=()", "geolocation=()", "payment=()"]));
+  }
+});
+
+test("no file is cached as immutable, because the build writes no content-hashed name", () => {
+  // A hashed name (`name.AbCd1234.css`) needs an immutable rule for its directory (docs/deploy.md).
+  for (const path of manifest.paths) expect(path).not.toMatch(/[.-][A-Za-z0-9_-]{8}\.[a-z0-9]+$/);
+  for (const path of served) expect(headersFor(rules, path).get("Cache-Control"), path).toBeUndefined();
+});
+
+test(".assetsignore keeps the deploy manifest, the deploy directory and the fallback 404 out of the upload", () => {
+  const ignored = readFileSync(`${SITE}site/.assetsignore`, "utf8")
+    .split("\n")
+    .filter((line) => line !== "" && !line.startsWith("#"));
+  expect(ignored).toEqual(["/manifest.json", "/.pagedeck", "/404.html"]);
+  // No declared 404 page, so /404.html is only the adapter's fallback.
+  expect(manifest.notFound.map((page) => page ?? undefined)).toEqual([undefined]);
+  // Proxied to the 404 page, which is not uploaded, so they answer 404.
+  const redirects = readFileSync(`${SITE}site/_redirects`, "utf8");
+  expect(redirects).toContain("/manifest.json /404.html 200\n");
+  expect(redirects).toContain("/.pagedeck/* /404.html 200\n");
+});
+
+test("the Worker serves site/ at deck.cool alone, as a custom domain, with no 404 page", () => {
+  // wrangler.jsonc allows comments; it holds whole-line ones only.
+  const source = readFileSync(`${SITE}wrangler.jsonc`, "utf8").replace(/^\s*\/\/.*$/gm, "");
+  expect(JSON.parse(source)).toMatchObject({
+    workers_dev: false,
+    routes: [{ pattern: "deck.cool", custom_domain: true }],
+    assets: { directory: "./site", html_handling: "auto-trailing-slash", not_found_handling: "none" },
+  });
 });
 
 const window = new Window();
