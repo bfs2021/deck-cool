@@ -2,7 +2,10 @@
 .factory/run.lock
 .factory/journal.json
 node_modules/
-# Written by pagedeck sync and pagedeck build.
+# Written by pagedeck sync and pagedeck build (.pagedeck-docs/ by the docs loader).
 content.db
 site/
 .pagedeck/
+.pagedeck-docs/
+# Sites the docs loader's build test writes.
+packages/docs/.test-sites/
