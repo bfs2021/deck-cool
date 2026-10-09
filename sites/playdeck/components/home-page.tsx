@@ -3,7 +3,7 @@ import { PAGE } from "./shell.ts";
 
 export interface Card {
   readonly headline: string;
-  readonly lines: readonly string[];
+  readonly description: string;
   /** The snippet, highlighted at build time. */
   readonly html: string;
   readonly href: string;
@@ -56,11 +56,7 @@ export default function HomePage({
           <a key={card.headline} className="pd-card" href={card.href}>
             <span className="pd-card__number">{String(index + 1).padStart(2, "0")}</span>
             <h2 className="pd-card__headline">{card.headline}</h2>
-            {card.lines.map((line) => (
-              <p key={line} className="pd-card__line">
-                {line}
-              </p>
-            ))}
+            <p className="pd-card__description">{card.description}</p>
             <div className="pd-card__snippet" {...unescapedHtml(card.html)} />
           </a>
         ))}

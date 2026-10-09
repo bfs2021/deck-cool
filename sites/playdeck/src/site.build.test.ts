@@ -420,6 +420,16 @@ describe("the home page, playdeck.video's copy", () => {
     for (const card of cards) expect(card.querySelector("pre.shiki")).not.toBeNull();
   });
 
+  test("gives each card one description paragraph, never a sentence split across two", () => {
+    const cards = [...main().querySelectorAll(".pd-card")];
+    expect(cards.map((card) => [...card.querySelectorAll("p")].map(text))).toEqual([
+      ["Every control is a component. Reorder them, drop one, put your own between them."],
+      ["No CSS ships in the bundle. Two authored themes, or write your own against stable part names."],
+      ["Every provider declares what it can do. A control it cannot honour renders nothing, and you can read the same answer."],
+      ["Ask for sound. If the browser refuses, the player retries muted once and tells you, so you can draw the unmute."],
+    ]);
+  });
+
   test("closes on the measured line, Start, and the ways onward", () => {
     expect(text(main().querySelector(".pd-close__measured"))).toBe(
       "23 kB gzipped, the whole of what @playdeck/react ships. Adding YouTube costs 7 kB. 0 requests to a provider before play.",

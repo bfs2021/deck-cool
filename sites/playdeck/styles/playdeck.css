@@ -200,7 +200,7 @@ main .pd-card:hover {
   color: var(--playdeck-text);
   font-size: 24px;
 }
-.pd-card__line {
+.pd-card__description {
   margin: 0;
   color: var(--text-secondary);
   font-size: 15px;

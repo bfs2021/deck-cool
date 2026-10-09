@@ -50,35 +50,37 @@ const HOME = {
 } as const;
 
 /**
- * The four feature cards. "Style it" pointed at playdeck.video's /design,
+ * The four feature cards. playdeck.video's source wraps each description
+ * over two lines, and printed each line as a paragraph of its own; here each
+ * is one sentence run, in one paragraph. "Style it" pointed at playdeck.video's /design,
  * which this site drops (CONTEXT.md: no site shows off shared tokens), so it
  * points at the part-name contract it describes.
  */
 const CARDS = [
   {
     headline: "Compose it",
-    lines: ["Every control is a component. Reorder them, drop one, put your own", "between them."],
+    description: "Every control is a component. Reorder them, drop one, put your own between them.",
     snippet: `<Player.Controls>\n  <Player.PlayButton />\n  <Logo />\n  <Player.Time type="current" />\n</Player.Controls>`,
     lang: "tsx",
     href: DOCS.reference,
   },
   {
     headline: "Style it",
-    lines: ["No CSS ships in the bundle. Two authored themes, or write your own", "against stable part names."],
+    description: "No CSS ships in the bundle. Two authored themes, or write your own against stable part names.",
     snippet: `[data-playdeck-part='play-button'] {\n  border-radius: 999px;\n}`,
     lang: "css",
     href: DOCS.contract,
   },
   {
     headline: "Ask what the provider can do",
-    lines: ["Every provider declares what it can do. A control it cannot honour", "renders nothing, and you can read the same answer."],
+    description: "Every provider declares what it can do. A control it cannot honour renders nothing, and you can read the same answer.",
     snippet: "usePlayerState((s) => s.capabilities.pictureInPicture)",
     lang: "tsx",
     href: DOCS.capabilities,
   },
   {
     headline: "Recover from refused autoplay",
-    lines: ["Ask for sound. If the browser refuses, the player retries muted once", "and tells you, so you can draw the unmute."],
+    description: "Ask for sound. If the browser refuses, the player retries muted once and tells you, so you can draw the unmute.",
     snippet: `<Player.Root autoplay="audible-then-muted">`,
     lang: "tsx",
     href: DOCS.reference,
