@@ -43,5 +43,5 @@ export const HASHED_FILE_HEADERS: readonly HeaderField[] = [
   { name: "Cache-Control", value: "public, max-age=31536000, immutable" },
 ];
 
-/** The directories the build names each file in by its content's hash: the stylesheet and scripts, and the social card. */
-export const HASHED_PREFIXES = ["/assets/", "/social/"] as const;
+/** The directories the build names each file in by its content's hash: the stylesheet and scripts, the subset font, and the social card. */
+export const HASHED_PREFIXES = ["/assets/", "/fonts/", "/social/"] as const;

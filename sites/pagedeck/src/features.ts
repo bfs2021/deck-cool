@@ -1,6 +1,7 @@
 import { fileURLToPath } from "node:url";
 import { defineScripts } from "@pagedeck/core";
 import type {
+  FontsSetting,
   Page,
   PageContent,
   PageHead,
@@ -10,11 +11,13 @@ import type {
 } from "@pagedeck/core";
 import { defineImages, imageAttributes, urlTemplate } from "@pagedeck/core/images";
 import type { ImagesSetting } from "@pagedeck/core/images";
+import { defineFontSubset } from "@pagedeck/font-subset";
 import { defineSocialImage } from "@pagedeck/social-image";
 import { DOCS_ORIGIN, PATHS } from "../components/links.ts";
 import {
   CONSENT_BANNER,
   EMBED_FRAME,
+  FONT_SPECIMEN,
   FEATURE_SECTION,
   FEATURES_PAGE,
   ISLAND_IDLE,
@@ -29,18 +32,19 @@ import {
 
 const DOGFOOD_ORIGIN = "https://dogfood.example";
 
-// The social card's face, a file the build draws with and never serves. Its
+// The specimen's face, and the social card's. The site's own type is the
+// brand's system stack; this face is subset for the fonts demo alone. Its
 // licence is fonts/OFL.txt.
 const FIRA_SANS = fileURLToPath(new URL("../fonts/FiraSans-Regular.ttf", import.meta.url));
 
 const EMBED_MOUNT = "embed-demo";
 
-// The landing's copy, less its web-font section: this site sets the brand's
-// system fonts only.
+// Plain ASCII where the fonts demo sets it: the face is subset to printable
+// ASCII, and anything else would fall back mid-word.
 const COPY = {
   title: "Every feature, running on this page",
   description:
-    "Pagedeck's features, each explained in a few sentences and running live: islands under three hydration strategies, search, a consent-gated embed, responsive images, a social card and locales.",
+    "Pagedeck's features, each explained in a few sentences and running live: islands under three hydration strategies, search, a consent-gated embed, responsive images, a subset font, a social card and locales.",
   intro:
     "Each section says what one feature does and then runs it here. The islands hydrate, the search box searches, and the embed waits for your consent. The only JavaScript on this page belongs to the islands it demonstrates.",
   islands: {
@@ -91,6 +95,16 @@ const COPY = {
     docs: "Images",
     alt: "A drafting grid with the chosen candidate's width drawn on it in large type",
   },
+  fonts: {
+    heading: "Subset fonts",
+    body: [
+      "build.fonts hands each declared face to a subsetting adapter and writes its @font-face rule, with a metric-adjusted fallback so the swap does not move the text.",
+      "This site's own type is system fonts, so this face is loaded for the specimen and nothing else. It is scoped to this page with pages, so this page links its stylesheet and preloads it, and the other pages here do neither.",
+    ],
+    docs: "Fonts",
+    sample:
+      "Fira Sans, cut down to printable ASCII: 0123456789 and every letter from A to z. A page that sets no text in this face never downloads it.",
+  },
   social: {
     heading: "Social cards",
     body: [
@@ -125,6 +139,23 @@ const IMAGES: ImagesSetting = defineImages({
 });
 
 const DEMO_IMAGE = { src: "/features/stack", width: 1280, height: 720 };
+
+export const FONTS: FontsSetting = {
+  adapter: defineFontSubset(),
+  faces: [
+    {
+      family: "Fira Sans",
+      src: FIRA_SANS,
+      weight: 400,
+      style: "normal",
+      display: "swap",
+      unicodeRanges: ["U+0020-007E"],
+      fallback: ["Helvetica", "Arial", "sans-serif"],
+      aboveFold: true,
+      pages: [PATHS.features],
+    },
+  ],
+};
 
 const CARD_EYEBROW = "Pagedeck";
 
@@ -253,6 +284,19 @@ export function featuresContent(page: Page): PageContent {
                   { label: "formats", value: formats.join(", ") },
                   { label: "sizes", value: image.sizes },
                   { label: "loading", value: image.loading },
+                ],
+              },
+            },
+          ]),
+          section("fonts", COPY.fonts, docs("reference/fonts", COPY.fonts.docs), [
+            {
+              component: FONT_SPECIMEN,
+              props: {
+                sample: COPY.fonts.sample,
+                facts: [
+                  { label: "face", value: "Fira Sans 400" },
+                  { label: "unicode-range", value: "U+0020-007E" },
+                  { label: "fallback", value: "Helvetica, Arial, size-adjusted" },
                 ],
               },
             },

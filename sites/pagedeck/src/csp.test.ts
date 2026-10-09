@@ -27,9 +27,10 @@ test("allows stylesheets from the site only, and inline style only in an attribu
   expect(directives.get("style-src-attr")).toEqual(["'unsafe-inline'"]);
 });
 
-test("fetches and shows images from the site only", () => {
+test("fetches and shows images and fonts from the site only", () => {
   expect(directives.get("connect-src")).toEqual(["'self'"]);
   expect(directives.get("img-src")).toEqual(["'self'"]);
+  expect(directives.get("font-src")).toEqual(["'self'"]);
 });
 
 test("falls back to nothing, and refuses forms, frames and a <base>", () => {

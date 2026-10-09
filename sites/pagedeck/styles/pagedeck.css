@@ -718,6 +718,13 @@ main .fw-search__result {
   display: grid;
   gap: 24px;
 }
+/* The fonts demo's face, which only /features/ links. */
+.fw-specimen {
+  margin: 0;
+  font-family: "Fira Sans", Helvetica, Arial, sans-serif;
+  font-size: 32px;
+  line-height: 1.3;
+}
 
 .fw-locales {
   display: grid;
@@ -1029,6 +1036,9 @@ main .fw-pager__link:hover {
 @media (prefers-reduced-motion: no-preference) {
   @view-transition {
     navigation: auto;
+  }
+  ::view-transition-group(*) {
+    animation-timing-function: var(--ease);
   }
   .fw-ruler__row:not(.fw-ruler__row--zero) .fw-ruler__bar {
     animation: fw-grow 1.1s var(--ease) .2s both;

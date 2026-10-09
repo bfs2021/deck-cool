@@ -8,7 +8,7 @@ import type { HeaderField } from "@pagedeck/core";
 const FACADE_LOADER_HASH = "'sha256-nDzs2CUaBUH8lVSWkaSI/d1UaCtKcTfHbRKUIcp7buQ='";
 
 /**
- * Scripts, stylesheets, images and the search index come from the site
+ * Scripts, stylesheets, images, the specimen's font and the search index come from the site
  * itself, and everything else is refused. `style-src-attr 'unsafe-inline'` is
  * for the code highlighter's `style=` colours and the ruler's `--share`.
  */
@@ -20,6 +20,8 @@ export const CONTENT_SECURITY_POLICY: HeaderField = {
     "style-src 'self'",
     "style-src-attr 'unsafe-inline'",
     "img-src 'self'",
+    // The subset face, which only /features/ links, for its specimen.
+    "font-src 'self'",
     "connect-src 'self'",
     "base-uri 'none'",
     "form-action 'none'",

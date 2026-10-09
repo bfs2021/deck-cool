@@ -117,9 +117,10 @@ describe("the pagedeck site in a browser", () => {
     });
   });
 
-  test("on a phone, the page lays out at the phone's width, not a desktop one", async () => {
-    const { page } = await visit(PATHS.home, { width: 390, isMobile: true });
+  test.each(PAGES)("%s on a phone lays out at the phone's width, not a desktop one, and does not scroll sideways", async (path) => {
+    const { page } = await visit(path, { width: 390, isMobile: true });
     expect(await page.evaluate(() => window.innerWidth)).toBe(390);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
   });
 
   test.each(PAGES)("%s: with prefers-reduced-motion: reduce, nothing moves", async (path) => {
@@ -157,6 +158,14 @@ describe("the pagedeck site in a browser", () => {
     expect(href).toMatch(/^\//);
     await results.first().click();
     await expect.poll(() => new URL(page.url()).pathname).toBe(href);
+    expect(await violations()).toEqual([]);
+  });
+
+  test("the features page loads the subset font for its specimen, under the CSP", async () => {
+    const { page, violations } = await visit(PATHS.features, { width: 1280 });
+    await page.locator(".fw-specimen").scrollIntoViewIfNeeded();
+    await expect.poll(() => page.evaluate(() => document.fonts.check('16px "Fira Sans"'))).toBe(true);
+    expect(await page.evaluate(() => [...document.fonts].filter((face) => face.status === "loaded").map((face) => face.family))).toContain("Fira Sans");
     expect(await violations()).toEqual([]);
   });
 

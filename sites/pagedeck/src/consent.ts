@@ -1,6 +1,4 @@
-// Plain `.ts`, apart from the banner: a site's `pagedeck.config.ts` imports the
-// pre-paint snippet, and the `pagedeck` process cannot load a `.tsx`.
-import { CONSENT_GLOBAL } from "@pagedeck/core/consent";
+// The consent banner's record of a visitor's answer.
 import type { ConsentCategory } from "@pagedeck/core/consent";
 
 // `localStorage`, not a cookie, so the record is never sent to the server the
@@ -63,13 +61,3 @@ export function grantedBy(
   if (category === "necessary") return true;
   return decision[category];
 }
-
-// Classic-script style because it runs untranspiled and first in the `<head>`.
-// It installs nothing without a stored record, so `consentDefaults` govern (#311).
-// `JSON.stringify` does not escape `</script` as core's `listText` does, so the
-// interpolated constants must never contain it.
-export const CONSENT_PRE_PAINT_SCRIPT = `(function(){try{var raw=localStorage.getItem(${JSON.stringify(
-  CONSENT_BANNER_STORAGE_KEY,
-)});if(raw===null)return;var held=JSON.parse(raw);if(typeof held!=="object"||held===null)return;if(typeof held.analytics!=="boolean")return;if(typeof held.functional!=="boolean")return;if(typeof held.marketing!=="boolean")return;window[${JSON.stringify(
-  CONSENT_GLOBAL,
-)}]={granted:function(c){return c==="necessary"?true:held[c]===true}}}catch(e){}})()`;

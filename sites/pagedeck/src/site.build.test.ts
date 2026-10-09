@@ -169,7 +169,12 @@ describe("every page", () => {
         ["apple-touch-icon", pagedeck.icons.appleTouch],
       ]),
     );
-    expect(head.filter(([rel]) => rel === "stylesheet")).toEqual([["stylesheet", expect.stringMatching(/^\/assets\/[^/]+\.css$/)]]);
+    // Only the features page links the subset font's sheet too, for its specimen.
+    const fonts = path === PATHS.features ? [["stylesheet", expect.stringMatching(/^\/fonts\/[^/]+\.css$/)]] : [];
+    expect(head.filter(([rel]) => rel === "stylesheet")).toEqual([
+      ...fonts,
+      ["stylesheet", expect.stringMatching(/^\/assets\/[^/]+\.css$/)],
+    ]);
     expect(doc.head.querySelectorAll('meta[name="viewport"]')).toHaveLength(1);
     expect(doc.head.querySelector('meta[name="viewport"]')?.getAttribute("content")).toBe("width=device-width, initial-scale=1");
     expect(doc.head.querySelector('meta[name="description"]')?.getAttribute("content")?.length).toBeGreaterThanOrEqual(50);
@@ -241,17 +246,26 @@ describe("the stylesheet", () => {
     expect(css.lastIndexOf(".family-bar")).toBeLessThan(site);
   });
 
-  test("sets type in the brand's system stack, with no web font, and eases on the brand's one curve", () => {
+  test("sets type in the brand's system stack, names the web font only for the specimen, and eases on the brand's one curve", () => {
     const css = stylesheet();
-    expect(css).not.toMatch(/@font-face|Fira Sans|Bahnschrift/);
+    expect(css).not.toMatch(/@font-face|Bahnschrift/);
+    expect([...css.matchAll(/([^{}]+)\{[^}]*Fira Sans/g)].map(([, selector]) => selector?.trim())).toEqual([".fw-specimen"]);
     expect(css).not.toMatch(/--fw-/);
     for (const [curve] of css.matchAll(/cubic-bezier\([^)]*\)/g)) expect(curve.replace(/\s/g, "")).toBe("cubic-bezier(.32,.72,0,1)");
   });
 
-  test("is the only stylesheet the site serves", () => {
-    const sheets = manifest.files.filter((path) => path.endsWith(".css"));
-    expect(sheets).toHaveLength(1);
-    expect(sheets[0]).toMatch(/^\/assets\//);
+  test("eases a view transition on the brand's one curve, and only when motion is allowed", () => {
+    const css = stylesheet();
+    const query = css.indexOf("prefers-reduced-motion:no-preference");
+    const group = /::view-transition-group\(\*\)\{animation-timing-function:var\(--ease\)\}/.exec(css);
+    expect(query).toBeGreaterThanOrEqual(0);
+    expect(group?.index ?? -1).toBeGreaterThan(query);
+    expect(css.match(/::view-transition-group/g)).toHaveLength(1);
+  });
+
+  test("is the only stylesheet the site serves, but the subset font's", () => {
+    const sheets = manifest.files.filter((path) => path.endsWith(".css")).sort();
+    expect(sheets).toEqual([expect.stringMatching(/^\/assets\//), expect.stringMatching(/^\/fonts\//)]);
   });
 
   test("the icons are the brand kit's, byte for byte", () => {
@@ -364,9 +378,23 @@ describe("the home page, the landing page's copy", () => {
 });
 
 describe("the features page", () => {
-  test("keeps the landing's sections but the web font's", () => {
+  test("keeps every section of the landing's", () => {
     const ids = [...parse(PATHS.features).querySelectorAll("main section.fw-feature")].map((section) => section.id);
-    expect(ids).toEqual(["islands", "search", "consent", "images", "social-cards", "i18n"]);
+    expect(ids).toEqual(["islands", "search", "consent", "images", "fonts", "social-cards", "i18n"]);
+  });
+
+  test("keeps the landing's description, which names the subset font", () => {
+    expect(parse(PATHS.features).head.querySelector('meta[name="description"]')?.getAttribute("content")).toBe(
+      "Pagedeck's features, each explained in a few sentences and running live: islands under three hydration strategies, search, a consent-gated embed, responsive images, a subset font, a social card and locales.",
+    );
+  });
+
+  test("subsets the font for the specimen alone: no other page links or preloads it", () => {
+    for (const path of PAGES) {
+      const fonts = [...parse(path).head.querySelectorAll("link")].filter((link) => link.getAttribute("href")?.startsWith("/fonts/"));
+      expect(fonts.length > 0, path).toBe(path === PATHS.features);
+    }
+    expect(parse(PATHS.features).querySelector("#fonts .fw-specimen")).not.toBeNull();
   });
 
   test("draws its social card, and names it as og:image", () => {

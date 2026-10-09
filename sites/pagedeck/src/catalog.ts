@@ -15,6 +15,7 @@ export const SEARCH = "search";
 export const CONSENT_BANNER = "consent_banner";
 export const EMBED_FRAME = "embed_frame";
 export const RESPONSIVE_IMAGE = "responsive_image";
+export const FONT_SPECIMEN = "font_specimen";
 export const SOCIAL_CARD = "social_card";
 export const LOCALE_LINKS = "locale_links";
 // Registered, because a client-reference proxy stands in only for a registered
@@ -43,6 +44,7 @@ export const components: BuildSection["components"] = {
   [CONSENT_BANNER]: "./components/consent_banner.tsx",
   [EMBED_FRAME]: "./components/embed_frame.tsx",
   [RESPONSIVE_IMAGE]: "./components/responsive_image.tsx",
+  [FONT_SPECIMEN]: "./components/font_specimen.tsx",
   [SOCIAL_CARD]: "./components/social_card.tsx",
   [LOCALE_LINKS]: "./components/locale_links.tsx",
   [SERVER_DATA_PAGE]: "./components/server_data_page.tsx",
