@@ -45,7 +45,9 @@ The workflow runs on a `repository_dispatch` of type `deck-released`, with this 
 
 `deck` is `slidedeck`, `playdeck` or `pagedeck`, and `version` is `MAJOR.MINOR.PATCH` with no `v`. The payload is untrusted. The workflow checks out the repo and sets up Node and pnpm first, none of which reads the payload. The payload then reaches only the check step, through env, and the workflow stops there on any other payload. Every later step reads the checked values.
 
-pnpm holds back a version for `minimumReleaseAge` (a day) unless `minimumReleaseAgeExclude` lists it, and the workflow keeps that hold: a dispatch for a younger version fails, says so, and pushes nothing. Send the dispatch again once the version is a day old. `@pagedeck/*` is excluded today, so a pagedeck release is bumped at once, and its PR says the hold was bypassed.
+pnpm holds back a version for `minimumReleaseAge` (a day), and the workflow keeps that hold: a dispatch for a younger version fails, says so, and pushes nothing. So the dispatch a release sends straight after `npm publish` fails on purpose.
+
+The workflow also runs once a day, at 06:17 UTC, and on `gh workflow run bump-deck.yml` with no inputs. That run reads npm's latest version of each deck the workspace depends on, from one of its `@<deck>/*` packages, and bumps each deck in turn, with the same checks as a dispatch. A version still inside the hold is skipped with a notice, and the run stays green. A later daily run bumps it.
 
 Each deck's release workflow adds one step after `npm publish`. It gets a token from the `deck-cool-releases` App, with the repo variable `DECK_APP_ID` and the repo secret `DECK_APP_PRIVATE_KEY`, and sends the dispatch:
 
