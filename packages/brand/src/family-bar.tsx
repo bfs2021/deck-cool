@@ -14,10 +14,14 @@ export interface FamilyBarProps {
   readonly install?: string;
 }
 
+/** The switcher's panel. One bar per page, so a fixed id. */
+const PANEL = "family-bar-decks";
+
 /**
  * The top bar every deck.cool site shares (design direction C). The switcher
- * is a <details>, and every motion is CSS in `public/family-bar.css`, so the
- * bar ships no JavaScript.
+ * is a popover its button toggles, which closes on Escape and on a click
+ * outside it. Every motion is CSS in `public/family-bar.css`, so the bar ships
+ * no JavaScript.
  */
 export function FamilyBar({ current, links, install }: FamilyBarProps) {
   const deck = "kind" in current ? current : undefined;
@@ -26,26 +30,29 @@ export function FamilyBar({ current, links, install }: FamilyBarProps) {
       <link rel="stylesheet" href="/family-bar.css" />
       <header className="family-bar" data-deck={deck?.name}>
         <nav aria-label="Main" className="family-bar__row">
-          <details className="family-bar__switch">
-            <summary aria-label="Switch deck">
-              <svg className="family-bar__fan" width="26" height="26" viewBox="0 0 64 64" aria-hidden="true">
-                <rect className="family-bar__fan-left" x="22" y="15" width="20" height="28" rx="4" />
-                <rect className="family-bar__fan-right" x="22" y="15" width="20" height="28" rx="4" />
-                <rect className="family-bar__fan-front" x="22" y="15" width="20" height="28" rx="4" />
-              </svg>
-              <svg className="family-bar__chevron" width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
-                <path d="M2 3.5 L5 6.5 L8 3.5" />
-              </svg>
-            </summary>
-            <div className="family-bar__shade" />
+          <button type="button" className="family-bar__switch" popoverTarget={PANEL} aria-label="Switch deck">
+            <svg className="family-bar__fan" width="26" height="26" viewBox="0 0 64 64" aria-hidden="true">
+              <rect className="family-bar__fan-left" x="22" y="15" width="20" height="28" rx="4" />
+              <rect className="family-bar__fan-right" x="22" y="15" width="20" height="28" rx="4" />
+              <rect className="family-bar__fan-front" x="22" y="15" width="20" height="28" rx="4" />
+            </svg>
+            <svg className="family-bar__chevron" width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
+              <path d="M2 3.5 L5 6.5 L8 3.5" />
+            </svg>
+          </button>
+          {/* The panel covers the page under the bar: the sheet of decks, then
+              the shade, which closes the panel and keeps the click from the page. */}
+          <div id={PANEL} popover="auto" className="family-bar__panel">
             <div className="family-bar__sheet">
               <div className="family-bar__decks">
-                <p id="family-bar-decks">The decks</p>
-                <ul aria-labelledby="family-bar-decks">
+                <p id={`${PANEL}-label`}>The decks</p>
+                <ul aria-labelledby={`${PANEL}-label`}>
                   {decks.map((each) => (
                     <li key={each.name}>
                       <a href={each.url} aria-current={each === deck ? "page" : undefined}>
-                        <img src={each.icons.still} alt="" width="44" height="44" loading="lazy" />
+                        {/* Low priority, and not lazy: React then writes no preload,
+                            and the icons are there before the panel first opens. */}
+                        <img src={each.icons.still} alt="" width="44" height="44" fetchPriority="low" />
                         <span>
                           <strong>{each.name}</strong>
                           <span>{each.kind}</span>
@@ -56,7 +63,15 @@ export function FamilyBar({ current, links, install }: FamilyBarProps) {
                 </ul>
               </div>
             </div>
-          </details>
+            <button
+              type="button"
+              className="family-bar__shade"
+              popoverTarget={PANEL}
+              popoverTargetAction="hide"
+              tabIndex={-1}
+              aria-hidden="true"
+            />
+          </div>
           {deck && (
             <span className="family-bar__slash" aria-hidden="true">
               /
