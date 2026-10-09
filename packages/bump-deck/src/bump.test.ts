@@ -155,32 +155,55 @@ describe("the daily run", () => {
     return { asked, fetch };
   }
   const options = (fetch: typeof globalThis.fetch) => ({ registry: "https://registry.npmjs.org/", fetch, now, holdMinutes: 1440 });
+  const ago = (hours: number) => new Date(now.getTime() - hours * HOUR);
+  /** npm's answer for every @pagedeck/* package the manifests use, with `rest` in front. */
+  const pagedeck = (version: string, published: Date, rest: Readonly<Record<string, { version: string; published: Date }>> = {}) => ({
+    "@pagedeck/content": { version, published },
+    "@pagedeck/core": { version, published },
+    "@pagedeck/islands": { version, published },
+    ...rest,
+  });
 
-  test("finds nothing newer, and asks npm only about decks the workspace uses", async () => {
-    const { asked, fetch } = npm({ "@pagedeck/content": { version: "0.2.3", published: new Date(now.getTime() - 48 * HOUR) } });
+  test("finds nothing newer, and asks npm about every package of the decks the workspace uses", async () => {
+    const { asked, fetch } = npm(pagedeck("0.2.3", ago(48)));
     expect(await findReleases(manifests, options(fetch))).toEqual([
       { kind: "unused", deck: "slidedeck" },
       { kind: "unused", deck: "playdeck" },
       { kind: "current", deck: "pagedeck", version: "0.2.3" },
     ]);
-    expect(asked).toEqual(["https://registry.npmjs.org/@pagedeck%2fcontent"]);
+    expect(asked).toEqual([
+      "https://registry.npmjs.org/@pagedeck%2fcontent",
+      "https://registry.npmjs.org/@pagedeck%2fcore",
+      "https://registry.npmjs.org/@pagedeck%2fislands",
+    ]);
   });
 
   test("skips a newer version that is still inside the hold", async () => {
-    const published = new Date(now.getTime() - 2 * HOUR);
-    const { fetch } = npm({ "@pagedeck/content": { version: "0.3.0", published } });
-    expect((await findReleases(manifests, options(fetch))).at(-1)).toEqual({ kind: "young", deck: "pagedeck", version: "0.3.0", published });
+    const { fetch } = npm(pagedeck("0.3.0", ago(2)));
+    expect((await findReleases(manifests, options(fetch))).at(-1)).toEqual({ kind: "young", deck: "pagedeck", version: "0.3.0", published: ago(2) });
   });
 
   test("bumps a newer version that has passed the hold", async () => {
-    const { fetch } = npm({ "@pagedeck/content": { version: "0.3.0", published: new Date(now.getTime() - 25 * HOUR) } });
+    const { fetch } = npm(pagedeck("0.3.0", ago(25)));
     expect((await findReleases(manifests, options(fetch))).at(-1)).toEqual({ kind: "bump", deck: "pagedeck", version: "0.3.0" });
   });
 
-  test("bumps from the newest version any package is at", async () => {
+  test("bumps a workspace that is half bumped: one package at the latest, another below it", async () => {
     const mixed = [JSON.stringify({ name: "a", dependencies: { "@pagedeck/content": "0.2.3", "@pagedeck/core": "0.3.0" } })];
-    const { fetch } = npm({ "@pagedeck/content": { version: "0.3.0", published: new Date(now.getTime() - 48 * HOUR) } });
-    expect((await findReleases(mixed, options(fetch))).at(-1)).toEqual({ kind: "current", deck: "pagedeck", version: "0.3.0" });
+    const { fetch } = npm(pagedeck("0.3.0", ago(48)));
+    expect((await findReleases(mixed, options(fetch))).at(-1)).toEqual({ kind: "bump", deck: "pagedeck", version: "0.3.0" });
+  });
+
+  test("takes the highest latest among the deck's packages, and reads the hold from that one", async () => {
+    const { fetch } = npm(pagedeck("0.3.0", ago(48), { "@pagedeck/islands": { version: "0.3.1", published: ago(2) } }));
+    expect((await findReleases(manifests, options(fetch))).at(-1)).toEqual({ kind: "young", deck: "pagedeck", version: "0.3.1", published: ago(2) });
+  });
+
+  test("fails on a registry error for any of the deck's packages", async () => {
+    const { fetch } = npm({ "@pagedeck/content": { version: "0.3.0", published: ago(48) }, "@pagedeck/islands": { version: "0.3.0", published: ago(48) } });
+    await expect(findReleases(manifests, options(fetch))).rejects.toThrow(
+      "npm did not answer for @pagedeck/core: https://registry.npmjs.org/@pagedeck%2fcore returned HTTP 404",
+    );
   });
 
   test("fails on a registry error, naming the package and the status", async () => {
@@ -369,6 +392,18 @@ describe("a workspace's bump", () => {
   test("changes nothing for a deck the workspace does not use", { timeout: 60_000 }, async () => {
     const root = await workspace();
     expect(await bumpWorkspace(root, { deck: "playdeck", version: "1.1.0" }, env)).toEqual({ changes: [] });
+  });
+
+  test("cli.ts find bumps nothing, and writes a notice, for versions inside the hold", { timeout: 60_000 }, async () => {
+    const root = await workspace();
+    const outputs = join(root, "github-output");
+    const { stdout } = await promisify(execFile)(process.execPath, [new URL("./cli.ts", import.meta.url).pathname, "find"], {
+      cwd: root,
+      env: { ...process.env, ...env, GITHUB_OUTPUT: outputs },
+    });
+    expect(stdout).toContain("::notice title=Held back::slidedeck 1.2.0 was published at");
+    expect(stdout).toContain("::notice title=Held back::pagedeck 1.2.0 was published at");
+    expect(read(root, "github-output")).toBe("releases=[]\n");
   });
 
   test("fails on a version younger than the release-age hold, and excludes nothing", { timeout: 60_000 }, async () => {

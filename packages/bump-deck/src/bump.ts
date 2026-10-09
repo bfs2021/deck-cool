@@ -55,12 +55,13 @@ function versionOf(spec: string): number[] | undefined {
   return /^[\^~=v]?(\d+)\.(\d+)\.(\d+)/.exec(spec)?.slice(1).map(Number);
 }
 
-function isNewer(spec: string, version: string): boolean {
-  const current = versionOf(spec);
-  const next = versionOf(version) ?? [];
-  if (current === undefined) return false;
-  for (const [index, part] of current.entries()) {
-    const other = next[index] ?? 0;
+/** Whether `a`'s X.Y.Z is newer than `b`'s. Each is a version or a spec. */
+function isNewer(a: string, b: string): boolean {
+  const left = versionOf(a);
+  const right = versionOf(b) ?? [];
+  if (left === undefined) return false;
+  for (const [index, part] of left.entries()) {
+    const other = right[index] ?? 0;
     if (part !== other) return part > other;
   }
   return false;
@@ -167,26 +168,29 @@ async function latestOf(name: string, { registry, fetch }: RegistryOptions): Pro
 }
 
 /**
- * For each deck in turn, reads npm's latest version of one `@<deck>/*` package the workspace
- * depends on, and says whether the deck can be bumped to it. The bump itself goes through
- * the same path as a dispatch, which checks again.
+ * For each deck in turn, reads npm's latest version of every `@<deck>/*` package the
+ * workspace depends on, takes the highest, and says whether the deck can be bumped to it:
+ * whether any package is below it, and it has passed the hold. The bump itself goes
+ * through the same path as a dispatch, which checks again.
  */
 export async function findReleases(manifests: readonly string[], options: RegistryOptions): Promise<Finding[]> {
   const findings: Finding[] = [];
   for (const deck of DECKS) {
-    const dependencies = dependenciesOf(manifests, deck).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
-    const first = dependencies[0];
-    if (first === undefined) {
-      findings.push({ kind: "unused", deck });
-      continue;
+    const dependencies = dependenciesOf(manifests, deck);
+    const names = [...new Set(dependencies.map(([name]) => name))].sort();
+    let newest: { version: string; published: Date } | undefined;
+    for (const name of names) {
+      const latest = await latestOf(name, options);
+      if (newest === undefined || isNewer(latest.version, newest.version)) newest = latest;
     }
-    const { version, published } = await latestOf(first[0], options);
-    if (!dependencies.every(([, spec]) => isNewer(version, spec))) {
-      findings.push({ kind: "current", deck, version });
-    } else if (options.now.getTime() - published.getTime() < options.holdMinutes * 60 * 1000) {
-      findings.push({ kind: "young", deck, version, published });
+    if (newest === undefined) {
+      findings.push({ kind: "unused", deck });
+    } else if (!dependencies.some(([, spec]) => isNewer(newest.version, spec))) {
+      findings.push({ kind: "current", deck, version: newest.version });
+    } else if (options.now.getTime() - newest.published.getTime() < options.holdMinutes * 60 * 1000) {
+      findings.push({ kind: "young", deck, version: newest.version, published: newest.published });
     } else {
-      findings.push({ kind: "bump", deck, version });
+      findings.push({ kind: "bump", deck, version: newest.version });
     }
   }
   return findings;

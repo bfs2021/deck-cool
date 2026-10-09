@@ -35,7 +35,7 @@ deck.cool is deployed with wrangler, as Workers Static Assets, by `.github/workf
 
 ## Releasing a deck
 
-When a deck publishes a release, `.github/workflows/bump-deck.yml` sets every `@<deck>/*` dependency in the workspace to the new version, updates the lockfile, and opens a PR titled `Bump <deck> to <version>` from the branch `bump/<deck>-<version>`. The PR merges itself, squashed, once CI passes. A second dispatch for the same version does nothing. A dispatch for a version older than one the workspace already has fails and changes nothing: the workflow never downgrades. The bump logic is `packages/bump-deck`.
+`.github/workflows/bump-deck.yml` sets every `@<deck>/*` dependency in the workspace to a deck's new version, updates the lockfile, and opens a PR titled `Bump <deck> to <version>` from the branch `bump/<deck>-<version>`. The PR merges itself, squashed, once CI passes. When a deck publishes a release, its dispatch tries this at once, and that first try usually fails on pnpm's one-day hold. The daily run bumps the release once it is a day old. A second dispatch for the same version does nothing. A dispatch for a version older than one the workspace already has fails and changes nothing: the workflow never downgrades. The bump logic is `packages/bump-deck`.
 
 The workflow runs on a `repository_dispatch` of type `deck-released`, with this payload:
 
@@ -47,7 +47,7 @@ The workflow runs on a `repository_dispatch` of type `deck-released`, with this 
 
 pnpm holds back a version for `minimumReleaseAge` (a day), and the workflow keeps that hold: a dispatch for a younger version fails, says so, and pushes nothing. So the dispatch a release sends straight after `npm publish` fails on purpose.
 
-The workflow also runs once a day, at 06:17 UTC, and on `gh workflow run bump-deck.yml` with no inputs. That run reads npm's latest version of each deck the workspace depends on, from one of its `@<deck>/*` packages, and bumps each deck in turn, with the same checks as a dispatch. A version still inside the hold is skipped with a notice, and the run stays green. A later daily run bumps it.
+The workflow also runs once a day, at 06:17 UTC, and on `gh workflow run bump-deck.yml` with no inputs. That run reads npm's latest version of every `@<deck>/*` package the workspace depends on, takes each deck's highest, and bumps each deck in turn, with the same checks as a dispatch. A version still inside the hold is skipped with a notice, and the run stays green. A later daily run bumps it.
 
 Each deck's release workflow adds one step after `npm publish`. It gets a token from the `deck-cool-releases` App, with the repo variable `DECK_APP_ID` and the repo secret `DECK_APP_PRIVATE_KEY`, and sends the dispatch:
 
