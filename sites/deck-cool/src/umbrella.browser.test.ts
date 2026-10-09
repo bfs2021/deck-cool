@@ -126,7 +126,7 @@ describe("the umbrella site in a browser", () => {
       });
 
     expect((await hit(".card__description")).link).toBe(deck.url);
-    expect((await hit(".card__figures li")).link).toBe(deck.url);
+    expect((await hit(".card__figure")).link).toBe(deck.url);
     expect(await hit("code")).toEqual({ link: undefined, isElement: true });
 
     // One click selects the whole command, and goes nowhere.

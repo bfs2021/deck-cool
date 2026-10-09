@@ -214,9 +214,9 @@ test("the hero shows the fanned cards, the headline, the line under it and a lin
   const hero = present(home().querySelector("main > section:first-of-type"), "the hero");
   expect(hero?.querySelector("img")?.getAttribute("src")).toBe(umbrella.icons.animated);
   expect(hero?.querySelector("img")?.getAttribute("alt")).toBe("");
-  expect(text(hero?.querySelector("h1"))).toBe("React, unstyled. One deck at a time.");
+  expect(text(hero?.querySelector("h1"))).toBe("It looks like you. It works like the browser.");
   expect(text(hero?.querySelector("p"))).toBe(
-    "Small React packages that lean on what the browser already does. None of them ships a stylesheet. The look is yours.",
+    "Unstyled React packages for carousels, video and sites. Bring your tokens, your CSS, or your agent. The hard parts are already done.",
   );
   expect(links(hero)).toEqual([["Browse the decks", "#decks"]]);
   expect(home().getElementById("decks")).not.toBeNull();
@@ -228,19 +228,17 @@ describe("each deck's card", () => {
     expect(cards.map((card) => card.id)).toEqual(decks.map((deck) => deck.name));
   });
 
-  test.each(decks)("$name's card holds its icon, copy, install command and figures", (deck) => {
+  test.each(decks)("$name's card holds its icon, copy, install command and one figure", (deck) => {
     const card = home().getElementById(deck.name);
     expect(card?.querySelector("img")?.getAttribute("src")).toBe(deck.icons.animated);
     expect(card?.querySelector("img")?.getAttribute("alt")).toBe("");
     expect(text(card?.querySelector("h2"))).toBe(deck.name);
-    const paragraphs = [...(card?.querySelectorAll("p") ?? [])].map(text);
+    const paragraphs = [...(card?.querySelectorAll(".card__text p") ?? [])].map(text);
     expect(paragraphs).toEqual([deck.kind, deck.claim, deck.description]);
     expect(text(card?.querySelector("code"))).toBe(deck.install);
-    const figures = [...(card?.querySelectorAll("li") ?? [])].map((li) => [
-      text(li.firstElementChild),
-      text(li.lastElementChild),
-    ]);
-    expect(figures).toEqual(deck.figures.map(({ value, label }) => [value, label]));
+    const figure = [...(card?.querySelectorAll(".card__figure > p") ?? [])].map(text);
+    const { value, label, note } = deck.figure;
+    expect(figure).toEqual(note === undefined ? [value, label] : [value, label, note]);
   });
 
   test.each(decks)("$name's card links to its site", (deck) => {
@@ -248,13 +246,104 @@ describe("each deck's card", () => {
   });
 });
 
-test("the band says no stylesheet ships, with a part selector to style", () => {
-  const band = home().querySelector("main > section:last-of-type");
-  expect(text(band?.querySelector("h2"))).toBe("No stylesheet ships.");
-  expect(text(band?.querySelector("p"))).toBe(
-    "Every deck renders plain markup with stable part names. You style it with your own CSS, in your own design system.",
-  );
-  expect(band?.querySelector("pre")?.textContent).toBe("[data-playdeck-part='play-button'] {\n  border-radius: 999px;\n}");
+/** Each quality section's tiles, as [deck name in the heading, heading, text or list items]. */
+type Tile = [string | undefined, string | undefined, (string | undefined)[]];
+
+function tiles(section: Element | undefined): Tile[] {
+  return [...(section?.querySelectorAll(".tile") ?? [])].map((tile) => [
+    text(tile.querySelector("h3 .tile__deck")),
+    text(tile.querySelector("h3")),
+    [...tile.querySelectorAll(".tile__body, li")].map(text),
+  ]);
+}
+
+describe("the four quality sections", () => {
+  /** The sections after the cards, in order. */
+  const sections = () => [...home().querySelectorAll("main > section.band")];
+
+  test("follow the cards, in the brief's order", () => {
+    expect(home().querySelector("#decks ~ section.band")).not.toBeNull();
+    expect(sections().map((section) => text(section.querySelector("h2")))).toEqual([
+      "Unstyled, your look.",
+      "Small, leans on the browser.",
+      "Built for agents.",
+      "Accessible by default.",
+    ]);
+  });
+
+  test("unstyled: plain markup with named parts, and a part selector to style", () => {
+    const section = sections()[0];
+    expect(text(section?.querySelector("p"))).toBe(
+      "Every deck renders plain HTML and needs no stylesheet, so there is no theme to fight. slidedeck and playdeck give every part a stable name, and pagedeck renders your own components. Point your CSS or your tokens at the markup, and the look is yours.",
+    );
+    expect(section?.querySelector("pre")?.textContent).toBe("[data-playdeck-part='play-button'] {\n  border-radius: 999px;\n}");
+  });
+
+  test("small: one way each deck leans on the browser", () => {
+    const section = sections()[1];
+    expect(text(section?.querySelector("p"))).toBe(
+      "The browser already knows how to scroll, play video and show a page. The decks build on what it does instead of rebuilding it, so there is less code to ship.",
+    );
+    expect(tiles(section)).toEqual([
+      ["slidedeck", "slidedeck Native scrolling", ["Momentum, snapping and keyboard scrolling come from CSS scroll snap in a real scroll container."]],
+      ["playdeck", "playdeck Native video", ["Files and HLS streams play in the browser's own video element."]],
+      ["pagedeck", "pagedeck HTML first", ["Pages render to HTML when the site builds. A page with nothing interactive ships no JavaScript at all."]],
+    ]);
+  });
+
+  test("agents: typed APIs, tested examples and predictable markup, and nothing about llms.txt", () => {
+    const section = sections()[2];
+    expect(text(section?.querySelector("p"))).toBe(
+      "Whether you write the code or your coding agent does, the decks leave less to guess.",
+    );
+    expect(tiles(section)).toEqual([
+      [undefined, "Small typed APIs", ["Every deck is written in TypeScript and ships its types, so your editor and your agent see every prop."]],
+      [undefined, "Tested examples", ["Each deck's CI checks its examples, so the code you copy from the docs compiles."]],
+      [undefined, "Predictable markup", ["slidedeck and playdeck name every part, and in pagedeck the markup is your own, so an agent never has to guess."]],
+    ]);
+    expect(section?.textContent).not.toMatch(/llms\.txt/i);
+  });
+
+  test("accessible: each deck's claims, every one with a test in its repo (listed in the PR for #45)", () => {
+    const section = sections()[3];
+    expect(text(section?.querySelector("p"))).toBe(
+      "The decks take care of the keyboard, focus and screen readers for you. Each line below is backed by a test in that deck's own repo.",
+    );
+    expect(tiles(section)).toEqual([
+      [
+        undefined,
+        "slidedeck",
+        [
+          'A labelled carousel region, each slide a group labelled "n of m".',
+          "Arrow keys move the focused deck, and every dot is a button the keyboard reaches.",
+          "Tab into an off-screen slide and it scrolls into view.",
+          "A polite live region announces your moves, never autoplay's.",
+          "Under reduced motion, moves jump instead of gliding, and autoplay starts stopped.",
+        ],
+      ],
+      [
+        undefined,
+        "playdeck",
+        [
+          "Every control is reachable by Tab, in order.",
+          "Keyboard shortcuts mute, pause and seek the video itself.",
+          "The settings menu takes focus when it opens and gives it back on Escape.",
+          "Live regions announce changes of state, never the ticking clock.",
+          "axe finds no violations in any state of the reference player.",
+          "A viewer who asks for reduced motion gets no autoplay, unless you opt out.",
+        ],
+      ],
+      [
+        undefined,
+        "pagedeck",
+        [
+          "Every page gets exactly one main landmark. A component that renders a second fails the build.",
+          "Search is a combobox: arrow keys walk the results, Enter follows one, Escape closes them.",
+          "Text typed into search before it hydrates is kept, caret and all.",
+        ],
+      ],
+    ]);
+  });
 });
 
 test("the footer follows <main>, with deck.cool, the licence and npm", () => {

@@ -4,7 +4,76 @@ interface Props {
   title: string;
 }
 
-/** The home page (design/canvas/Main.dc.html). Styled by umbrella.css. */
+/** One way each deck leans on the browser. */
+const browser = [
+  {
+    deck: "slidedeck",
+    heading: "Native scrolling",
+    body: "Momentum, snapping and keyboard scrolling come from CSS scroll snap in a real scroll container.",
+  },
+  { deck: "playdeck", heading: "Native video", body: "Files and HLS streams play in the browser's own video element." },
+  {
+    deck: "pagedeck",
+    heading: "HTML first",
+    body: "Pages render to HTML when the site builds. A page with nothing interactive ships no JavaScript at all.",
+  },
+] as const;
+
+/** No claim about llms.txt or a markdown twin per page until pagedeck#34 ships them. */
+const agents = [
+  {
+    heading: "Small typed APIs",
+    body: "Every deck is written in TypeScript and ships its types, so your editor and your agent see every prop.",
+  },
+  { heading: "Tested examples", body: "Each deck's CI checks its examples, so the code you copy from the docs compiles." },
+  {
+    heading: "Predictable markup",
+    body: "slidedeck and playdeck name every part, and in pagedeck the markup is your own, so an agent never has to guess.",
+  },
+] as const;
+
+/**
+ * Only claims a test in the deck's own repo proves (CONTEXT.md). Each claim's
+ * test is listed in the PR for #45. A claim with no test is filed in that
+ * deck's repo instead: pagedeck's reduced motion is pedrosousa13/pagedeck#121.
+ */
+const accessible = [
+  {
+    deck: "slidedeck",
+    claims: [
+      'A labelled carousel region, each slide a group labelled "n of m".',
+      "Arrow keys move the focused deck, and every dot is a button the keyboard reaches.",
+      "Tab into an off-screen slide and it scrolls into view.",
+      "A polite live region announces your moves, never autoplay's.",
+      "Under reduced motion, moves jump instead of gliding, and autoplay starts stopped.",
+    ],
+  },
+  {
+    deck: "playdeck",
+    claims: [
+      "Every control is reachable by Tab, in order.",
+      "Keyboard shortcuts mute, pause and seek the video itself.",
+      "The settings menu takes focus when it opens and gives it back on Escape.",
+      "Live regions announce changes of state, never the ticking clock.",
+      "axe finds no violations in any state of the reference player.",
+      "A viewer who asks for reduced motion gets no autoplay, unless you opt out.",
+    ],
+  },
+  {
+    deck: "pagedeck",
+    claims: [
+      "Every page gets exactly one main landmark. A component that renders a second fails the build.",
+      "Search is a combobox: arrow keys walk the results, Enter follows one, Escape closes them.",
+      "Text typed into search before it hydrates is kept, caret and all.",
+    ],
+  },
+] as const;
+
+/**
+ * The home page. Its layout is design/canvas/Main.dc.html's; its hero,
+ * figures and quality sections are CONTEXT.md's "The landing pages' message".
+ * Styled by umbrella.css.
+ */
 export default function Layout({ title }: Props) {
   return (
     <>
@@ -15,13 +84,13 @@ export default function Layout({ title }: Props) {
       <section className="hero">
         <img src={umbrella.icons.animated} alt="" width="96" height="96" />
         <h1>
-          React, unstyled.{" "}
+          It looks like you.{" "}
           <br />
-          <span>One deck at a time.</span>
+          <span>It works like the browser.</span>
         </h1>
         <p>
-          Small React packages that lean on what the browser already does. None of them ships a stylesheet. The look is
-          yours.
+          Unstyled React packages for carousels, video and sites. Bring your tokens, your CSS, or your agent. The hard parts
+          are already done.
         </p>
         <div className="hero__links">
           <a href="#decks" className="hero__browse">
@@ -50,30 +119,85 @@ export default function Layout({ title }: Props) {
                 Visit {deck.name} ›
               </a>
             </div>
-            <ul className="card__figures">
-              {deck.figures.map(({ value, label }) => (
-                <li key={value}>
-                  <span>{value}</span>
-                  <span>{label}</span>
-                </li>
-              ))}
-            </ul>
+            <div className="card__figure">
+              <p>{deck.figure.value}</p>
+              <p>{deck.figure.label}</p>
+              {deck.figure.note === undefined ? null : <p>{deck.figure.note}</p>}
+            </div>
           </article>
         ))}
       </section>
 
       <section className="band">
-        <div>
-          <h2>No stylesheet ships.</h2>
+        <div className="band__text">
+          <h2>Unstyled, your look.</h2>
           <p>
-            Every deck renders plain markup with stable part names. You style it with your own CSS, in your own design
-            system.
+            Every deck renders plain HTML and needs no stylesheet, so there is no theme to fight. slidedeck and playdeck
+            give every part a stable name, and pagedeck renders your own components. Point your CSS or your tokens at the
+            markup, and the look is yours.
           </p>
         </div>
         <pre>
           <span>[data-playdeck-part='play-button']</span>
           {" {\n  border-radius: 999px;\n}"}
         </pre>
+      </section>
+
+      <section className="band band--tiles">
+        <div className="band__text">
+          <h2>Small, leans on the browser.</h2>
+          <p>
+            The browser already knows how to scroll, play video and show a page. The decks build on what it does instead
+            of rebuilding it, so there is less code to ship.
+          </p>
+        </div>
+        <ul className="tiles">
+          {browser.map(({ deck, heading, body }) => (
+            <li key={deck} className="tile" data-deck={deck}>
+              <h3>
+                <span className="tile__deck">{deck}</span> {heading}
+              </h3>
+              <p className="tile__body">{body}</p>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section className="band band--tiles">
+        <div className="band__text">
+          <h2>Built for agents.</h2>
+          <p>Whether you write the code or your coding agent does, the decks leave less to guess.</p>
+        </div>
+        <ul className="tiles">
+          {agents.map(({ heading, body }) => (
+            <li key={heading} className="tile">
+              <h3>{heading}</h3>
+              <p className="tile__body">{body}</p>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section className="band band--tiles">
+        <div className="band__text">
+          <h2>Accessible by default.</h2>
+          <p>
+            The decks take care of the keyboard, focus and screen readers for you. Each line below is backed by a test in
+            that deck's own repo.
+          </p>
+        </div>
+        <ul className="tiles">
+          {accessible.map(({ deck, claims }) => (
+            <li key={deck} className="tile" data-deck={deck}>
+              <h3 className="tile__name">{deck}</h3>
+              <ul>
+                {claims.map((claim) => (
+                  <li key={claim}>{claim}</li>
+                ))}
+              </ul>
+            </li>
+          ))}
+        </ul>
       </section>
     </>
   );
