@@ -26,3 +26,5 @@ The source of the design canvas boards (https://claude.ai/artifact/QjhCKzzVi3X3B
 | `Favicons.dc.html`, `Favicons3.dc.html`, `Favicons4.dc.html` | Not chosen: favicon rounds 1, 3 and 4 |
 
 The umbrella site's copy for each deck is real: it was taken from slidedeck.pages.dev, playdeck.video and pagedeck's landing page on 2026-10-08.
+
+The umbrella's hero, quality sections and figures now come from the #33 grilling (`../CONTEXT.md`) and from the decks' READMEs, not from the 2026-10-08 sites.

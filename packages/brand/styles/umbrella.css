@@ -182,17 +182,17 @@ main h3 {
   padding-top: 16px;
   border-top: 1px solid var(--rule);
 }
-.card__figure span:first-child {
+.card__figure p:first-child {
   font-size: 56px;
   line-height: 1.05;
   font-weight: 600;
   letter-spacing: -.025em;
 }
-.card__figure span:nth-child(2) {
+.card__figure p:nth-child(2) {
   font-size: 17px;
   line-height: 1.35;
 }
-.card__figure span:nth-child(3) {
+.card__figure p:nth-child(3) {
   font-size: 13px;
   color: var(--text-secondary);
 }
@@ -220,7 +220,7 @@ main h3 {
   font-weight: 600;
   letter-spacing: -.02em;
 }
-.band p {
+.band__text p {
   font-size: 19px;
   line-height: 1.42;
   color: var(--text-secondary);
@@ -244,6 +244,7 @@ main h3 {
 /* A band with tiles stacks its text over them. */
 .band--tiles {
   flex-direction: column;
+  flex-wrap: nowrap;
   align-items: stretch;
   gap: 40px;
 }
@@ -267,8 +268,13 @@ main h3 {
   border-radius: 28px;
   background: var(--ground-tile);
 }
+/* The deck's name, inside the heading so it is read with it. */
 .tile__deck {
+  display: block;
+  margin-bottom: 10px;
   font-size: 15px;
+  font-weight: 400;
+  letter-spacing: normal;
   color: var(--tint, var(--text-secondary));
 }
 .tile h3 {
@@ -277,7 +283,7 @@ main h3 {
   font-weight: 600;
   letter-spacing: -.01em;
 }
-.tile[data-deck] h3:first-child {
+.tile .tile__name {
   color: var(--tint);
 }
 .tile__body,
@@ -338,7 +344,7 @@ main h3 {
   .band h2 {
     font-size: 40px;
   }
-  .card__figure span:first-child {
+  .card__figure p:first-child {
     font-size: 48px;
   }
   .tile {

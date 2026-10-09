@@ -216,7 +216,7 @@ test("the hero shows the fanned cards, the headline, the line under it and a lin
   expect(hero?.querySelector("img")?.getAttribute("alt")).toBe("");
   expect(text(hero?.querySelector("h1"))).toBe("It looks like you. It works like the browser.");
   expect(text(hero?.querySelector("p"))).toBe(
-    "Unstyled React packages for carousels, video and sites. Bring your tokens, your CSS, or your agent — the hard parts are already done.",
+    "Unstyled React packages for carousels, video and sites. Bring your tokens, your CSS, or your agent. The hard parts are already done.",
   );
   expect(links(hero)).toEqual([["Browse the decks", "#decks"]]);
   expect(home().getElementById("decks")).not.toBeNull();
@@ -233,10 +233,10 @@ describe("each deck's card", () => {
     expect(card?.querySelector("img")?.getAttribute("src")).toBe(deck.icons.animated);
     expect(card?.querySelector("img")?.getAttribute("alt")).toBe("");
     expect(text(card?.querySelector("h2"))).toBe(deck.name);
-    const paragraphs = [...(card?.querySelectorAll("p") ?? [])].map(text);
+    const paragraphs = [...(card?.querySelectorAll(".card__text p") ?? [])].map(text);
     expect(paragraphs).toEqual([deck.kind, deck.claim, deck.description]);
     expect(text(card?.querySelector("code"))).toBe(deck.install);
-    const figure = [...(card?.querySelectorAll(".card__figure > span") ?? [])].map(text);
+    const figure = [...(card?.querySelectorAll(".card__figure > p") ?? [])].map(text);
     const { value, label, note } = deck.figure;
     expect(figure).toEqual(note === undefined ? [value, label] : [value, label, note]);
   });
@@ -246,12 +246,12 @@ describe("each deck's card", () => {
   });
 });
 
-/** Each quality section's tiles, as [kicker, heading, text or list items]. */
+/** Each quality section's tiles, as [deck name in the heading, heading, text or list items]. */
 type Tile = [string | undefined, string | undefined, (string | undefined)[]];
 
 function tiles(section: Element | undefined): Tile[] {
   return [...(section?.querySelectorAll(".tile") ?? [])].map((tile) => [
-    text(tile.querySelector(".tile__deck")),
+    text(tile.querySelector("h3 .tile__deck")),
     text(tile.querySelector("h3")),
     [...tile.querySelectorAll(".tile__body, li")].map(text),
   ]);
@@ -285,9 +285,9 @@ describe("the four quality sections", () => {
       "The browser already knows how to scroll, play video and show a page. The decks build on what it does instead of rebuilding it, so there is less code to ship.",
     );
     expect(tiles(section)).toEqual([
-      ["slidedeck", "Native scrolling", ["Momentum, snapping and keyboard scrolling come from CSS scroll snap in a real scroll container."]],
-      ["playdeck", "Native video", ["Files and HLS streams play in the browser's own video element."]],
-      ["pagedeck", "HTML first", ["Pages render to HTML when the site builds. A page with nothing interactive ships no JavaScript at all."]],
+      ["slidedeck", "slidedeck Native scrolling", ["Momentum, snapping and keyboard scrolling come from CSS scroll snap in a real scroll container."]],
+      ["playdeck", "playdeck Native video", ["Files and HLS streams play in the browser's own video element."]],
+      ["pagedeck", "pagedeck HTML first", ["Pages render to HTML when the site builds. A page with nothing interactive ships no JavaScript at all."]],
     ]);
   });
 
@@ -299,12 +299,12 @@ describe("the four quality sections", () => {
     expect(tiles(section)).toEqual([
       [undefined, "Small typed APIs", ["Every deck is written in TypeScript and ships its types, so your editor and your agent see every prop."]],
       [undefined, "Tested examples", ["Each deck's CI checks its examples, so the code you copy from the docs compiles."]],
-      [undefined, "Predictable markup", ["Plain HTML with stable part names, so an agent can target a part without guessing."]],
+      [undefined, "Predictable markup", ["slidedeck and playdeck name every part, and in pagedeck the markup is your own, so an agent never has to guess."]],
     ]);
     expect(section?.textContent).not.toMatch(/llms\.txt/i);
   });
 
-  test("accessible: each deck's claims, every one with a test in its repo (.scratch/45-a11y-claims.md)", () => {
+  test("accessible: each deck's claims, every one with a test in its repo (listed in the PR for #45)", () => {
     const section = sections()[3];
     expect(text(section?.querySelector("p"))).toBe(
       "The decks take care of the keyboard, focus and screen readers for you. Each line below is backed by a test in that deck's own repo.",

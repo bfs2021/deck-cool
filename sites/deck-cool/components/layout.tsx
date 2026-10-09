@@ -28,7 +28,7 @@ const agents = [
   { heading: "Tested examples", body: "Each deck's CI checks its examples, so the code you copy from the docs compiles." },
   {
     heading: "Predictable markup",
-    body: "Plain HTML with stable part names, so an agent can target a part without guessing.",
+    body: "slidedeck and playdeck name every part, and in pagedeck the markup is your own, so an agent never has to guess.",
   },
 ] as const;
 
@@ -69,7 +69,11 @@ const accessible = [
   },
 ] as const;
 
-/** The home page (design/canvas/Main.dc.html). Styled by umbrella.css. */
+/**
+ * The home page. Its layout is design/canvas/Main.dc.html's; its hero,
+ * figures and quality sections are CONTEXT.md's "The landing pages' message".
+ * Styled by umbrella.css.
+ */
 export default function Layout({ title }: Props) {
   return (
     <>
@@ -85,8 +89,8 @@ export default function Layout({ title }: Props) {
           <span>It works like the browser.</span>
         </h1>
         <p>
-          Unstyled React packages for carousels, video and sites. Bring your tokens, your CSS, or your agent — the hard
-          parts are already done.
+          Unstyled React packages for carousels, video and sites. Bring your tokens, your CSS, or your agent. The hard parts
+          are already done.
         </p>
         <div className="hero__links">
           <a href="#decks" className="hero__browse">
@@ -116,9 +120,9 @@ export default function Layout({ title }: Props) {
               </a>
             </div>
             <div className="card__figure">
-              <span>{deck.figure.value}</span>
-              <span>{deck.figure.label}</span>
-              {deck.figure.note === undefined ? null : <span>{deck.figure.note}</span>}
+              <p>{deck.figure.value}</p>
+              <p>{deck.figure.label}</p>
+              {deck.figure.note === undefined ? null : <p>{deck.figure.note}</p>}
             </div>
           </article>
         ))}
@@ -150,8 +154,9 @@ export default function Layout({ title }: Props) {
         <ul className="tiles">
           {browser.map(({ deck, heading, body }) => (
             <li key={deck} className="tile" data-deck={deck}>
-              <p className="tile__deck">{deck}</p>
-              <h3>{heading}</h3>
+              <h3>
+                <span className="tile__deck">{deck}</span> {heading}
+              </h3>
               <p className="tile__body">{body}</p>
             </li>
           ))}
@@ -184,7 +189,7 @@ export default function Layout({ title }: Props) {
         <ul className="tiles">
           {accessible.map(({ deck, claims }) => (
             <li key={deck} className="tile" data-deck={deck}>
-              <h3>{deck}</h3>
+              <h3 className="tile__name">{deck}</h3>
               <ul>
                 {claims.map((claim) => (
                   <li key={claim}>{claim}</li>
