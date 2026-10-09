@@ -39,10 +39,16 @@ interface Visit {
   permissionsPolicy: string[];
 }
 
-async function visit(options: { width: number; reducedMotion: "reduce" | "no-preference" }): Promise<Visit> {
+async function visit(options: {
+  width: number;
+  reducedMotion: "reduce" | "no-preference";
+  /** Lay the page out as a phone does, honouring the viewport meta tag. */
+  isMobile?: boolean;
+}): Promise<Visit> {
   const context = await browser.newContext({
     viewport: { width: options.width, height: 900 },
     reducedMotion: options.reducedMotion,
+    isMobile: options.isMobile ?? false,
   });
   const offOrigin: string[] = [];
   await context.route(
@@ -111,6 +117,11 @@ describe("the umbrella site in a browser", () => {
   test.each([390, 1280])("at %ipx, the page does not scroll sideways", async (width) => {
     const { page } = await visit({ width, reducedMotion: "reduce" });
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
+  });
+
+  test("on a phone, the page lays out at the phone's width, not a desktop one", async () => {
+    const { page } = await visit({ width: 390, reducedMotion: "reduce", isMobile: true });
+    expect(await page.evaluate(() => window.innerWidth)).toBe(390);
   });
 
   test.each(decks)("a click anywhere on $name's card follows its link, except on the install command", async (deck) => {
