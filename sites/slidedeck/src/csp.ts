@@ -18,8 +18,9 @@ export const DECK_STYLE_HASHES = {
  *
  * Inline style attributes are allowed: slidedeck ships no CSS, so a deck's
  * scroll snapping and each slide's position are style attributes on its
- * server-rendered markup, and Pagedeck renders each island's wrapper with one.
- * They cannot run script, and every page is built from this repo.
+ * server-rendered markup; Pagedeck renders each island's wrapper with one;
+ * and Shiki colours each token of highlighted code with an inline `color`
+ * style. They cannot run script, and every page is built from this repo.
  */
 export const CONTENT_SECURITY_POLICY: HeaderField = {
   name: "Content-Security-Policy",

@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { lines, socialCard } from "./social-card.ts";
+import { lines, loadFont, socialCard } from "./social-card.ts";
 
 test("breaks a headline between words, each line within the card's width", () => {
   const headline = "slidedeck: a React carousel built on native scroll snap";
@@ -16,4 +16,8 @@ test("draws a 1200 by 630 PNG, from the headline or else the title", async () =>
   expect([drawn.width, drawn.height]).toEqual([1200, 630]);
   expect(Buffer.from(drawn.bytes).subarray(1, 4).toString()).toBe("PNG");
   await expect(async () => card.draw({ page, title: undefined, inputs: {} })).rejects.toThrow(/no headline/);
+});
+
+test("fails, naming the file, when the card's font is missing", () => {
+  expect(() => loadFont("/nowhere/Inter-SemiBold.woff")).toThrow(/\/nowhere\/Inter-SemiBold\.woff.*fonts\/OFL\.txt/);
 });

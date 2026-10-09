@@ -207,6 +207,9 @@ importers:
       react-dom:
         specifier: 19.3.0
         version: 19.3.0(react@19.3.0)
+      satori:
+        specifier: 0.33.4
+        version: 0.33.4
     devDependencies:
       '@types/react':
         specifier: 19.3.0

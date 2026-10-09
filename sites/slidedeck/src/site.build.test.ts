@@ -9,6 +9,7 @@ import { slidedeck } from "../components/slidedeck.ts";
 import { CONTENT_SECURITY_POLICY, DECK_STYLE_HASHES } from "./csp.ts";
 import { libraries, size, version } from "./facts.ts";
 import { SITE_ORIGIN } from "./seo.ts";
+import { BUILD_OUTPUT } from "./build.global-setup.ts";
 import { headersFor, parseHeaders } from "./serve-site.ts";
 
 // Reads the build build.global-setup.ts makes.
@@ -216,6 +217,16 @@ test("the site serves no stylesheet but the hashed one", () => {
   expect(sheets[0]).toMatch(/^\/assets\//);
 });
 
+test("the social card's font is the build's alone: the site serves no font", () => {
+  const font = readFileSync(`${SITE}fonts/Inter-SemiBold.woff`);
+  expect(manifest.paths.filter((path) => /\.(woff2?|ttf|otf)$/.test(path))).toEqual([]);
+  for (const file of readdirSync(OUT, { recursive: true, encoding: "utf8" })) {
+    const path = `${OUT}/${file}`;
+    if (statSync(path).isFile()) expect(readFileSync(path).equals(font), file).toBe(false);
+  }
+  expect(readFileSync(`${SITE}fonts/OFL.txt`, "utf8")).toContain("SIL Open Font License, Version 1.1");
+});
+
 test("the icons are the brand's, byte for byte", () => {
   for (const path of [slidedeck.icons.still, slidedeck.icons.appleTouch]) {
     expect(readFileSync(`${OUT}${path}`).equals(readFileSync(`${BRAND}${path.slice(1)}`)), path).toBe(true);
@@ -240,9 +251,10 @@ describe("the home page, its copy as slidedeck.pages.dev had it", () => {
     ]);
   });
 
-  test("reads the installed @slidedeck/react: 1.0, at 8.84 KB", () => {
-    expect(version).toBe("1.0");
-    expect(size).toBe("8.84 KB");
+  // The shapes, not the values: each release of slidedeck brings its own.
+  test("reads the installed @slidedeck/react's version and size", () => {
+    expect(version).toMatch(/^\d+\.\d+$/);
+    expect(size).toMatch(/^\d+\.\d\d KB$/);
   });
 
   test("the sections follow in order", () => {
@@ -275,7 +287,7 @@ describe("the home page, its copy as slidedeck.pages.dev had it", () => {
   test("the comparison is the README's, one tile per library", () => {
     const tiles = [...home().querySelectorAll(".landing-compare li")];
     expect(tiles.map((tile) => text(tile.querySelector("strong")))).toEqual(libraries.map((row) => row.size));
-    expect(text(tiles[0]?.querySelector("h3"))).toBe("@slidedeck/react");
+    expect(tiles.map((tile) => text(tile.querySelector("h3")))).toContain("@slidedeck/react");
   });
 });
 
@@ -320,6 +332,13 @@ describe("every page", () => {
   });
 
   // Until #51 builds /docs/, the links there have no page; the build only warns.
+  test("every link the build warns names nothing is under /docs/", () => {
+    const output = readFileSync(BUILD_OUTPUT, "utf8");
+    const broken = [...output.matchAll(/^pagedeck: {3}en \S+ — "([^"]+)"$/gm)].map(([, href]) => href);
+    if (output.includes("references name nothing this build emitted")) expect(broken).not.toHaveLength(0);
+    for (const href of broken) expect(href).toMatch(/^\/docs\//);
+  });
+
   test.each(PAGES)("%s links only pages the site builds, or the docs to come", (_path, file) => {
     for (const [, href] of links(parse(file))) {
       if (href === null || !href.startsWith("/") || href.startsWith("/docs/")) continue;

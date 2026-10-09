@@ -95,13 +95,11 @@ test("fence reads the first code block of a section, by the section's heading", 
   assert.throws(() => fence(readme(table), 'Install'), /Install/);
 });
 
-test("the installed package's README parses: three libraries, slidedeck first", () => {
+// The shape, not the values: a release may compare against other libraries.
+test("the installed package's README parses, with slidedeck's row in it", () => {
   const real = readFileSync(new URL("../node_modules/@slidedeck/react/README.md", import.meta.url), "utf8");
   const rows = comparison(real);
-  assert.deepEqual(
-    rows.map((row) => row.library),
-    ['@slidedeck/react', 'embla-carousel-react', 'keen-slider']
-  );
+  assert.ok(rows.some((row) => row.library === SLIDEDECK));
   for (const row of rows) assert.match(row.size, /^\d+\.\d\d KB$/);
   assert.match(fence(real, 'Quickstart'), /<Deck\.Root aria-label=/);
   assert.equal(fence(real, 'Install'), 'pnpm add @slidedeck/react');
