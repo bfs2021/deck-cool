@@ -303,7 +303,7 @@ describe("the home page", () => {
     ).toEqual([
       [
         "A real scroll container",
-        "Every deck is a scroll container with CSS scroll snap, so touch, trackpad, mouse wheel, drag and keyboard all move it.",
+        "Every deck is a scroll container with CSS scroll snap: touch, trackpad, wheel and keyboard move it natively, and slidedeck adds mouse drag.",
       ],
       [
         "slidedeck keeps count",
@@ -333,9 +333,9 @@ describe("the home page", () => {
     const section = () => band("Unstyled, your look.");
     const skins = () => [...(section()?.querySelectorAll(".home-skin") ?? [])];
 
-    test("says every part has a name for your CSS", () => {
+    test("says it needs no stylesheet, any rule of yours wins, and every part has a name for your CSS", () => {
       expect(text(section()?.querySelector(".home-band__text p"))).toBe(
-        "slidedeck ships no stylesheet, so there is no theme to fight. Every part carries a name, like data-slidedeck-next or data-slidedeck-dots, for your CSS or your tokens to reach. Here is one live deck, shown twice: the markup is the same, and only the CSS changes.",
+        "slidedeck needs no stylesheet. Its defaults and its optional theme sit in :where(), so any rule of yours wins. Every part carries a name, like data-slidedeck-next or data-slidedeck-dots, for your CSS or your tokens to reach. Here is one live deck, shown twice: the markup is the same, and only the CSS changes.",
       );
     });
 

@@ -7,11 +7,11 @@ import { slidedeck } from "./slidedeck.ts";
 import { install, quickstart, size, version } from "../src/facts.ts";
 import { skins } from "../src/skins.ts";
 
-/** Each claim holds for @slidedeck/react's README and its docs' "Layout is CSS". */
+/** Each claim holds for @slidedeck/react's README and its docs' "Layout is CSS" and "Drag". */
 const points = [
   {
     heading: "A real scroll container",
-    body: "Every deck is a scroll container with CSS scroll snap, so touch, trackpad, mouse wheel, drag and keyboard all move it.",
+    body: "Every deck is a scroll container with CSS scroll snap: touch, trackpad, wheel and keyboard move it natively, and slidedeck adds mouse drag.",
   },
   {
     heading: "slidedeck keeps count",
@@ -137,9 +137,10 @@ export default function Landing() {
         <div className="home-band__text">
           <h2 id="unstyled">Unstyled, your look.</h2>
           <p>
-            slidedeck ships no stylesheet, so there is no theme to fight. Every part carries a name, like{" "}
-            <code>data-slidedeck-next</code> or <code>data-slidedeck-dots</code>, for your CSS or your tokens to reach.
-            Here is one live deck, shown twice: the markup is the same, and only the CSS changes.
+            slidedeck needs no stylesheet. Its defaults and its optional theme sit in <code>:where()</code>, so any rule
+            of yours wins. Every part carries a name, like <code>data-slidedeck-next</code> or{" "}
+            <code>data-slidedeck-dots</code>, for your CSS or your tokens to reach. Here is one live deck, shown twice:
+            the markup is the same, and only the CSS changes.
           </p>
         </div>
         <div className="home-skins">

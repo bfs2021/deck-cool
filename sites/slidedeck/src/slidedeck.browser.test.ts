@@ -162,6 +162,19 @@ describe.each(PAGES)("%s in a browser", (path) => {
 });
 
 describe("the decks in a browser", () => {
+  // The site's deck look stops at the home page's skin stages: this keeps it on every other deck.
+  test("the testimonials' Next keeps the site's deck look: a translucent grey pill", async () => {
+    const { page } = await visit("/examples/", { width: 1280, reducedMotion: "reduce" });
+    await hydrated(page);
+    const next = page.locator(".testimonials-deck [data-slidedeck-next]");
+    expect(
+      await next.evaluate((button) => {
+        const style = getComputedStyle(button);
+        return [style.backgroundColor, style.borderRadius, style.minHeight];
+      }),
+    ).toEqual(["rgba(66, 66, 69, 0.72)", "999px", "44px"]);
+  });
+
   test("the testimonials' Next moves the deck, under the CSP", async () => {
     const { page, violations } = await visit("/examples/", { width: 1280, reducedMotion: "reduce" });
     await hydrated(page);
