@@ -18,7 +18,8 @@ main a:focus-visible,
 }
 main p,
 main h1,
-main h2 {
+main h2,
+main h3 {
   margin: 0;
 }
 
@@ -94,9 +95,9 @@ main h2 {
 .card:hover {
   background: var(--ground-raised);
 }
-.card[data-deck="slidedeck"] { --tint: var(--slidedeck-text); }
-.card[data-deck="playdeck"] { --tint: var(--playdeck-text); }
-.card[data-deck="pagedeck"] { --tint: var(--pagedeck-text); }
+[data-deck="slidedeck"] { --tint: var(--slidedeck-text); }
+[data-deck="playdeck"] { --tint: var(--playdeck-text); }
+[data-deck="pagedeck"] { --tint: var(--pagedeck-text); }
 .card__text {
   flex: 1 1 380px;
   min-width: 0;
@@ -170,34 +171,33 @@ main h2 {
   inset: 0;
   border-radius: 28px;
 }
-.card__figures {
+/* The deck's one figure: the number, what it counts, and how it was measured. */
+.card__figure {
   flex: 1 1 280px;
   min-width: 0;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  display: grid;
-  gap: 12px;
-  align-content: center;
-}
-.card__figures li {
+  align-self: center;
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding-top: 12px;
+  gap: 4px;
+  padding-top: 16px;
   border-top: 1px solid var(--rule);
 }
-.card__figures span:first-child {
-  font-size: 32px;
+.card__figure span:first-child {
+  font-size: 56px;
+  line-height: 1.05;
   font-weight: 600;
-  letter-spacing: -.02em;
+  letter-spacing: -.025em;
 }
-.card__figures span:last-child {
-  font-size: 14px;
+.card__figure span:nth-child(2) {
+  font-size: 17px;
+  line-height: 1.35;
+}
+.card__figure span:nth-child(3) {
+  font-size: 13px;
   color: var(--text-secondary);
 }
 
-/* The band. */
+/* The four quality sections, each a band. */
 .band {
   padding: 96px max(22px, calc((100% - 980px) / 2));
   display: flex;
@@ -207,7 +207,7 @@ main h2 {
   background: #0b0b0c;
   border-top: 1px solid #1d1d1f;
 }
-.band > div {
+.band__text {
   flex: 1 1 360px;
   min-width: 0;
   display: flex;
@@ -240,6 +240,63 @@ main h2 {
 }
 .band pre span {
   color: var(--playdeck-text);
+}
+/* A band with tiles stacks its text over them. */
+.band--tiles {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 40px;
+}
+.band--tiles .band__text {
+  flex: none;
+  max-width: 680px;
+}
+.tiles {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  gap: 20px;
+}
+.tile {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 32px;
+  border-radius: 28px;
+  background: var(--ground-tile);
+}
+.tile__deck {
+  font-size: 15px;
+  color: var(--tint, var(--text-secondary));
+}
+.tile h3 {
+  font-size: 24px;
+  line-height: 1.2;
+  font-weight: 600;
+  letter-spacing: -.01em;
+}
+.tile[data-deck] h3:first-child {
+  color: var(--tint);
+}
+.tile__body,
+.tile li {
+  font-size: 17px;
+  line-height: 1.47;
+  color: var(--text-secondary);
+}
+.tile ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.tile li {
+  padding-top: 12px;
+  border-top: 1px solid var(--rule);
 }
 
 /* The footer. */
@@ -280,6 +337,12 @@ main h2 {
   }
   .band h2 {
     font-size: 40px;
+  }
+  .card__figure span:first-child {
+    font-size: 48px;
+  }
+  .tile {
+    padding: 28px 24px;
   }
 }
 

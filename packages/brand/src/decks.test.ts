@@ -69,6 +69,8 @@ test("the board lists the same decks, in the same order", () => {
   expect(boardDecks.map((deck) => deck.name)).toEqual(decks.map((deck) => deck.name));
 });
 
+// The board shows three figures per deck. #45 cut them to one, so the figure
+// is checked below instead.
 test.each(decks)("$name's card copy is the board's, word for word", (deck) => {
   const copy = boardDecks.find((each) => each.name === deck.name);
   expect(copy).toBeDefined();
@@ -77,12 +79,20 @@ test.each(decks)("$name's card copy is the board's, word for word", (deck) => {
     claim: deck.claim,
     description: deck.description,
     install: deck.install,
-    figures: deck.figures.map(({ value, label }) => [value, label]),
   }).toEqual({
     kind: copy?.kind,
     claim: copy?.line,
     description: copy?.body,
     install: copy?.install,
-    figures: copy?.facts,
+  });
+});
+
+// CONTEXT.md's "One figure per deck". slidedeck's is the size its README
+// measures at @slidedeck/react 1.0.3.
+test("each deck has one figure", () => {
+  expect(Object.fromEntries(decks.map((deck) => [deck.name, deck.figure]))).toEqual({
+    slidedeck: { value: "8.84 KB", label: "for a carousel with Prev and Next", note: "min+gzip, React external" },
+    playdeck: { value: "0", label: "requests to YouTube or Vimeo before play" },
+    pagedeck: { value: "0 B", label: "of JavaScript on a page with nothing interactive" },
   });
 });
