@@ -116,6 +116,37 @@ describe("a fixture that follows the contract", () => {
     expect(html("docs/guides/index")).toContain('<a href="/docs/guides/layout/">the layout</a>');
   });
 
+  test("keeps http:, https: and mailto: links as they are", async () => {
+    const links =
+      "[a](http://example.com/a) [b](HTTPS://example.com/b) [c](mailto:me@example.com) <https://example.com/d> " +
+      "https://example.com/e www.example.com/f me@example.org";
+    const { entries } = await sync(site({ "install.md": `---\ntitle: Install\ndescription: How.\n---\n\n${links}\n` }));
+    const html = JSON.stringify(entries.find((entry) => entry.path === "docs/install")?.data.body);
+    const hrefs = ["http://example.com/a", "HTTPS://example.com/b", "mailto:me@example.com", "https://example.com/d"];
+    for (const href of [...hrefs, "https://example.com/e", "http://www.example.com/f", "mailto:me@example.org"]) {
+      expect(html).toContain(`href=\\"${href}\\"`);
+    }
+  });
+
+  test.each([
+    ["a list item", "- See the [install\n  guide](./install.md#a) first."],
+    ["a block quote", "> See the [install\n> guide](./install.md#a) first."],
+    ["a nested list in a block quote", "> - See the [install\n>   guide][install] first.\n\n[install]: ./install.md#a"],
+  ])("rewrites a link wrapped across lines in %s", async (_name, text) => {
+    const { entries } = await sync(site({ "index.md": `---\ntitle: Example\ndescription: Home.\n---\n\n${text}\n` }));
+    const html = JSON.stringify(entries.find((entry) => entry.path === "docs/index")?.data.body);
+    expect(html).toContain('<a href=\\"/docs/install/#a\\">install\\nguide</a>');
+  });
+
+  test("reads a page with CRLF line ends as it reads one with LF", async () => {
+    const layout = readFileSync(new URL("guides/layout.md", FIXTURE), "utf8");
+    const body = async (text: string) =>
+      JSON.stringify((await sync(site({ "guides/layout.md": text }))).entries.find((entry) => entry.path === "docs/guides/layout")?.data.body);
+    const crlf = await body(layout.replace(/\n/g, "\r\n"));
+    expect(crlf).toBe(await body(layout));
+    expect(crlf).toContain('<a href=\\"/docs/install/\\">first</a>');
+  });
+
   test("drops a page's first # heading, as the contract says: the site shows the title", async () => {
     const { entries } = await sync(site({ "install.md": "---\ntitle: Install\ndescription: How.\n---\n\n# Install\n\nText.\n" }));
     const install = entries.find((entry) => entry.path === "docs/install");
@@ -287,6 +318,156 @@ describe("the build fails, naming the file and line", () => {
       { "guides/demos.md": DEMOS.replace("Press the button.", "Press the button. <!-- demo:counter -->") },
       {},
       "guides/demos.md:6 — has a demo marker that is not on a line of its own — write it alone on its line, as <!-- demo:<name> -->",
+    ],
+    [
+      "raw HTML in a block of its own",
+      { "guides/demos.md": DEMOS.replace("Press the button.", "<script>alert(1)</script>") },
+      {},
+      "guides/demos.md:6 — has raw HTML, <script>alert(1)</script> — write it in markdown: the only HTML a page may hold is a demo marker, <!-- demo:<name> -->",
+    ],
+    [
+      "raw HTML inside a paragraph",
+      { "guides/demos.md": DEMOS.replace("Press the button.", 'Press <img src="x" onerror="alert(1)"> the button.') },
+      {},
+      'guides/demos.md:6 — has raw HTML, <img src="x" onerror="alert(1)"> — write it in markdown: the only HTML a page may hold is a demo marker, <!-- demo:<name> -->',
+    ],
+    [
+      "an HTML comment that is not a demo marker",
+      { "guides/demos.md": DEMOS.replace("Press the button.", "<!-- a note -->") },
+      {},
+      "guides/demos.md:6 — has raw HTML, <!-- a note --> — write it in markdown: the only HTML a page may hold is a demo marker, <!-- demo:<name> -->",
+    ],
+    [
+      "a javascript: link",
+      { "guides/layout.md": LAYOUT.replace("(../install.md)", "(javascript:alert(1))") },
+      {},
+      'guides/layout.md:10 — links to "javascript:alert(1)", a scheme the site does not allow — link with http:, https: or mailto:, or to a page by its .md file',
+    ],
+    [
+      "a javascript: link by reference",
+      { "guides/layout.md": LAYOUT.replace("[demos]: ./demos.md", "[demos]: javascript:alert(1)") },
+      {},
+      'guides/layout.md:12 — links to "javascript:alert(1)", a scheme the site does not allow — link with http:, https: or mailto:, or to a page by its .md file',
+    ],
+    [
+      "a javascript: autolink",
+      { "guides/layout.md": LAYOUT.replace("[first](../install.md)", "<javascript:alert(1)>") },
+      {},
+      'guides/layout.md:10 — links to "javascript:alert(1)", a scheme the site does not allow — link with http:, https: or mailto:, or to a page by its .md file',
+    ],
+    [
+      "a data: image",
+      { "guides/layout.md": LAYOUT.replace("../assets/grid.svg", "data:image/svg+xml,x") },
+      {},
+      'guides/layout.md:8 — links to "data:image/svg+xml,x", a scheme the site does not allow — link with http:, https: or mailto:, or to a page by its .md file',
+    ],
+    [
+      "an HTML block in a file with CRLF line ends",
+      { "guides/demos.md": DEMOS.replace("Press the button.", "<div>\n<script>alert(1)</script>\n</div>").replace(/\n/g, "\r\n") },
+      {},
+      "guides/demos.md:6 — has raw HTML, <div> — write it in markdown: the only HTML a page may hold is a demo marker, <!-- demo:<name> -->",
+    ],
+    [
+      "a javascript: link definition over two lines, with CRLF line ends",
+      { "guides/layout.md": LAYOUT.replace("[demos]: ./demos.md", "[demos]:\n  javascript:alert(1)").replace(/\n/g, "\r\n") },
+      {},
+      'guides/layout.md:12 — links to "javascript:alert(1)", a scheme the site does not allow — link with http:, https: or mailto:, or to a page by its .md file',
+    ],
+    [
+      "raw HTML in a file with lone CR line ends",
+      { "guides/demos.md": DEMOS.replace("Press the button.", "<script>alert(1)</script>").replace(/\n/g, "\r") },
+      {},
+      "guides/demos.md:6 — has raw HTML, <script>alert(1)</script> — write it in markdown: the only HTML a page may hold is a demo marker, <!-- demo:<name> -->",
+    ],
+    [
+      "HTML over several lines of a block quote",
+      { "guides/demos.md": DEMOS.replace("Press the button.", "> <div>\n> <script>alert(1)</script>\n> </div>") },
+      {},
+      "guides/demos.md:6 — has raw HTML, <div> — write it in markdown: the only HTML a page may hold is a demo marker, <!-- demo:<name> -->",
+    ],
+    [
+      "HTML the loader cannot find in the file: a list item's line indented with a tab",
+      { "guides/demos.md": DEMOS.replace("Press the button.", "- a\n\t<script>alert(1)</script>") },
+      {},
+      "guides/demos.md:6 — has HTML the loader cannot find in the file, <script>alert(1)</script> — write it on lines of its own, outside any block quote or list",
+    ],
+    [
+      "a protocol-relative link",
+      { "guides/layout.md": LAYOUT.replace("(../install.md)", "(//example.com/install)") },
+      {},
+      'guides/layout.md:10 — links to "//example.com/install", which names no scheme — link to another host with https:, or to a page by its .md file',
+    ],
+    [
+      "a protocol-relative link written with backslashes",
+      { "guides/layout.md": LAYOUT.replace("(../install.md)", "(\\\\\\\\example.com/install)") },
+      {},
+      'guides/layout.md:10 — links to "\\\\example.com/install", which names no scheme — link to another host with https:, or to a page by its .md file',
+    ],
+    [
+      "a link with the character reference &#47;",
+      { "guides/layout.md": LAYOUT.replace("(../install.md)", "(/&#47;evil.com)") },
+      {},
+      'guides/layout.md:10 — links to "/&#47;evil.com", which holds a character reference — write the path or URL with no "&": the character itself, or percent-encoded (%26 for &)',
+    ],
+    [
+      "a link with the character reference &sol;",
+      { "guides/layout.md": LAYOUT.replace("(../install.md)", "(/&sol;evil.com)") },
+      {},
+      'guides/layout.md:10 — links to "/&sol;evil.com", which holds a character reference — write the path or URL with no "&": the character itself, or percent-encoded (%26 for &)',
+    ],
+    [
+      "a link with the character reference &#92;",
+      { "guides/layout.md": LAYOUT.replace("(../install.md)", "(/&#92;evil.com)") },
+      {},
+      'guides/layout.md:10 — links to "/&#92;evil.com", which holds a character reference — write the path or URL with no "&": the character itself, or percent-encoded (%26 for &)',
+    ],
+    [
+      "a link with the character reference &#9;/",
+      { "guides/layout.md": LAYOUT.replace("(../install.md)", "(/&#9;/evil.com)") },
+      {},
+      'guides/layout.md:10 — links to "/&#9;/evil.com", which holds a character reference — write the path or URL with no "&": the character itself, or percent-encoded (%26 for &)',
+    ],
+    [
+      "a link with the character reference &#10;/",
+      { "guides/layout.md": LAYOUT.replace("(../install.md)", "(/&#10;/evil.com)") },
+      {},
+      'guides/layout.md:10 — links to "/&#10;/evil.com", which holds a character reference — write the path or URL with no "&": the character itself, or percent-encoded (%26 for &)',
+    ],
+    [
+      "a link definition with a character reference",
+      { "guides/layout.md": LAYOUT.replace("[demos]: ./demos.md", "[demos]: /&#47;evil.com") },
+      {},
+      'guides/layout.md:12 — links to "/&#47;evil.com", which holds a character reference — write the path or URL with no "&": the character itself, or percent-encoded (%26 for &)',
+    ],
+    [
+      "an image with a character reference",
+      { "guides/layout.md": LAYOUT.replace("../assets/grid.svg", "/&#47;evil.com/grid.svg") },
+      {},
+      'guides/layout.md:8 — links to "/&#47;evil.com/grid.svg", which holds a character reference — write the path or URL with no "&": the character itself, or percent-encoded (%26 for &)',
+    ],
+    [
+      "a bare ftp:// autolink",
+      { "guides/demos.md": DEMOS.replace("Press the button.", "See ftp://evil.com for it.") },
+      {},
+      'guides/demos.md:6 — links to "ftp://evil.com", a scheme the site does not allow — link with http:, https: or mailto:, or to a page by its .md file',
+    ],
+    [
+      "a second definition of one label",
+      { "guides/layout.md": `${LAYOUT}[Demos]: https://example.com/\n` },
+      {},
+      "guides/layout.md:13 — defines [demos] a second time — give each definition its own label",
+    ],
+    [
+      "HTML in a link's text",
+      { "guides/layout.md": LAYOUT.replace("[first](../install.md)", "[<img src=x onerror=alert(1)>](../install.md)") },
+      {},
+      "guides/layout.md:10 — has raw HTML, <img src=x onerror=alert(1)> — write it in markdown: the only HTML a page may hold is a demo marker, <!-- demo:<name> -->",
+    ],
+    [
+      "HTML in an image's alt text",
+      { "guides/layout.md": LAYOUT.replace("![The layout grid]", "![<img src=x>]") },
+      {},
+      "guides/layout.md:8 — has raw HTML, <img src=x> — write it in markdown: the only HTML a page may hold is a demo marker, <!-- demo:<name> -->",
     ],
   ])("%s", async (_name, edits, overrides, message) => {
     expect(await failure(sync(site(edits), overrides))).toBe(

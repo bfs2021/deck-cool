@@ -1,6 +1,6 @@
 import { parseFrontmatter } from "@pagedeck/markdown-loader";
-import { Marked } from "marked";
-import type { Token } from "marked";
+import { Marked, Tokenizer } from "marked";
+import type { Token, Tokens } from "marked";
 import { posix } from "node:path";
 
 /** A problem in the docs package, at the line an editor's gutter shows. */
@@ -38,6 +38,8 @@ const MARKER = /^<!-- demo:([A-Za-z0-9_-]+) -->$/;
 const MARKER_START = /<!--\s*demo:/;
 const MARKER_IN_HTML = /<!-- demo:([A-Za-z0-9_-]+) -->/;
 const NOT_RELATIVE = /^(?:[a-z][a-z0-9+.-]*:|\/|#|$)/i;
+const SCHEME = /^([a-z][a-z0-9+.-]*):/i;
+const ALLOWED_SCHEMES = new Set(["http", "https", "mailto"]);
 
 type Found =
   | { readonly kind: "html"; readonly raw: string; readonly block: boolean }
@@ -49,6 +51,24 @@ function found(token: Token): Found | undefined {
   if (token.type !== "link" && token.type !== "image" && token.type !== "def") return undefined;
   if (!("href" in token) || typeof token.href !== "string") return undefined;
   return { kind: token.type, raw: token.raw, href: token.href };
+}
+
+/**
+ * Where `raw` is in the body, from `from` on. Inside a block quote or a list, marked strips each
+ * line's `>` and indent from a token's text, so a line break in `raw` matches one in the body
+ * followed by any of those.
+ */
+function locate(body: string, raw: string, from: number): { at: number; text: string } | undefined {
+  // marked can end a token's text with line breaks the body does not have there.
+  const pattern = raw
+    .trimEnd()
+    .split("\n")
+    .map((line) => line.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+    .join("\n[ \\t>]*");
+  const search = new RegExp(pattern, "g");
+  search.lastIndex = from;
+  const match = search.exec(body);
+  return match === null ? undefined : { at: match.index, text: match[0] };
 }
 
 interface Rewrite {
@@ -73,7 +93,10 @@ function relativeUrl(href: string, address: string): string {
  * their addresses on the site. The rewrite is made in the markdown, so the page renders
  * through Pagedeck's own renderer like any other.
  */
-export function scanPage(file: string, source: string, context: PageContext): ScannedPage {
+export function scanPage(file: string, text: string, context: PageContext): ScannedPage {
+  // marked reads CR and CRLF as LF, so a token's text is found in the body only once the body
+  // has LF line ends too. The page renders from this body as well.
+  const source = text.replace(/\r\n?/g, "\n");
   const { frontmatter, body } = parseFrontmatter(source, file);
   const faults: Fault[] = [];
   const rewrites: Rewrite[] = [];
@@ -91,7 +114,18 @@ export function scanPage(file: string, source: string, context: PageContext): Sc
   const title = required("title", "<the page's title>");
   const description = required("description", "<one sentence on the page>");
 
-  const marked = new Marked();
+  // marked keeps a label's first definition and drops the rest without a token, so every
+  // definition is recorded as it is read.
+  const definitions: Tokens.Def[] = [];
+  const marked = new Marked({
+    tokenizer: {
+      def(this: Tokenizer, src: string) {
+        const definition = Tokenizer.prototype.def.call(this, src);
+        if (definition) definitions.push(definition);
+        return false;
+      },
+    },
+  });
   let offset = 0;
   for (const block of marked.lexer(body)) {
     // Each token is found in the body after the one before it, so a link is placed
@@ -100,12 +134,23 @@ export function scanPage(file: string, source: string, context: PageContext): Sc
     marked.walkTokens([block], (walked: Token) => {
       const token = found(walked);
       if (token === undefined) return;
-      const at = body.indexOf(token.raw, cursor);
-      if (at === -1) return;
-      cursor = at + token.raw.length;
+      const located = locate(body, token.raw, cursor);
+      if (located === undefined) {
+        // A token that is not in the body as written is refused, not left unchecked.
+        const what = token.kind === "html" ? "HTML" : token.kind === "image" ? "an image" : "a link";
+        fault(offset, `has ${what} the loader cannot find in the file, ${token.raw.trim().split("\n")[0] ?? ""} — write it on lines of its own, outside any block quote or list`);
+        return;
+      }
+      const { at, text } = located;
+      // A link's text and an image's alt hold tokens of their own, which come next.
+      cursor = token.kind === "link" || token.kind === "image" ? at + 1 : at + text.length;
 
       if (token.kind === "html") {
-        if (!MARKER_START.test(token.raw)) return;
+        if (!MARKER_START.test(token.raw)) {
+          const html = token.raw.trim().split("\n")[0] ?? "";
+          fault(at, `has raw HTML, ${html} — write it in markdown: the only HTML a page may hold is a demo marker, <!-- demo:<name> -->`);
+          return;
+        }
         const name = MARKER.exec(token.raw.trim())?.[1];
         if (!token.block || name === undefined) {
           fault(at, "has a demo marker that is not on a line of its own — write it alone on its line, as <!-- demo:<name> -->");
@@ -121,7 +166,20 @@ export function scanPage(file: string, source: string, context: PageContext): Sc
       }
 
       // A reference-style link's destination is on its definition, which is checked there.
-      if (token.kind === "link" && !token.raw.includes("](")) return;
+      if (token.kind === "link" && token.raw.startsWith("[") && !token.raw.includes("](")) return;
+      if (token.href.includes("&")) {
+        fault(at, `links to "${token.href}", which holds a character reference — write the path or URL with no "&": the character itself, or percent-encoded (%26 for &)`);
+        return;
+      }
+      if (/^[/\\]{2}/.test(token.href)) {
+        fault(at, `links to "${token.href}", which names no scheme — link to another host with https:, or to a page by its .md file`);
+        return;
+      }
+      const scheme = SCHEME.exec(token.href)?.[1];
+      if (scheme !== undefined && !ALLOWED_SCHEMES.has(scheme.toLowerCase())) {
+        fault(at, `links to "${token.href}", a scheme the site does not allow — link with http:, https: or mailto:, or to a page by its .md file`);
+        return;
+      }
       if (NOT_RELATIVE.test(token.href)) return;
       const [path, fragment] = splitFragment(token.href);
       const target = posix.join(posix.dirname(file), path);
@@ -143,7 +201,7 @@ export function scanPage(file: string, source: string, context: PageContext): Sc
         replacement = context.hrefOf(target) + fragment;
       }
 
-      const destination = token.raw.indexOf(token.href, token.raw.indexOf(token.kind === "def" ? "]:" : "]("));
+      const destination = text.indexOf(token.href, text.indexOf(token.kind === "def" ? "]:" : "]("));
       if (destination === -1) {
         fault(at, `links to "${token.href}" in a form the loader cannot rewrite — write the path plainly, with no backslash escapes or character references`);
         return;
@@ -151,6 +209,17 @@ export function scanPage(file: string, source: string, context: PageContext): Sc
       rewrites.push({ start: at + destination, end: at + destination + token.href.length, text: replacement });
     });
     offset += block.raw.length;
+  }
+
+  const labels = new Set<string>();
+  let definitionCursor = 0;
+  for (const definition of definitions) {
+    const located = locate(body, definition.raw, definitionCursor);
+    if (located !== undefined) definitionCursor = located.at + located.text.length;
+    if (labels.has(definition.tag)) {
+      fault(located?.at ?? 0, `defines [${definition.tag}] a second time — give each definition its own label`);
+    }
+    labels.add(definition.tag);
   }
 
   let rewritten = body;
