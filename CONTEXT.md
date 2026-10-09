@@ -47,3 +47,19 @@ Made by the maintainer on 2026-10-08.
 
 - The canvas: https://claude.ai/artifact/QjhCKzzVi3X3Bg3WP7fWWR (private to the maintainer).
 - `design/canvas/`: the canvas boards' source, the exact values for colours, sizes and motion. `design/README.md` says which boards were chosen.
+
+## The landing pages' message
+
+Made by the maintainer on 2026-10-09, in the #33 grilling. It covers deck.cool's home page and each package site's home page.
+
+- **Three audiences, equally.** Developers who install a deck, designers who decide how it looks, and AI coders: people building with coding agents, and the agents themselves. The hero speaks to all three in one sentence, with no line or tab per audience.
+- **The family line:** "It looks like you. It works like the browser." The sentence under it: "Unstyled React packages for carousels, video and sites. Bring your tokens, your CSS, or your agent — the hard parts are already done."
+- **Voice.** Warmer marketing copy on the landing pages. The docs stay plain.
+- **Sections by quality, not by audience.** Every home page has four: unstyled, your look; small, leans on the browser; built for agents; accessible by default.
+- **Accessibility claims need a test.** Each claim points to a test in that deck's repo. A claim with no test stays off the page, and the gap is filed in the deck's repo.
+- **The umbrella states the promise; each deck proves it.** deck.cool says what every deck shares and sends readers to each one. A deck's home page carries its claim, one figure, a demo and its install command, and repeats the promise in one line.
+- **The deck claims stay:** slidedeck "A carousel that lets the browser do the scrolling.", playdeck "A video player you compose, not one you configure.", pagedeck "Zero JavaScript until a page needs it."
+- **One figure per deck:** slidedeck 8.68 KB; playdeck 0 requests to YouTube or Vimeo before play; pagedeck 0 B of JavaScript on a page with nothing interactive.
+- **Unstyled is shown, not told.** A deck's home page shows one live component twice, styled two very different ways, with the CSS beside each.
+- **Calls to action:** the install command (copy on click) and "Read the docs". Under them: "Using an agent? Point it at the docs: they're plain markdown."
+- **No agent-docs claim beyond markdown** until pagedeck#34 ships a markdown twin per page and `llms.txt`.
