@@ -208,6 +208,13 @@ describe("every page", () => {
     for (const href of github) expect(href === REPO || href?.startsWith(`${REPO}/`), href ?? "").toBe(true);
   });
 
+  // A placeholder host under RFC 2606's `.example` reads as a link and goes nowhere.
+  test.each(PAGES)("%s links no .example host", (path) => {
+    const hosts = [...html(path).matchAll(/\/\/([^/\s"'<>?#:]+)/g)].map((match) => match[1] ?? "");
+    expect(hosts).not.toHaveLength(0);
+    expect(hosts.filter((host) => /\.example\.?$/i.test(host))).toEqual([]);
+  });
+
   test.each(PAGES)("%s carries no <style> and no inline handler, and a script only from the site", (path) => {
     const doc = parse(path);
     expect(doc.querySelectorAll("style")).toHaveLength(0);
@@ -376,7 +383,7 @@ describe("the home page", () => {
       'Write it in React, style it with your own CSS, or hand it to your agent: every page ships as plain HTML, and only the components you mark "use client" wake up in the browser.',
     ]);
     expect(text(hero?.querySelector(".fw-install code"))).toBe(pagedeck.install);
-    // The docs link stays the placeholder until #53.
+    // The docs link goes to the docs' own Worker until #53.
     expect(links(hero)).toEqual([["Read the docs", `${DOCS_ORIGIN}/`]]);
   });
 

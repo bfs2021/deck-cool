@@ -23,14 +23,11 @@ import {
   ISLAND_IDLE,
   ISLAND_LOAD,
   ISLAND_VISIBLE,
-  LOCALE_LINKS,
   RESPONSIVE_IMAGE,
   SEARCH,
   SOCIAL_CARD,
   STATIC_PROBE,
 } from "./catalog.ts";
-
-const DOGFOOD_ORIGIN = "https://dogfood.example";
 
 // The specimen's face, and the social card's. The site's own type is the
 // brand's system stack; this face is subset for the fonts demo alone. Its
@@ -121,10 +118,6 @@ const COPY = {
       "This site publishes one locale. The dogfood site publishes English and German from one build, and each version of a page carries a canonical link and hreflang links to the other.",
     ],
     docs: "Canonicals and hreflang",
-    links: [
-      { href: `${DOGFOOD_ORIGIN}/en`, locale: "en", label: "The dogfood site in English" },
-      { href: `${DOGFOOD_ORIGIN}/de`, locale: "de", label: "Die Dogfood-Site auf Deutsch" },
-    ],
   },
 } as const;
 
@@ -190,8 +183,10 @@ export const FEATURES_HEAD: PageHead = {
   description: COPY.description,
 };
 
+/** `path` is a docs page's path, with no leading or trailing slash, then any `#fragment`. */
 function docs(path: string, label: string) {
-  return { href: `${DOCS_ORIGIN}/${path}`, label };
+  const [page, fragment] = path.split("#");
+  return { href: `${DOCS_ORIGIN}/${page}/${fragment === undefined ? "" : `#${fragment}`}`, label };
 }
 
 function section(
@@ -316,7 +311,7 @@ export function featuresContent(page: Page): PageContent {
             "i18n",
             COPY.i18n,
             docs("reference/canonicals-and-hreflang", COPY.i18n.docs),
-            [{ component: LOCALE_LINKS, props: { links: COPY.i18n.links } }],
+            [],
           ),
         ],
       },
