@@ -78,6 +78,7 @@ export default function Layout({ title }: Props) {
   return (
     <>
       <title>{title}</title>
+      <meta name="viewport" content="width=device-width, initial-scale=1" />
       <link rel="icon" type="image/svg+xml" href={umbrella.icons.still} />
       <link rel="apple-touch-icon" href={umbrella.icons.appleTouch} />
 
