@@ -1,0 +1,214 @@
+import { cloudflarePages } from "@pagedeck/adapter-cloudflare-pages";
+import { defineCollection, getEntry } from "@pagedeck/content";
+import type { Collection, ContentStoreReader, Entry } from "@pagedeck/content";
+import { defineConfig, defineLocales, definePages, fromCollection } from "@pagedeck/core";
+import type { Page, PageContent, PageHead, PageSource, Route } from "@pagedeck/core";
+import { defineMarkdownLoader } from "@pagedeck/markdown-loader";
+import type { MarkdownEntry } from "@pagedeck/markdown-loader";
+import { defineSearch } from "@pagedeck/search";
+import { cpSync, realpathSync, rmSync } from "node:fs";
+import { z } from "zod";
+import { DOCS_ORIGIN, PATHS, REPO } from "./components/links.ts";
+import { components, COUNTER, FAMILY_BAR, FOOTER, ISLAND_PAGE, SEARCH, SEARCH_PAGE } from "./src/catalog.ts";
+import { FEATURES_HEAD, featuresContent, SCRIPTS, SOCIAL_IMAGES } from "./src/features.ts";
+import { HASHED_FILE_HEADERS, HASHED_PREFIXES, RESPONSE_HEADERS } from "./src/headers.ts";
+import { SERVER_DATA_HEAD, serverDataContent } from "./src/server-data.ts";
+
+const LOCALE = "en";
+const TEMPLATE = "landing_page";
+
+// The landing's island page.
+const ISLAND = {
+  title: "One island, and the bill for it",
+  description:
+    "Pagedeck's landing site, second page: one interactive component, bundled and loaded for this page alone, while the front page still ships no JavaScript.",
+  intro:
+    "This page carries a single interactive component. Everything else on it is HTML the build wrote. The other page of this site still ships no JavaScript at all — an island is planned, bundled and loaded per page, so it is charged to the page that asked for it.",
+  label: "Press me",
+} as const;
+
+// The docs-site's search page, under /docs. #53 adds the docs it searches.
+const SEARCH_COPY = {
+  title: "Search",
+  description:
+    "Search Pagedeck's documentation by keyword, with pages that match in their title ranked above pages that match only in their body.",
+  intro:
+    "Search every page of this documentation. Results are ranked by where the words appear — a title match comes before a body match.",
+  label: "Search the documentation",
+  emptyLabel: "No page matches those words.",
+} as const;
+
+/** The Family bar's links, after the switcher and the name. */
+const BAR_LINKS = [
+  { label: "Docs", href: `${DOCS_ORIGIN}/` },
+  { label: "Features", href: PATHS.features },
+  { label: "Island demo", href: PATHS.interactive },
+  { label: "Server data", href: PATHS.serverData },
+  { label: "Search", href: PATHS.search },
+  { label: "GitHub", href: REPO },
+];
+
+// Measured, not chosen: each is the page's size rounded up to a whole
+// kilobyte. Re-measure rather than raise one.
+const BUDGET = {
+  "/**": "0b",
+  [PATHS.interactive]: "60kb",
+  [PATHS.features]: "60kb",
+  [PATHS.serverData]: "59kb",
+  [PATHS.search]: "59kb",
+} as const;
+
+// Dark only, as the brand is. The `-default` theme's every token clears 4.5:1,
+// where `github-dark`'s do not all.
+const CODE_THEME = "github-dark-default";
+
+/**
+ * One directory to publish from: the brand kit's icons and .assetsignore, then
+ * the site's own files. Passthrough reads one root, and skips a symlink.
+ */
+function stagePublic(): string {
+  const stage = "./.pagedeck-public";
+  rmSync(stage, { recursive: true, force: true });
+  cpSync("./node_modules/@deck-cool/brand/public", stage, { recursive: true });
+  cpSync("./public", stage, { recursive: true });
+  return stage;
+}
+
+function documentSchema() {
+  return z.object({
+    title: z.string().min(1),
+    html: z.string(),
+    file: z.string(),
+    frontmatter: z
+      .object({
+        // Fifty characters is a floor against a placeholder, not a style rule.
+        description: z.string().min(50),
+        cta: z.string().min(1),
+        ctaHref: z.string().min(1),
+        islandCta: z.string().min(1),
+        rulerTitle: z.string().min(1),
+      })
+      .catchall(z.union([z.string(), z.array(z.string()).readonly()])),
+  });
+}
+
+type DocumentEntry = z.infer<ReturnType<typeof documentSchema>>;
+
+const pages: Collection<DocumentEntry, MarkdownEntry> = defineCollection({
+  name: "pages",
+  loader: defineMarkdownLoader({ root: "./content", locale: LOCALE, languages: ["tsx"], theme: CODE_THEME }),
+  templates: {
+    templateOf: () => TEMPLATE,
+    byTemplate: { [TEMPLATE]: [{ component: TEMPLATE, count: 1, foldScore: 0, depth: 0, isRoot: true }] },
+  },
+  schema: documentSchema(),
+});
+
+// `"/"`, not `[]`, which assembles to an empty route that `collectPages` refuses.
+function documentRoute(entry: Entry<DocumentEntry>): Route {
+  return entry.path === "index" ? "/" : entry.path.split("/");
+}
+
+/** A page with no entry behind it, at `route`. `instances` annotates its parameter, which would otherwise infer as `unknown`. */
+function singlePage(route: Route): PageSource<Record<string, never>> {
+  return {
+    instances: (_store: ContentStoreReader) => [{ locale: LOCALE, params: {}, dependencies: [] }],
+    route: () => route,
+  };
+}
+
+function entryOf(page: Page, store: ContentStoreReader): Entry<DocumentEntry> | undefined {
+  return page.entry === undefined ? undefined : getEntry(store, pages, page.entry);
+}
+
+function contentOf(page: Page, store: ContentStoreReader): PageContent {
+  if (page.path === PATHS.features) return featuresContent(page);
+  if (page.path === PATHS.serverData) return serverDataContent();
+  if (page.path === PATHS.interactive) {
+    return {
+      tree: [
+        {
+          component: ISLAND_PAGE,
+          props: { title: ISLAND.title, intro: ISLAND.intro },
+          children: [{ component: COUNTER, props: { label: ISLAND.label } }],
+        },
+      ],
+    };
+  }
+  if (page.path === PATHS.search) {
+    return {
+      tree: [
+        {
+          component: SEARCH_PAGE,
+          // No docs yet, so no nav: #53 passes the docs' nav.json here.
+          props: { title: SEARCH_COPY.title, intro: SEARCH_COPY.intro, nav: [] },
+          children: [
+            { component: SEARCH, props: { locale: LOCALE, label: SEARCH_COPY.label, emptyLabel: SEARCH_COPY.emptyLabel } },
+          ],
+        },
+      ],
+    };
+  }
+  const entry = entryOf(page, store);
+  if (entry === undefined) {
+    throw new Error(`Page ${page.path}: has no stored entry — run pagedeck sync before pagedeck build`);
+  }
+  return { template: TEMPLATE, props: { ...entry.data, island: PATHS.interactive } };
+}
+
+function headOf(page: Page, store: ContentStoreReader): PageHead | undefined {
+  if (page.path === PATHS.features) return FEATURES_HEAD;
+  if (page.path === PATHS.serverData) return SERVER_DATA_HEAD;
+  if (page.path === PATHS.interactive) return { title: ISLAND.title, description: ISLAND.description };
+  if (page.path === PATHS.search) return { title: SEARCH_COPY.title, description: SEARCH_COPY.description };
+  const entry = entryOf(page, store);
+  return entry === undefined
+    ? undefined
+    : { title: `Pagedeck: ${entry.data.title}`, description: entry.data.frontmatter.description };
+}
+
+export default defineConfig({
+  collections: [pages],
+  build: {
+    adapter: cloudflarePages(),
+    pages: definePages({
+      locales: defineLocales({ en: { label: "English", direction: "ltr" } }),
+      sources: [
+        fromCollection(pages, { route: documentRoute }),
+        ...[PATHS.interactive, PATHS.features, PATHS.serverData, PATHS.search].map((path) =>
+          singlePage(path.slice(1, -1).split("/")),
+        ),
+      ],
+    }),
+    components,
+    content: contentOf,
+    head: headOf,
+    // The Family bar before <main> and the footer after it, so they are the
+    // page's banner and contentinfo landmarks.
+    chrome: () => ({
+      before: [{ component: FAMILY_BAR, props: { links: BAR_LINKS } }],
+      after: [{ component: FOOTER }],
+    }),
+    // One hashed sheet under /assets/, linked from every page's <head>, in this
+    // order. By real path: the bundler names a module by it, and Pagedeck 0.2.3
+    // puts a sheet in the one shared sheet only when the two names match. Named
+    // through pnpm's link, brand.css and family-bar.css went to a second sheet
+    // that only pages with an island link.
+    css: [
+      "./node_modules/@deck-cool/brand/styles/brand.css",
+      "./node_modules/@deck-cool/brand/styles/family-bar.css",
+      "./styles/pagedeck.css",
+    ].map((sheet) => realpathSync(sheet)),
+    passthrough: { root: stagePublic() },
+    routing: {
+      headers: [
+        { prefix: "/", set: [...RESPONSE_HEADERS] },
+        ...HASHED_PREFIXES.map((prefix) => ({ prefix, set: [...RESPONSE_HEADERS, ...HASHED_FILE_HEADERS] })),
+      ],
+    },
+    budget: BUDGET,
+    search: defineSearch(),
+    scripts: SCRIPTS,
+    socialImages: SOCIAL_IMAGES,
+  },
+});

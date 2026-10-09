@@ -25,7 +25,7 @@ pnpm typecheck   # tsc in every site and package
 pnpm test        # vitest across the workspace
 ```
 
-`pnpm test` builds deck-cool once, in a global setup, and drives the built site in Playwright's Chromium. Install it once with `pnpm exec playwright install chromium`.
+`pnpm test` builds each site once, in a global setup, and drives the built sites in Playwright's Chromium. Install it once with `pnpm exec playwright install chromium`.
 
 `pnpm build` writes each site to `sites/<name>/site/`, and its budget report to `sites/<name>/.pagedeck/budget-report.json`. Every `@pagedeck/*` package is pinned to one exact version; upgrade them together. CI runs them on every push, installing with `pnpm install --frozen-lockfile`, and lints every workflow with actionlint first. To run it locally: `docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:1.7.12`.
 

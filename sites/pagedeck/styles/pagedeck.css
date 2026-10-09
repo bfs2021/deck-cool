@@ -1,0 +1,1048 @@
+/*
+ * pagedeck's own pages: the landing's layout and the docs', restyled to the
+ * brand kit. Uses the tokens in brand.css, the system font stack it sets on
+ * <body>, and the 980px measure the Family bar sits on. Every motion is under
+ * prefers-reduced-motion: no-preference.
+ */
+main,
+main *,
+main ::before,
+main ::after,
+.site-footer,
+.site-footer * {
+  box-sizing: border-box;
+}
+
+body {
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+main :is(h1, h2, h3, h4) {
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -.015em;
+  text-wrap: balance;
+}
+
+main a {
+  color: var(--text-link);
+  text-underline-offset: .2em;
+}
+main a:hover {
+  color: #5eb0ff;
+}
+main :focus-visible,
+.site-footer a:focus-visible {
+  outline: 2px solid var(--text-link);
+  outline-offset: 2px;
+}
+
+main :is(code, kbd, samp, pre) {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: .9em;
+}
+main :not(pre) > code {
+  padding: .1em .35em;
+  border-radius: 6px;
+  background: var(--ground-raised);
+}
+
+/* The measure every page is laid on. */
+.fw-wrap {
+  max-width: 980px;
+  margin-inline: auto;
+  padding-inline: 22px;
+}
+
+/* The hero at the top of each landing page. */
+.fw-hero {
+  display: grid;
+  gap: 40px;
+  padding-block: 72px 56px;
+}
+@media (min-width: 60rem) {
+  .fw-hero {
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    align-items: end;
+    padding-block: 96px 72px;
+  }
+}
+.fw-hero__title {
+  margin: 0;
+  max-width: 18ch;
+  font-size: clamp(32px, 6vw, 56px);
+  line-height: 1.05;
+  letter-spacing: -.025em;
+}
+.fw-hero__lede {
+  max-width: 58ch;
+  margin: 20px 0 0;
+  color: var(--text-secondary);
+  font-size: 21px;
+  line-height: 1.38;
+}
+.fw-hero--short {
+  padding-block-end: 40px;
+}
+.fw-hero--home {
+  display: block;
+  padding-block: 96px 40px;
+}
+.fw-hero--home .fw-hero__title {
+  max-width: 20ch;
+  font-size: clamp(40px, 9vw, 80px);
+  letter-spacing: -.03em;
+}
+.fw-hero--home .fw-hero__lede {
+  max-width: 40ch;
+}
+
+/* Pill buttons: the call to action, and every button an island renders. */
+.fw-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 28px 0 0;
+}
+main :is(.fw-button, .fw-demo button, .fw-picker button, .fw-section--closing > p:last-child a, .consent-banner__accept, .consent-banner__reject, .consent-banner__manage, .fw-embed__load) {
+  display: inline-block;
+  padding: 12px 22px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--pagedeck-fill);
+  color: var(--fill-text);
+  font: inherit;
+  font-size: 17px;
+  line-height: 1.25;
+  text-decoration: none;
+  cursor: pointer;
+}
+main :is(.fw-button--quiet, .consent-banner__reject, .consent-banner__manage, .fw-embed__load) {
+  background: var(--ground-raised);
+  color: var(--text);
+}
+main :is(.fw-button, .fw-demo button, .fw-picker button, .fw-section--closing > p:last-child a, .consent-banner__accept, .consent-banner__reject, .consent-banner__manage, .fw-embed__load):hover {
+  background: var(--text);
+  color: var(--ground-page);
+}
+
+/* The payload ruler under the home page's hero. */
+.fw-ruler {
+  --ruler-reserve: 0px;
+  margin: 48px 0 0;
+  padding: 32px;
+  border-radius: 28px;
+  background: var(--ground-tile);
+}
+.fw-ruler__title {
+  margin-bottom: 24px;
+  color: var(--text-secondary);
+  font-size: 15px;
+}
+.fw-ruler__rows {
+  display: grid;
+  gap: 20px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.fw-ruler__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: center;
+  gap: 4px 24px;
+  color: var(--text-secondary);
+}
+@media (min-width: 40rem) {
+  .fw-ruler {
+    --ruler-reserve: 12rem;
+  }
+  .fw-ruler__row {
+    grid-template-columns: minmax(0, 11rem) minmax(0, 1fr);
+  }
+}
+.fw-ruler__row--zero {
+  color: var(--pagedeck-text);
+}
+.fw-ruler__name {
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 600;
+}
+.fw-ruler__track {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 16px;
+  min-width: 0;
+}
+.fw-ruler__bar {
+  display: block;
+  flex: none;
+  width: calc((100% - var(--ruler-reserve)) * var(--share, 0));
+  min-width: 2px;
+  height: clamp(28px, 4vw, 44px);
+  border-radius: 8px;
+  background-color: currentcolor;
+  transform-origin: left center;
+}
+.fw-ruler__value {
+  font-size: clamp(28px, 4vw, 40px);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  letter-spacing: -.025em;
+  line-height: 1;
+  white-space: nowrap;
+}
+.fw-ruler__note {
+  color: var(--text-secondary);
+  font-size: 15px;
+}
+
+/* The home page's sections, one per block of its markdown. */
+.fw-section {
+  display: grid;
+  gap: 16px 48px;
+  padding-block: 64px;
+  border-top: 1px solid var(--rule);
+}
+.fw-section > * {
+  margin: 0;
+  max-width: 65ch;
+}
+.fw-section > h2 {
+  font-size: clamp(32px, 5vw, 48px);
+  letter-spacing: -.02em;
+}
+.fw-section > p {
+  color: var(--text-secondary);
+  font-size: 19px;
+  line-height: 1.42;
+}
+.fw-section pre {
+  max-width: none;
+}
+.fw-table {
+  max-width: none;
+  overflow-x: auto;
+}
+.fw-section table,
+.fw-figures table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.fw-section table {
+  table-layout: fixed;
+  font-size: 15px;
+  line-height: 1.45;
+  hyphens: manual;
+  overflow-wrap: break-word;
+}
+.fw-section :is(th, td),
+.fw-figures :is(th, td) {
+  padding: 12px 16px 12px 0;
+  border-bottom: 1px solid var(--rule);
+  text-align: left;
+  vertical-align: top;
+}
+.fw-section thead th,
+.fw-figures th {
+  color: var(--text-secondary);
+  font-size: 15px;
+  font-weight: 600;
+  vertical-align: bottom;
+}
+.fw-section--compare thead th {
+  color: var(--text);
+  font-size: 17px;
+}
+.fw-section--compare thead th:first-child {
+  width: 24%;
+  color: var(--text-secondary);
+  font-size: 15px;
+}
+.fw-section--compare thead th:last-child {
+  color: var(--pagedeck-text);
+}
+.fw-section tbody th {
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+.fw-section--compare td:last-child {
+  color: var(--text);
+  font-weight: 600;
+}
+.fw-section--compare > .fw-table {
+  padding: 8px 24px 16px;
+  border-radius: 28px;
+  background: var(--ground-tile);
+}
+@media (max-width: 47.99rem) {
+  .fw-section--compare > .fw-table {
+    padding: 0;
+    overflow: visible;
+    background: transparent;
+  }
+  .fw-section--compare :is(table, tbody, tbody th, td) {
+    display: block;
+    width: 100%;
+  }
+  .fw-section--compare thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .fw-section--compare tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 0 12px;
+    margin-bottom: 12px;
+    padding: 20px 24px;
+    border-radius: 28px;
+    background: var(--ground-tile);
+  }
+  .fw-section--compare :is(tbody th, td:last-child) {
+    grid-column: 1 / -1;
+  }
+  .fw-section--compare tbody th {
+    padding: 0 0 8px;
+    border: 0;
+    color: var(--text);
+    font-size: 19px;
+    line-height: 1.2;
+  }
+  .fw-section--compare td {
+    padding: 8px 0;
+    border: 0;
+  }
+  .fw-section--compare td::before {
+    content: attr(data-label);
+    display: block;
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .fw-section--compare td:last-child::before {
+    color: var(--pagedeck-text);
+  }
+}
+.fw-section--data > p:first-of-type strong {
+  color: var(--pagedeck-text);
+  font-size: clamp(28px, 4vw, 36px);
+  letter-spacing: -.025em;
+}
+.fw-section--sources {
+  padding-block: 40px;
+  font-size: 13px;
+}
+.fw-section--sources > h2 {
+  font-size: 15px;
+  letter-spacing: normal;
+}
+.fw-section--sources ol {
+  display: grid;
+  gap: 8px;
+  padding-left: 20px;
+  color: var(--text-secondary);
+}
+@media (min-width: 60rem) {
+  .fw-section {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    align-content: start;
+  }
+  .fw-section > h2 {
+    grid-column: 1;
+  }
+  .fw-section > :not(h2) {
+    grid-column: 2;
+  }
+  .fw-section--compare {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .fw-section--compare > :not(h2) {
+    grid-column: 1;
+  }
+  .fw-section--data > p {
+    grid-column: 1;
+  }
+  .fw-section--data > .fw-tabs {
+    grid-column: 2;
+    grid-row: 1 / span 3;
+  }
+  .fw-section--closing > h2 {
+    grid-row: 1 / span 2;
+  }
+}
+
+/* The data section's two files, as tabs a radio per file picks. */
+.fw-tabs {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  min-width: 0;
+  max-width: none;
+}
+.fw-tabs__panel {
+  min-width: 0;
+}
+.fw-tabs__list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  margin: 0 0 12px;
+  padding: 0;
+  border: 0;
+}
+/* Out of sight and still focusable; its label is what a reader presses. */
+.fw-tabs__radio {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+.fw-tabs__list label {
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: var(--ground-tile);
+  color: var(--text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+}
+.fw-tabs__list label:hover {
+  color: var(--text);
+}
+.fw-tabs__list code {
+  padding: 0;
+  background: transparent;
+}
+.fw-tabs__radio:checked + label {
+  background: var(--text);
+  color: var(--ground-page);
+}
+.fw-tabs__radio:focus-visible + label {
+  outline: 2px solid var(--text-link);
+  outline-offset: 2px;
+}
+@supports selector(:has(*)) {
+  .fw-tabs__panel {
+    display: none;
+  }
+  .fw-tabs:has(.fw-tabs__radio:nth-of-type(1):checked) > .fw-tabs__panel:nth-of-type(1),
+  .fw-tabs:has(.fw-tabs__radio:nth-of-type(2):checked) > .fw-tabs__panel:nth-of-type(2),
+  .fw-tabs:has(.fw-tabs__radio:nth-of-type(3):checked) > .fw-tabs__panel:nth-of-type(3) {
+    display: block;
+  }
+}
+
+/* Highlighted code. `!important` wins over the highlighter's inline ground. */
+.shiki {
+  margin: 0;
+  padding: 20px 24px;
+  overflow-x: auto;
+  border-radius: 18px;
+  background-color: var(--ground-tile) !important;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.line {
+  display: block;
+}
+/* A column flex container drops the whitespace text between blocked lines,
+   which would otherwise render as blank lines. */
+.shiki code {
+  display: flex;
+  flex-direction: column;
+}
+
+/* The island page's demo, and each feature's. */
+.fw-demo,
+.fw-feature__demo {
+  display: grid;
+  gap: 28px;
+  min-width: 0;
+  padding: 32px;
+  border-radius: 28px;
+  background: var(--ground-tile);
+}
+.fw-demo p {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  margin: 0;
+}
+.fw-demo output,
+.fw-picker output {
+  font-variant-numeric: tabular-nums;
+}
+.fw-back {
+  margin: 0;
+  padding-top: 32px;
+  border-top: 1px solid var(--rule);
+}
+
+.fw-feature {
+  display: grid;
+  gap: 24px 48px;
+  padding-block: 64px;
+  border-top: 1px solid var(--rule);
+}
+@media (min-width: 60rem) {
+  .fw-feature {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    align-items: start;
+  }
+}
+.fw-feature__text {
+  display: grid;
+  align-content: start;
+  gap: 14px;
+}
+.fw-feature__text > * {
+  max-width: 60ch;
+  margin: 0;
+}
+.fw-feature__text h2 {
+  font-size: 32px;
+}
+.fw-feature__text p {
+  color: var(--text-secondary);
+  font-size: 17px;
+}
+.fw-feature__docs {
+  font-weight: 600;
+}
+@media (max-width: 39.99rem) {
+  .fw-demo,
+  .fw-feature__demo {
+    padding: 24px;
+  }
+}
+.fw-feature__demo:empty {
+  display: none;
+}
+.fw-feature__demo:has(.fw-probe) {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 7rem), 1fr));
+  gap: 24px;
+}
+
+.fw-probe {
+  padding-top: 12px;
+  border-top: 2px solid var(--rule);
+}
+.fw-probe[data-hydrated="true"] {
+  border-top-color: var(--pagedeck-text);
+}
+.fw-probe[data-probe="static"] {
+  border-top-style: dashed;
+}
+.fw-probe p {
+  margin: 0;
+}
+.fw-probe__name {
+  font-size: 19px;
+  font-weight: 600;
+}
+.fw-probe__state {
+  margin-top: 4px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.45;
+}
+.fw-probe[data-hydrated="true"] .fw-probe__state {
+  color: var(--text);
+}
+
+/* The search island, on /features/ and /docs/search/. */
+.fw-search {
+  display: grid;
+  gap: 8px;
+  max-width: 46rem;
+}
+.fw-doc .fw-search {
+  margin-block: 32px;
+}
+.fw-search__label {
+  font-weight: 600;
+}
+/* --text-secondary for the field's edge: it clears WCAG's 3:1 for a control. */
+.fw-search__input {
+  width: 100%;
+  padding: 12px 20px;
+  border: 1px solid var(--text-secondary);
+  border-radius: 999px;
+  background: var(--ground-page);
+  color: var(--text);
+  font: inherit;
+  font-size: 17px;
+}
+.fw-search__results {
+  display: grid;
+  overflow: hidden;
+  border-radius: 18px;
+  background: var(--ground-raised);
+}
+.fw-search__result {
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--rule);
+  color: var(--text);
+  text-decoration: none;
+}
+main .fw-search__result {
+  color: var(--text);
+}
+.fw-search__result:last-child {
+  border-bottom: 0;
+}
+.fw-search__result:hover,
+.fw-search__result[aria-selected="true"] {
+  background: var(--rule);
+  color: var(--text);
+}
+.fw-search__empty {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+/* The consent banner and the embed it gates. */
+.consent-banner {
+  display: grid;
+  gap: 12px;
+}
+.consent-banner > * {
+  margin: 0;
+}
+.consent-banner__heading {
+  font-size: 19px;
+}
+.consent-banner__body {
+  color: var(--text-secondary);
+}
+.consent-banner__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.fw-embed {
+  display: grid;
+  gap: 8px;
+  padding-top: 24px;
+  border-top: 1px solid var(--rule);
+}
+.fw-embed__label {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+}
+.fw-embed__mount {
+  display: grid;
+  gap: 12px;
+  min-height: 7rem;
+  padding: 16px;
+  border: 1px dashed var(--text-secondary);
+  border-radius: 18px;
+}
+.fw-embed__mount [data-fw-facade] {
+  display: grid;
+  justify-items: start;
+  gap: 12px;
+}
+.fw-embed__denied {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+[data-fw-consent="granted"] .fw-embed__denied {
+  display: none;
+}
+.fw-embed__loaded {
+  padding: 16px;
+  border-radius: 14px;
+  background: var(--ground-raised);
+}
+.fw-embed__loaded p {
+  margin: 0;
+}
+.fw-embed__title {
+  font-weight: 600;
+}
+
+/* Images, the social card, and the facts beside them. */
+.fw-figure {
+  display: grid;
+  gap: 16px;
+  margin: 0;
+}
+.fw-figure__img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 14px;
+}
+.fw-facts {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  font-size: 13px;
+}
+.fw-facts > div {
+  display: grid;
+  gap: 4px 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--rule);
+}
+@media (min-width: 30rem) {
+  .fw-facts > div {
+    grid-template-columns: minmax(0, 8rem) minmax(0, 1fr);
+  }
+}
+.fw-facts dt {
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+.fw-facts dd {
+  margin: 0;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  overflow-wrap: anywhere;
+}
+.fw-plate {
+  display: grid;
+  gap: 24px;
+}
+
+.fw-locales {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.fw-locales li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--rule);
+}
+.fw-locales a {
+  font-size: 19px;
+  font-weight: 600;
+}
+.fw-locales__code {
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+/* The server-data page: its figures, and the variant picker. */
+.fw-figures {
+  padding: 8px 24px 16px;
+  border-radius: 28px;
+  background: var(--ground-tile);
+}
+.fw-figures td {
+  color: var(--text-secondary);
+  font-size: 15px;
+}
+.fw-figures td:first-child {
+  color: var(--pagedeck-text);
+  font-size: 24px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+@media (min-width: 60rem) {
+  .fw-picker {
+    position: sticky;
+    top: 76px;
+  }
+}
+.fw-picker form {
+  display: grid;
+  gap: 24px;
+}
+.fw-picker p {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 12px 16px;
+  margin: 0;
+}
+.fw-picker strong {
+  font-size: 32px;
+  font-variant-numeric: tabular-nums;
+}
+.fw-picker span {
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+.fw-picker fieldset {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+  margin: 0;
+  padding: 12px 0 0;
+  border: 0;
+  border-top: 1px solid var(--rule);
+}
+.fw-picker legend {
+  float: left;
+  width: 100%;
+  margin-bottom: 8px;
+  padding: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+}
+.fw-picker label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: var(--ground-raised);
+  cursor: pointer;
+}
+.fw-picker label:has(:checked) {
+  background: var(--text);
+  color: var(--ground-page);
+}
+.fw-picker input {
+  margin: 0;
+  accent-color: var(--pagedeck-fill);
+}
+
+/* The docs: the nav beside the page, on the measure. */
+.fw-docs {
+  display: grid;
+  gap: 24px;
+  padding-block: 40px 72px;
+}
+/* `min-width: 0`, or a grid child will not shrink below a wide <pre> and
+   widens the page. */
+.fw-doc {
+  min-width: 0;
+  overflow-wrap: break-word;
+}
+@media (min-width: 60rem) {
+  .fw-docs:has(> .fw-docnav) {
+    grid-template-columns: 13rem minmax(0, 1fr);
+    gap: 48px;
+  }
+}
+/* Not a sticky panel with its own scroll: axe reads a closed <details>'
+   contents as hidden and would report a scroll box with nothing focusable. */
+.fw-docnav {
+  font-size: 14px;
+}
+.fw-docnav__toggle {
+  border-block: 1px solid var(--rule);
+}
+.fw-docnav__summary {
+  padding: 12px 0;
+  font-size: 17px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.fw-docnav section {
+  padding-block: 12px;
+}
+.fw-docnav h2 {
+  margin: 0 0 4px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  letter-spacing: normal;
+}
+.fw-docnav ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+main .fw-docnav a {
+  display: block;
+  margin-inline: -10px;
+  padding: 4px 10px;
+  border-radius: 10px;
+  color: var(--text);
+  line-height: 1.35;
+  text-decoration: none;
+}
+main .fw-docnav a:hover {
+  color: var(--text-link);
+}
+main .fw-docnav a[aria-current="page"] {
+  background: var(--ground-tile);
+  color: var(--pagedeck-text);
+  font-weight: 600;
+}
+@media (min-width: 60rem) {
+  @supports selector(::details-content) {
+    .fw-docnav__toggle {
+      border-block: 0;
+    }
+    .fw-docnav__summary {
+      display: none;
+    }
+    .fw-docnav__toggle::details-content {
+      content-visibility: visible;
+    }
+    .fw-docnav section:first-of-type {
+      padding-top: 0;
+    }
+  }
+}
+.fw-doc > h1 {
+  margin: 0 0 20px;
+  max-width: 24ch;
+  font-size: clamp(32px, 5vw, 48px);
+  letter-spacing: -.02em;
+}
+.fw-lede {
+  max-width: 60ch;
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 19px;
+  line-height: 1.42;
+}
+
+.fw-prose {
+  max-width: 46rem;
+  font-size: 17px;
+  line-height: 1.6;
+}
+.fw-prose > :first-child {
+  margin-top: 0;
+}
+.fw-prose :is(h2, h3, h4) {
+  margin-block: 48px 12px;
+  scroll-margin-top: 76px;
+}
+.fw-prose h2 {
+  padding-top: 24px;
+  border-top: 1px solid var(--rule);
+  font-size: 28px;
+}
+.fw-prose h3 {
+  margin-top: 32px;
+  font-size: 21px;
+}
+.fw-prose :is(ul, ol) {
+  padding-inline-start: 24px;
+}
+.fw-prose li + li {
+  margin-top: 4px;
+}
+.fw-prose img {
+  max-width: 100%;
+  height: auto;
+}
+.fw-prose blockquote {
+  margin: 24px 0;
+  padding: 16px 24px;
+  border-radius: 18px;
+  background: var(--ground-tile);
+}
+.fw-prose pre {
+  margin: 24px 0;
+}
+
+.fw-pager {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  max-width: 46rem;
+  margin-top: 72px;
+}
+main .fw-pager__link {
+  display: flex;
+  flex: 1 1 16rem;
+  flex-direction: column;
+  gap: 4px;
+  padding: 20px 24px;
+  border-radius: 28px;
+  background: var(--ground-tile);
+  color: var(--text);
+  text-decoration: none;
+}
+.fw-pager__link[rel="next"] {
+  text-align: right;
+}
+main .fw-pager__link:hover {
+  background: var(--ground-raised);
+  color: var(--text);
+}
+.fw-pager__dir {
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+.fw-pager__title {
+  color: var(--pagedeck-text);
+  font-size: 19px;
+  font-weight: 600;
+}
+
+/* The footer. */
+.site-footer {
+  padding: 32px 22px 48px;
+  border-top: 1px solid #1d1d1f;
+}
+.site-footer > div {
+  max-width: 936px;
+  margin: 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px 22px;
+  font-size: 12px;
+  color: #86868b;
+}
+.site-footer p {
+  margin: 0;
+}
+.site-footer ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 22px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.site-footer a {
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+.site-footer a:hover {
+  color: var(--text);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @view-transition {
+    navigation: auto;
+  }
+  .fw-ruler__row:not(.fw-ruler__row--zero) .fw-ruler__bar {
+    animation: fw-grow 1.1s var(--ease) .2s both;
+  }
+  main a,
+  main button,
+  main label,
+  .site-footer a {
+    transition: color .2s var(--ease), background-color .2s var(--ease);
+  }
+}
+
+@keyframes fw-grow {
+  from {
+    transform: scaleX(0);
+  }
+}
