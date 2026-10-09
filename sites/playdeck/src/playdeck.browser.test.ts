@@ -112,8 +112,9 @@ describe("the playdeck site in a browser", () => {
   });
 
   describe.each([390, 1280])("at %ipx", (width) => {
-    // Longer than the default: axe reads the comparison guide's 192 notes and wide tables.
-    test.each(PAGES)("%s: axe finds no violations, nothing leaves the origin, the CSP holds and no error is thrown", { timeout: 30_000 }, async (path) => {
+    // Longer than the default: axe takes about 16 s over the comparison guide's
+    // 192 notes and wide tables on an idle machine, and twice that under the full suite.
+    test.each(PAGES)("%s: axe finds no violations, nothing leaves the origin, the CSP holds and no error is thrown", { timeout: 90_000 }, async (path) => {
       const { page, offOrigin, violations, errors } = await visit(path, { width });
       // Let the islands hydrate before axe reads the page.
       await page.waitForLoadState("networkidle");
