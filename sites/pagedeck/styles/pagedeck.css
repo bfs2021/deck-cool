@@ -722,31 +722,6 @@ main .fw-search__result {
   line-height: 1.3;
 }
 
-.fw-locales {
-  display: grid;
-  gap: 12px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-.fw-locales li {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--rule);
-}
-.fw-locales a {
-  font-size: 19px;
-  font-weight: 600;
-}
-.fw-locales__code {
-  color: var(--text-secondary);
-  font-size: 13px;
-}
-
 /* The server-data page: its figures, and the variant picker. */
 .fw-figures {
   padding: 8px 24px 16px;

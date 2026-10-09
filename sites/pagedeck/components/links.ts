@@ -2,11 +2,10 @@
 export const REPO = "https://github.com/pedrosousa13/pagedeck";
 
 /**
- * The landing's placeholder docs host, under RFC 2606's `.example`. The docs
- * move to /docs in #53, which points these links there: until the pages exist,
- * the build's link check refuses a /docs/ link.
+ * pagedeck's live docs, on their own Worker until #53 moves them to /docs here.
+ * Until the pages exist, the build's link check refuses a /docs/ link.
  */
-export const DOCS_ORIGIN = "https://docs.pagedeck.example";
+export const DOCS_ORIGIN = "https://pagedeck-docs.pedrodsousa.workers.dev";
 
 /** Each page this site builds. */
 export const PATHS = {

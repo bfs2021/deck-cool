@@ -1,11 +1,11 @@
-# Deploying deck.cool and slide.deck.cool
+# Deploying deck.cool, slide.deck.cool and page.deck.cool
 
 The umbrella site (`sites/deck-cool`) is served at `https://deck.cool` by **Workers Static Assets**, the way pagedeck deploys its landing page. One `wrangler deploy` uploads the built `site/` and publishes a Worker named `deck-cool` that serves it. The Worker has no code of its own.
 
 wrangler is `sites/deck-cool`'s exact-version dev dependency. Run it as `pnpm exec wrangler` in `sites/deck-cool`, never as `npx wrangler`, which takes whatever version is latest.
 
 
-slidedeck's site (`sites/slidedeck`) deploys the same way, to its own Worker at `https://slide.deck.cool`. Everything below describes deck.cool; [slidedeck at slide.deck.cool](#slidedeck-at-slidedeckcool) lists what differs.
+slidedeck's site (`sites/slidedeck`) and pagedeck's (`sites/pagedeck`) deploy the same way, each to its own Worker, at `https://slide.deck.cool` and `https://page.deck.cool`. Everything below describes deck.cool; [slidedeck at slide.deck.cool](#slidedeck-at-slidedeckcool) and [pagedeck at page.deck.cool](#pagedeck-at-pagedeckcool) list what differs.
 ## What gets deployed
 
 `sites/deck-cool/wrangler.jsonc` declares the Worker:
@@ -197,3 +197,60 @@ Or the dashboard: Workers & Pages → `slidedeck` (Pages) → Settings → Delet
 ```sh
 curl -sI https://slidedeck.pages.dev/   # no 200
 ```
+
+## pagedeck at page.deck.cool
+
+`sites/pagedeck` is served at `https://page.deck.cool` by a third Worker, `pagedeck`, on the same `deck.cool` zone. It takes over from the landing page at `pagedeck-landing.pedrodsousa.workers.dev`. Until #53 brings the docs to `/docs`, the site's docs links go to pagedeck's docs at `https://pagedeck-docs.pedrodsousa.workers.dev` (`DOCS_ORIGIN` in `sites/pagedeck/components/links.ts`).
+
+Every section above applies, with these differences:
+
+- **The config.** `sites/pagedeck/wrangler.jsonc` declares the Worker `pagedeck`, with the route `{ "pattern": "page.deck.cool", "custom_domain": true }`. The other settings are the same as deck.cool's. wrangler is `sites/pagedeck`'s exact-version dev dependency, at the same version as deck.cool's.
+- **The build.** `_headers` gets its CSP from `sites/pagedeck/src/csp.ts` and the other headers from `sites/pagedeck/src/headers.ts`, the same fields as deck.cool's. Three directories are content-hashed, so they are `immutable`: `/assets/` (the stylesheet and the islands' scripts), `/fonts/` (the subset font and its sheet) and `/social/` (the features page's social card). `_redirects` and `.assetsignore` are the same as deck.cool's.
+- **The workflow.** `.github/workflows/deploy-pagedeck.yml` has the same three jobs as `deploy-deck-cool.yml`. A push runs its dry run only when it changes `sites/pagedeck/`, `packages/`, the root `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml` or the workflow itself. A manual run always runs.
+- **The token and the secret.** The publish job uses the same `CLOUDFLARE_API_TOKEN` in the `production` environment. Workers Editor is account-wide, and Workers Routes Write covers every hostname on the `deck.cool` zone, so the token deploys this Worker too.
+- **The zone.** Always Use HTTPS is a zone setting, so it already covers `page.deck.cool`. deck.cool's HSTS has `includeSubDomains`, and pagedeck's `_headers` sends the same HSTS, so the two never disagree.
+
+### The first deploy
+
+The `pagedeck` Worker exists: it was created empty through the Cloudflare API on 2026-10-09, so Workers Editor can deploy to it and the first deploy needs no Admin. Run it from CI.
+
+Before the first deploy, check the zone's DNS records for `page.deck.cool`. The custom domain creates its own record, and it cannot be created on a hostname that already has a CNAME record.
+
+```sh
+gh workflow run deploy-pagedeck.yml -R pedrosousa13/deck-cool --ref main               # dry run
+gh workflow run deploy-pagedeck.yml -R pedrosousa13/deck-cool --ref main -f apply=true # publish
+gh run watch -R pedrosousa13/deck-cool
+```
+
+From your machine instead:
+
+```sh
+cd sites/pagedeck
+pnpm build
+pnpm exec wrangler deploy --dry-run   # lists the upload; sends nothing
+CLOUDFLARE_API_TOKEN=... pnpm exec wrangler deploy
+```
+
+### Verifying pagedeck
+
+```sh
+pnpm --filter @sites/pagedeck check-live                      # https://page.deck.cool
+pnpm --filter @sites/pagedeck check-live https://example.com  # any other origin
+```
+
+`check-live` fetches `/`, `/interactive/`, `/features/`, `/server-data/`, `/docs/search/` and `/embed/demo-embed.js`, and fails unless each answers `200` with every header in `sites/pagedeck/src/headers.ts`, at its exact value, and no `immutable`. The CSP, and `Strict-Transport-Security: max-age=31536000; includeSubDomains`, are among those headers. It then checks two hashed stylesheets, the one `/` links under `/assets/` and the font sheet `/features/` links under `/fonts/`: each must answer `200` with the same headers and `Cache-Control: public, max-age=31536000, immutable`. It fails unless `/manifest.json` and `/no-such-page/` answer `404`, and unless `http://page.deck.cool/` answers `301` to `https://page.deck.cool/`. `sites/pagedeck/src/live-check.test.ts` runs the same checks against the build served locally.
+
+`src/live-check.ts` and its test are copies of slidedeck's, with this site's paths and the font sheet. #56 moves the sites' shared code into one package; take these copies with it.
+
+Rolling back, and taking the site off the domain, are the same as for deck.cool, with the Worker `pagedeck` in `sites/pagedeck`.
+
+### Host behaviour that is accepted
+
+Two things Cloudflare does on the zone are known, and the maintainer accepted both on 2026-10-09 (#3). A later sweep should not flag them again.
+
+- **NEL stays on.** Cloudflare adds `nel` and `report-to` headers, so a reader's browser can report network failures to `a.nel.cloudflare.com`. That report is the one request to another origin the site can cause, and no check in this repo sees it.
+- **Cloudflare's managed robots.txt stays.** `/robots.txt` answers `200` with Cloudflare's managed file, which is not in the build. The site ships no `robots.txt` of its own.
+
+### The old Workers stay up
+
+`pagedeck-landing` and `pagedeck-docs` keep running. `pagedeck-docs` serves the docs that this site links to. Both retire in #53 or pedrosousa13/pagedeck#124, once `/docs` is served here. Delete neither before then: a deletion can't be undone, so the maintainer confirms each one first.
