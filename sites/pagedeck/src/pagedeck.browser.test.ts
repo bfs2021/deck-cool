@@ -128,16 +128,24 @@ describe("the pagedeck site in a browser", () => {
     expect(await page.evaluate(() => document.getAnimations().map((animation) => animation.constructor.name))).toEqual([]);
   });
 
-  test("with motion allowed, the ruler's one bar above 0 B grows, on the brand's curve", async () => {
-    const { page } = await visit(PATHS.home, { width: 1280, reducedMotion: "no-preference" });
-    const easings = await page.evaluate(() =>
-      document.getAnimations().flatMap((animation) => {
-        const target = animation.effect instanceof KeyframeEffect ? animation.effect.target : null;
-        // A CSS animation's curve is per keyframe, so it is the element's style, not the effect's timing.
-        return target?.classList.contains("fw-ruler__bar") ? [getComputedStyle(target).animationTimingFunction] : [];
+  // The page ships no script, so a click selects the command for copying instead.
+  test("one click on the home page's install command selects all of it, and nothing else", async () => {
+    const { page } = await visit(PATHS.home, { width: 1280 });
+    await page.locator(".fw-install code").click();
+    expect(await page.evaluate(() => window.getSelection()?.toString())).toBe("npm create pagedeck");
+  });
+
+  test("the home page's two skins set the same teaser in two different faces and grounds", async () => {
+    const { page } = await visit(PATHS.home, { width: 1280 });
+    const looks = await page.locator(".fw-skin__stage .teaser").evaluateAll((teasers) =>
+      teasers.map((teaser) => {
+        const style = getComputedStyle(teaser);
+        return [style.fontFamily, style.backgroundColor];
       }),
     );
-    expect(easings).toEqual(["cubic-bezier(0.32, 0.72, 0, 1)"]);
+    expect(looks).toHaveLength(2);
+    expect(looks[0]?.[0]).not.toBe(looks[1]?.[0]);
+    expect(looks[0]?.[1]).not.toBe(looks[1]?.[1]);
   });
 
   test("the island page's counter hydrates under the CSP and counts presses", async () => {

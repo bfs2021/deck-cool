@@ -85,27 +85,9 @@ main :not(pre) > code {
 .fw-hero--short {
   padding-block-end: 40px;
 }
-.fw-hero--home {
-  display: block;
-  padding-block: 96px 40px;
-}
-.fw-hero--home .fw-hero__title {
-  max-width: 20ch;
-  font-size: clamp(40px, 9vw, 80px);
-  letter-spacing: -.03em;
-}
-.fw-hero--home .fw-hero__lede {
-  max-width: 40ch;
-}
 
 /* Pill buttons: the call to action, and every button an island renders. */
-.fw-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin: 28px 0 0;
-}
-main :is(.fw-button, .fw-demo button, .fw-picker button, .fw-section--closing > p:last-child a, .consent-banner__accept, .consent-banner__reject, .consent-banner__manage, .fw-embed__load) {
+main :is(.fw-button, .fw-demo button, .fw-picker button, .consent-banner__accept, .consent-banner__reject, .consent-banner__manage, .fw-embed__load) {
   display: inline-block;
   padding: 12px 22px;
   border: 0;
@@ -118,327 +100,343 @@ main :is(.fw-button, .fw-demo button, .fw-picker button, .fw-section--closing > 
   text-decoration: none;
   cursor: pointer;
 }
-main :is(.fw-button--quiet, .consent-banner__reject, .consent-banner__manage, .fw-embed__load) {
+main :is(.consent-banner__reject, .consent-banner__manage, .fw-embed__load) {
   background: var(--ground-raised);
   color: var(--text);
 }
-main :is(.fw-button, .fw-demo button, .fw-picker button, .fw-section--closing > p:last-child a, .consent-banner__accept, .consent-banner__reject, .consent-banner__manage, .fw-embed__load):hover {
+main :is(.fw-button, .fw-demo button, .fw-picker button, .consent-banner__accept, .consent-banner__reject, .consent-banner__manage, .fw-embed__load):hover {
   background: var(--text);
   color: var(--ground-page);
 }
 
-/* The payload ruler under the home page's hero. */
-.fw-ruler {
-  --ruler-reserve: 0px;
-  margin: 48px 0 0;
-  padding: 32px;
-  border-radius: 28px;
-  background: var(--ground-tile);
-}
-.fw-ruler__title {
-  margin-bottom: 24px;
-  color: var(--text-secondary);
-  font-size: 15px;
-}
-.fw-ruler__rows {
-  display: grid;
-  gap: 20px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-.fw-ruler__row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  align-items: center;
-  gap: 4px 24px;
-  color: var(--text-secondary);
-}
-@media (min-width: 40rem) {
-  .fw-ruler {
-    --ruler-reserve: 12rem;
-  }
-  .fw-ruler__row {
-    grid-template-columns: minmax(0, 11rem) minmax(0, 1fr);
-  }
-}
-.fw-ruler__row--zero {
-  color: var(--pagedeck-text);
-}
-.fw-ruler__name {
-  color: var(--text);
-  font-size: 15px;
-  font-weight: 600;
-}
-.fw-ruler__track {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px 16px;
-  min-width: 0;
-}
-.fw-ruler__bar {
-  display: block;
-  flex: none;
-  width: calc((100% - var(--ruler-reserve)) * var(--share, 0));
-  min-width: 2px;
-  height: clamp(28px, 4vw, 44px);
-  border-radius: 8px;
-  background-color: currentcolor;
-  transform-origin: left center;
-}
-.fw-ruler__value {
-  font-size: clamp(28px, 4vw, 40px);
-  font-variant-numeric: tabular-nums;
-  font-weight: 600;
-  letter-spacing: -.025em;
-  line-height: 1;
-  white-space: nowrap;
-}
-.fw-ruler__note {
-  color: var(--text-secondary);
-  font-size: 15px;
-}
-
-/* The home page's sections, one per block of its markdown. */
-.fw-section {
-  display: grid;
-  gap: 16px 48px;
-  padding-block: 64px;
-  border-top: 1px solid var(--rule);
-}
-.fw-section > * {
-  margin: 0;
-  max-width: 65ch;
-}
-.fw-section > h2 {
-  font-size: clamp(32px, 5vw, 48px);
-  letter-spacing: -.02em;
-}
-.fw-section > p {
-  color: var(--text-secondary);
-  font-size: 19px;
-  line-height: 1.42;
-}
-.fw-section pre {
-  max-width: none;
-}
+/* The server-data page's table, which scrolls sideways on a narrow screen. */
 .fw-table {
   max-width: none;
   overflow-x: auto;
 }
-.fw-section table,
 .fw-figures table {
   width: 100%;
   border-collapse: collapse;
 }
-.fw-section table {
-  table-layout: fixed;
-  font-size: 15px;
-  line-height: 1.45;
-  hyphens: manual;
-  overflow-wrap: break-word;
-}
-.fw-section :is(th, td),
 .fw-figures :is(th, td) {
   padding: 12px 16px 12px 0;
   border-bottom: 1px solid var(--rule);
   text-align: left;
   vertical-align: top;
 }
-.fw-section thead th,
 .fw-figures th {
   color: var(--text-secondary);
   font-size: 15px;
   font-weight: 600;
   vertical-align: bottom;
 }
-.fw-section--compare thead th {
-  color: var(--text);
-  font-size: 17px;
+
+/*
+ * The home page, laid out as deck.cool's home page is (the brand kit's
+ * umbrella.css): a centred hero, a 28px card, and full-width bands of tiles.
+ */
+.fw-intro {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 112px 22px 96px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  text-align: center;
 }
-.fw-section--compare thead th:first-child {
-  width: 24%;
-  color: var(--text-secondary);
-  font-size: 15px;
+.fw-intro > * {
+  margin: 0;
 }
-.fw-section--compare thead th:last-child {
+.fw-intro img {
+  display: block;
+}
+.fw-intro .fw-intro__lead {
   color: var(--pagedeck-text);
+  font-size: 21px;
+  font-weight: 600;
+  letter-spacing: -.01em;
 }
-.fw-section tbody th {
+/* 80px as on deck.cool, narrowing so each line holds down to 360px. */
+.fw-intro h1 {
+  font-size: clamp(32px, 9vw, 80px);
+  line-height: 1.05;
+  letter-spacing: -.025em;
+}
+.fw-intro h1 span,
+.fw-intro p {
   color: var(--text-secondary);
-  font-weight: 600;
 }
-.fw-section--compare td:last-child {
+.fw-intro p {
+  max-width: 640px;
+  font-size: 21px;
+  line-height: 1.38;
+}
+.fw-intro__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+/* Copying needs script, and this page ships none: one click selects the
+   whole command instead. */
+.fw-install {
+  max-width: 100%;
+  padding: 11px 22px;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  background: var(--ground-tile);
+}
+.fw-install code {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0;
+  background: transparent;
   color: var(--text);
-  font-weight: 600;
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-user-select: all;
+  user-select: all;
 }
-.fw-section--compare > .fw-table {
-  padding: 8px 24px 16px;
+main .fw-more {
+  color: var(--pagedeck-text);
+  font-size: 17px;
+  text-decoration: none;
+}
+main .fw-more:hover {
+  color: var(--text);
+}
+
+/* The proof: the Astro comparison beside the one figure. */
+.fw-proof {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 40px;
+  margin: 0 max(22px, calc((100% - 980px) / 2)) 112px;
+  padding: 40px;
   border-radius: 28px;
   background: var(--ground-tile);
 }
-@media (max-width: 47.99rem) {
-  .fw-section--compare > .fw-table {
-    padding: 0;
-    overflow: visible;
-    background: transparent;
-  }
-  .fw-section--compare :is(table, tbody, tbody th, td) {
-    display: block;
-    width: 100%;
-  }
-  .fw-section--compare thead {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
-  }
-  .fw-section--compare tr {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    gap: 0 12px;
-    margin-bottom: 12px;
-    padding: 20px 24px;
-    border-radius: 28px;
-    background: var(--ground-tile);
-  }
-  .fw-section--compare :is(tbody th, td:last-child) {
-    grid-column: 1 / -1;
-  }
-  .fw-section--compare tbody th {
-    padding: 0 0 8px;
-    border: 0;
-    color: var(--text);
-    font-size: 19px;
-    line-height: 1.2;
-  }
-  .fw-section--compare td {
-    padding: 8px 0;
-    border: 0;
-  }
-  .fw-section--compare td::before {
-    content: attr(data-label);
-    display: block;
-    color: var(--text-secondary);
-    font-size: 13px;
-    font-weight: 600;
-  }
-  .fw-section--compare td:last-child::before {
-    color: var(--pagedeck-text);
-  }
+.fw-proof h2,
+.fw-proof h3,
+.fw-proof p {
+  margin: 0;
 }
-.fw-section--data > p:first-of-type strong {
-  color: var(--pagedeck-text);
-  font-size: clamp(28px, 4vw, 36px);
-  letter-spacing: -.025em;
+.fw-proof__text {
+  flex: 1 1 380px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
 }
-.fw-section--sources {
-  padding-block: 40px;
-  font-size: 13px;
+.fw-proof h2 {
+  font-size: 32px;
+  line-height: 1.12;
+  letter-spacing: -.02em;
 }
-.fw-section--sources > h2 {
-  font-size: 15px;
-  letter-spacing: normal;
+.fw-proof__points {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
-.fw-section--sources ol {
+.fw-proof__points li {
   display: grid;
-  gap: 8px;
-  padding-left: 20px;
-  color: var(--text-secondary);
+  gap: 4px;
+  padding-top: 16px;
+  border-top: 1px solid var(--rule);
 }
-@media (min-width: 60rem) {
-  .fw-section {
-    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
-    align-content: start;
-  }
-  .fw-section > h2 {
-    grid-column: 1;
-  }
-  .fw-section > :not(h2) {
-    grid-column: 2;
-  }
-  .fw-section--compare {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .fw-section--compare > :not(h2) {
-    grid-column: 1;
-  }
-  .fw-section--data > p {
-    grid-column: 1;
-  }
-  .fw-section--data > .fw-tabs {
-    grid-column: 2;
-    grid-row: 1 / span 3;
-  }
-  .fw-section--closing > h2 {
-    grid-row: 1 / span 2;
-  }
+.fw-proof h3 {
+  font-size: 19px;
+  letter-spacing: -.01em;
+}
+.fw-proof__points p {
+  color: var(--text-secondary);
+  font-size: 17px;
+  line-height: 1.47;
+}
+.fw-proof__figure {
+  flex: 1 1 280px;
+  min-width: 0;
+  align-self: center;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+.fw-proof__figure p:first-child {
+  color: var(--pagedeck-text);
+  font-size: clamp(80px, 16vw, 140px);
+  line-height: .95;
+  font-weight: 600;
+  letter-spacing: -.04em;
+  font-variant-numeric: tabular-nums;
+}
+.fw-proof__figure p:nth-child(2) {
+  font-size: 21px;
+  line-height: 1.3;
+  font-weight: 600;
+}
+.fw-proof__figure p:nth-child(3) {
+  color: var(--text-secondary);
+  font-size: 15px;
+}
+.fw-proof__figure .fw-more {
+  margin-top: 12px;
 }
 
-/* The data section's two files, as tabs a radio per file picks. */
-.fw-tabs {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  align-content: start;
-  min-width: 0;
-  max-width: none;
-}
-.fw-tabs__panel {
-  min-width: 0;
-}
-.fw-tabs__list {
+/* The four quality sections, each a band. */
+.fw-band {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-  margin: 0 0 12px;
-  padding: 0;
-  border: 0;
+  flex-direction: column;
+  gap: 40px;
+  padding: 96px max(22px, calc((100% - 980px) / 2));
+  background: #0b0b0c;
+  border-top: 1px solid #1d1d1f;
 }
-/* Out of sight and still focusable; its label is what a reader presses. */
-.fw-tabs__radio {
-  position: absolute;
-  width: 1px;
-  height: 1px;
+.fw-band__text {
+  max-width: 680px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+}
+.fw-band h2,
+.fw-band__text p {
   margin: 0;
-  opacity: 0;
-  pointer-events: none;
 }
-.fw-tabs__list label {
-  padding: 7px 14px;
-  border-radius: 999px;
-  background: var(--ground-tile);
+.fw-band h2 {
+  font-size: 48px;
+  line-height: 1.08;
+  letter-spacing: -.02em;
+}
+.fw-band__text p {
   color: var(--text-secondary);
-  font-size: 13px;
-  cursor: pointer;
+  font-size: 19px;
+  line-height: 1.42;
 }
-.fw-tabs__list label:hover {
-  color: var(--text);
-}
-.fw-tabs__list code {
+.fw-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  gap: 20px;
+  margin: 0;
   padding: 0;
-  background: transparent;
+  list-style: none;
 }
-.fw-tabs__radio:checked + label {
-  background: var(--text);
-  color: var(--ground-page);
+.fw-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 32px;
+  border-radius: 28px;
+  background: var(--ground-tile);
 }
-.fw-tabs__radio:focus-visible + label {
-  outline: 2px solid var(--text-link);
-  outline-offset: 2px;
+.fw-tile h3,
+.fw-tile p {
+  margin: 0;
 }
-@supports selector(:has(*)) {
-  .fw-tabs__panel {
-    display: none;
+.fw-tile h3 {
+  font-size: 24px;
+  line-height: 1.2;
+  letter-spacing: -.01em;
+}
+.fw-tile__body {
+  color: var(--text-secondary);
+  font-size: 17px;
+  line-height: 1.47;
+}
+
+/* Two skins: one teaser, the same markup twice, each sheet shown below it. */
+.fw-skins {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 400px), 1fr));
+  gap: 20px;
+}
+.fw-skin {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  border-radius: 28px;
+  background: var(--ground-tile);
+}
+.fw-skin figcaption {
+  padding: 24px 32px 0;
+  color: var(--text-secondary);
+  font-size: 15px;
+  font-weight: 600;
+}
+/* One height for both stages, so the two teasers sit level and the longer
+   sheet runs on below. */
+.fw-skin__stage {
+  display: grid;
+  align-content: center;
+  min-height: 300px;
+  padding: 24px 32px 32px;
+}
+.fw-skin pre {
+  flex: 1;
+  margin: 0;
+  padding: 24px 32px 32px;
+  overflow-x: auto;
+  border-top: 1px solid var(--rule);
+  background: var(--ground-raised);
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+/* One line back to deck.cool. */
+.fw-family {
+  padding: 56px 22px;
+  border-top: 1px solid #1d1d1f;
+  text-align: center;
+}
+.fw-family p {
+  max-width: 640px;
+  margin: 0 auto;
+  color: var(--text-secondary);
+  font-size: 17px;
+  line-height: 1.47;
+}
+/* Underlined: it sits in a line of text. */
+main .fw-family .fw-more {
+  text-decoration: underline;
+}
+
+@media (max-width: 734px) {
+  .fw-intro {
+    padding: 72px 22px 64px;
   }
-  .fw-tabs:has(.fw-tabs__radio:nth-of-type(1):checked) > .fw-tabs__panel:nth-of-type(1),
-  .fw-tabs:has(.fw-tabs__radio:nth-of-type(2):checked) > .fw-tabs__panel:nth-of-type(2),
-  .fw-tabs:has(.fw-tabs__radio:nth-of-type(3):checked) > .fw-tabs__panel:nth-of-type(3) {
-    display: block;
+  .fw-intro p {
+    font-size: 19px;
+  }
+  .fw-proof {
+    gap: 32px;
+    margin-bottom: 72px;
+    padding: 28px 24px;
+  }
+  .fw-band {
+    padding-block: 64px;
+  }
+  .fw-band h2 {
+    font-size: 40px;
+  }
+  .fw-tile {
+    padding: 28px 24px;
+  }
+  .fw-skin figcaption,
+  .fw-skin__stage,
+  .fw-skin pre {
+    padding-inline: 24px;
   }
 }
 
@@ -1040,19 +1038,10 @@ main .fw-pager__link:hover {
   ::view-transition-group(*) {
     animation-timing-function: var(--ease);
   }
-  .fw-ruler__row:not(.fw-ruler__row--zero) .fw-ruler__bar {
-    animation: fw-grow 1.1s var(--ease) .2s both;
-  }
   main a,
   main button,
   main label,
   .site-footer a {
     transition: color .2s var(--ease), background-color .2s var(--ease);
-  }
-}
-
-@keyframes fw-grow {
-  from {
-    transform: scaleX(0);
   }
 }

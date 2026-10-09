@@ -1,5 +1,5 @@
 import { formatBytes, utf8Bytes } from "../src/bytes.ts";
-import { PRODUCT } from "../src/product.ts";
+import { PICKER, PRODUCT } from "../src/product.ts";
 import { PAGE } from "./shell.ts";
 import VariantPicker from "./variant_picker.tsx";
 
@@ -15,14 +15,7 @@ export default function ServerDataPage({
   explainer: { readonly heading: string; readonly body: readonly string[] };
 }) {
   const product = PRODUCT;
-  const picker = {
-    sku: product.sku,
-    price: new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: product.price.currency,
-    }).format(product.price.amount / 100),
-    variants: product.variants.map(({ id, colour, size }) => ({ id, colour, size })),
-  };
+  const picker = PICKER;
   const rating =
     product.reviews.reduce((total, review) => total + review.rating, 0) /
     product.reviews.length;

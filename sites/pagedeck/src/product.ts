@@ -246,4 +246,14 @@ function product() {
 
 export const PRODUCT = product();
 
+/** The variant picker's props: the only part of the entry that reaches the browser. */
+export const PICKER = {
+  sku: PRODUCT.sku,
+  price: new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: PRODUCT.price.currency,
+  }).format(PRODUCT.price.amount / 100),
+  variants: PRODUCT.variants.map(({ id, colour, size }) => ({ id, colour, size })),
+};
+
 export type ProductEntry = typeof PRODUCT;
