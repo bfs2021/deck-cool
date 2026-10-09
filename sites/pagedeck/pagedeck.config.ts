@@ -13,6 +13,7 @@ import { components, COUNTER, FAMILY_BAR, FOOTER, ISLAND_PAGE, SEARCH, SEARCH_PA
 import { FEATURES_HEAD, featuresContent, FONTS, SCRIPTS, SOCIAL_IMAGES } from "./src/features.ts";
 import { HASHED_FILE_HEADERS, HASHED_PREFIXES, RESPONSE_HEADERS } from "./src/headers.ts";
 import { SERVER_DATA_HEAD, serverDataContent } from "./src/server-data.ts";
+import { SKINS, skins } from "./src/skins.ts";
 
 const LOCALE = "en";
 const TEMPLATE = "landing_page";
@@ -83,10 +84,6 @@ function documentSchema() {
       .object({
         // Fifty characters is a floor against a placeholder, not a style rule.
         description: z.string().min(50),
-        cta: z.string().min(1),
-        ctaHref: z.string().min(1),
-        islandCta: z.string().min(1),
-        rulerTitle: z.string().min(1),
       })
       .catchall(z.union([z.string(), z.array(z.string()).readonly()])),
   });
@@ -153,7 +150,7 @@ function contentOf(page: Page, store: ContentStoreReader): PageContent {
   if (entry === undefined) {
     throw new Error(`Page ${page.path}: has no stored entry — run pagedeck sync before pagedeck build`);
   }
-  return { template: TEMPLATE, props: { ...entry.data, island: PATHS.interactive } };
+  return { template: TEMPLATE, props: { skins: skins() } };
 }
 
 function headOf(page: Page, store: ContentStoreReader): PageHead | undefined {
@@ -198,6 +195,7 @@ export default defineConfig({
       "./node_modules/@deck-cool/brand/styles/brand.css",
       "./node_modules/@deck-cool/brand/styles/family-bar.css",
       "./styles/pagedeck.css",
+      ...SKINS.map((skin) => `./${skin.file}`),
     ].map((sheet) => realpathSync(sheet)),
     passthrough: { root: stagePublic() },
     routing: {

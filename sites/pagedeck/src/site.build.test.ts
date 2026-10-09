@@ -3,12 +3,13 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, test } from "vitest";
-import { decks } from "@deck-cool/brand/decks";
+import { decks, umbrella } from "@deck-cool/brand/decks";
 import { DOCS_ORIGIN, PATHS, REPO } from "../components/links.ts";
 import { formatBytes, utf8Bytes } from "./bytes.ts";
 import { CONTENT_SECURITY_POLICY } from "./csp.ts";
-import { PRODUCT } from "./product.ts";
+import { PICKER, PRODUCT } from "./product.ts";
 import { headersFor, parseHeaders } from "./serve-site.ts";
+import { SKINS } from "./skins.ts";
 
 // Reads the build that build.global-setup.ts writes.
 
@@ -325,55 +326,209 @@ describe("the served headers", () => {
   });
 });
 
-describe("the home page, the landing page's copy", () => {
+/** Each tile in a band, as [heading, body text or list items]. */
+function tiles(scope: Element | undefined): [string | undefined, (string | undefined)[]][] {
+  return [...(scope?.querySelectorAll(".fw-tile") ?? [])].map((tile) => [
+    text(tile.querySelector("h3")),
+    [...tile.querySelectorAll(".fw-tile__body, li")].map(text),
+  ]);
+}
+
+function links(scope: Element | undefined): [string | undefined, string | null][] {
+  return [...(scope?.querySelectorAll("a") ?? [])].map((a) => [text(a), a.getAttribute("href")]);
+}
+
+// CONTEXT.md, "The landing pages' message", and the maintainer's lead on #48.
+describe("the home page", () => {
   const main = () => present(parse(PATHS.home).querySelector("main"), "<main>");
+  /** The sections of <main>, in order. */
+  const sections = () => [...main().querySelectorAll(":scope > section")];
+  const band = (heading: string) =>
+    sections().find((section) => text(section.querySelector("h2")) === heading);
 
-  test("is titled and headed as the landing was", () => {
-    expect(parse(PATHS.home).title).toBe("Pagedeck: Zero JavaScript until a page needs it");
-    expect(text(main().querySelector("h1"))).toBe("Zero JavaScript until a page needs it");
-    expect(text(main().querySelector(".fw-hero__lede"))).toBe(
-      "A React framework for CMS-driven sites. Each page ships only what it uses.",
+  test("is titled with the claim, and described by the Astro line", () => {
+    const doc = parse(PATHS.home);
+    expect(doc.title).toBe("Pagedeck: Zero JavaScript until a page needs it");
+    expect(doc.head.querySelector('meta[name="description"]')?.getAttribute("content")).toBe(
+      "Like Astro, if Astro were made for React: islands, zero JavaScript by default, and React components all the way down.",
     );
-    expect([...main().querySelectorAll(".fw-actions a")].map((a) => [text(a), a.getAttribute("href")])).toEqual([
-      ["Build your first site", `${DOCS_ORIGIN}/tutorials/your-first-site`],
-      ["See what one island costs", PATHS.interactive],
+  });
+
+  test("runs hero, proof, the four quality sections, then the line back to deck.cool", () => {
+    expect(sections().map((section) => section.className)).toEqual([
+      "fw-intro",
+      "fw-proof",
+      "fw-band",
+      "fw-band",
+      "fw-band",
+      "fw-band",
+      "fw-family",
     ]);
   });
 
-  test("holds the ruler, then a section per block of its markdown", () => {
-    expect(main().querySelector("figure.fw-ruler")).not.toBeNull();
-    expect([...main().querySelectorAll("section")].map((section) => section.className)).toEqual([
-      "fw-section fw-section--compare",
-      "fw-section fw-section--data",
-      "fw-section fw-section--closing",
-      "fw-section fw-section--sources",
+  test("the hero: the Astro line, the claim, one sentence for all three audiences, and the two calls to action", () => {
+    const hero = sections()[0];
+    expect(hero?.querySelector("img")?.getAttribute("src")).toBe(pagedeck.icons.animated);
+    expect(hero?.querySelector("img")?.getAttribute("alt")).toBe("");
+    expect(text(hero?.querySelector("h1"))).toBe(pagedeck.claim);
+    expect([...(hero?.querySelectorAll("p") ?? [])].map(text)).toEqual([
+      "Like Astro, if Astro were made for React.",
+      'Write it in React, style it with your own CSS, or hand it to your agent: every page ships as plain HTML, and only the components you mark "use client" wake up in the browser.',
+    ]);
+    expect(text(hero?.querySelector(".fw-install code"))).toBe(pagedeck.install);
+    // The docs link stays the placeholder until #53.
+    expect(links(hero)).toEqual([["Read the docs", `${DOCS_ORIGIN}/`]]);
+  });
+
+  // CONTEXT.md: the "plain markdown" line waits until @pagedeck/docs is on npm.
+  test("makes no claim about markdown docs or llms.txt", () => {
+    expect(main().textContent).not.toMatch(/Using an agent|markdown|llms\.txt/i);
+  });
+
+  test("the proof: islands, zero JavaScript by default and React all the way down, beside the one figure this build measured", () => {
+    const proof = sections()[1];
+    expect(text(proof?.querySelector("h2"))).toBe("Islands, like Astro. React all the way down.");
+    expect(
+      [...(proof?.querySelectorAll(".fw-proof__points li") ?? [])].map((point) => [
+        text(point.querySelector("h3")),
+        text(point.querySelector("p")),
+      ]),
+    ).toEqual([
+      [
+        "Islands",
+        'Start a component with "use client" once, in its own file, not at every place you use it. Each page that renders it gets it as an island, and no other page pays for it.',
+      ],
+      ["Zero JavaScript by default", "A page with nothing interactive ships plain HTML and CSS, without one script tag."],
+      [
+        "React all the way down",
+        "Pages, layouts and islands are all React components. There is no template language to learn and no wrapper file to write.",
+      ],
+    ]);
+    const figure = [...(proof?.querySelectorAll(".fw-proof__figure > p") ?? [])].map(text);
+    expect(figure).toEqual([
+      pagedeck.figure.value,
+      pagedeck.figure.label,
+      "This page, measured by its own build. One byte more fails the build.",
+    ]);
+    expect(pagedeck.figure.value).toBe(formatBytes(budget.find((row) => row.path === PATHS.home)?.actual ?? Number.NaN));
+    expect(links(proof)).toEqual([["See what one island costs ›", PATHS.interactive]]);
+  });
+
+  test("the four quality sections, in the brief's order", () => {
+    expect(sections().slice(2, 6).map((section) => text(section.querySelector("h2")))).toEqual([
+      "Unstyled, your look.",
+      "Small, leans on the browser.",
+      "Built for agents.",
+      "Accessible by default.",
     ]);
   });
 
-  test("the ruler's Pagedeck row is the 0 B this build measured for the page", () => {
-    const rows = [...main().querySelectorAll(".fw-ruler__row")].map((row) => [
-      text(row.querySelector(".fw-ruler__name")),
-      text(row.querySelector(".fw-ruler__value")),
-    ]);
-    expect(rows).toEqual([
-      ["Next.js App Router", "133.1 kB"],
-      ["Astro", "0 B"],
-      ["Pagedeck", formatBytes(budget.find((row) => row.path === PATHS.home)?.actual ?? Number.NaN)],
-    ]);
+  describe("unstyled: one component, two skins", () => {
+    const section = () => band("Unstyled, your look.");
+    const skins = () => [...(section()?.querySelectorAll(".fw-skin") ?? [])];
+
+    test("says the markup is your own", () => {
+      expect(text(section()?.querySelector(".fw-band__text p"))).toBe(
+        "pagedeck ships no CSS, no theme and no part names to learn: the markup is your own React. Here is one component, rendered twice from the same CMS entry. Only the stylesheet changes, and neither one costs a byte of JavaScript.",
+      );
+    });
+
+    test("renders the same markup from the same entry twice, each in its own skin", () => {
+      expect(skins().map((skin) => text(skin.querySelector("figcaption")))).toEqual(SKINS.map((skin) => skin.name));
+      const stages = skins().map((skin) => present(skin.querySelector(".fw-skin__stage"), "a skin's stage"));
+      expect(stages.map((stage) => stage.className)).toEqual(SKINS.map((skin) => `fw-skin__stage ${skin.className}`));
+      expect(stages[0]?.innerHTML).toBe(stages[1]?.innerHTML);
+      const teaser = present(stages[0]?.querySelector("article.teaser"), "the teaser");
+      expect(text(teaser.querySelector("h3"))).toBe(PRODUCT.name);
+      expect([...teaser.querySelectorAll("p")].map(text)).toEqual([PRODUCT.tagline, PICKER.price]);
+      expect(links(teaser)).toEqual([["See the whole entry", PATHS.serverData]]);
+    });
+
+    test("shows beside each skin the source file the stylesheet is compiled from", () => {
+      const css = readFileSync(`${SITE}site${present(parse(PATHS.home).head.querySelector('link[rel="stylesheet"]')?.getAttribute("href"), "the stylesheet link")}`, "utf8");
+      expect(skins().map((skin) => skin.querySelector("pre code")?.textContent)).toEqual(
+        SKINS.map((skin) => readFileSync(`${SITE}${skin.file}`, "utf8").trim()),
+      );
+      for (const skin of SKINS) expect(css).toContain(`.${skin.className} .teaser{`);
+    });
   });
 
-  test("the data section's figures are /server-data's own", () => {
-    const data = text(main().querySelector(".fw-section--data"));
+  test("small: HTML first, budgets that hold, and data that stays on the server, with /server-data's own figures", () => {
+    const section = band("Small, leans on the browser.");
     const props = present(
       parse(PATHS.serverData).querySelector('[data-fw-component="variant_picker"]')?.getAttribute("data-fw-props"),
       "the variant picker's props",
     );
-    expect(data).toContain(`${formatBytes(utf8Bytes(JSON.stringify(PRODUCT)))} read`);
-    expect(data).toContain(`${formatBytes(utf8Bytes(props))} sent`);
+    const read = formatBytes(utf8Bytes(JSON.stringify(PRODUCT)));
+    const sent = formatBytes(utf8Bytes(props));
+    expect(text(section?.querySelector(".fw-band__text p"))).toBe(
+      "The browser already knows how to show a page. pagedeck hands it finished HTML and steps aside, so the only JavaScript on a page is the JavaScript that page asked for.",
+    );
+    expect(tiles(section)).toEqual([
+      ["HTML first", ["Every page renders to HTML when the site builds, so your words are on screen before a single script runs."]],
+      [
+        "Budgets that hold",
+        ["Give each page a JavaScript budget, and the build fails when a page ships one byte more. This page's budget is 0 B."],
+      ],
+      [
+        "Your data stays on the server",
+        [
+          `A server component reads the whole CMS entry when the site builds. On /server-data it reads ${read} and sends the browser ${sent}.`,
+        ],
+      ],
+    ]);
+    expect(links(section)).toEqual([["See it on /server-data ›", PATHS.serverData]]);
   });
 
-  test("the sources say where Pagedeck's 0 B is set: this site's config", () => {
-    expect(text(main().querySelector(".fw-section--sources"))).toContain("build.budget in sites/pagedeck/pagedeck.config.ts");
+  test("agents: just React, typed, and a build that stops on a mistake", () => {
+    const section = band("Built for agents.");
+    expect(text(section?.querySelector(".fw-band__text p"))).toBe(
+      "Whether you write the code or your coding agent does, pagedeck leaves less to guess.",
+    );
+    expect(tiles(section)).toEqual([
+      [
+        "Just React",
+        ['Pages are React components, and islands use React\'s own "use client". An agent that knows React already knows how to build here.'],
+      ],
+      [
+        "Typed from the config down",
+        ["pagedeck is written in TypeScript and ships its types, so your editor and your agent see every option."],
+      ],
+      [
+        "Mistakes stop the build",
+        [
+          "Ship more JavaScript than a page's budget, link to a page that does not exist, or render a second main landmark, and the build stops. Your agent hears about it before your readers do.",
+        ],
+      ],
+    ]);
+  });
+
+  // Only the claims a test in pedrosousa13/pagedeck proves, as listed in #46.
+  // No reduced-motion claim until pedrosousa13/pagedeck#121 is fixed.
+  test("accessible: pagedeck's three tested claims, and nothing about motion", () => {
+    const section = band("Accessible by default.");
+    expect(text(section?.querySelector(".fw-band__text p"))).toBe(
+      "pagedeck looks after landmarks and search for you, for the keyboard and the screen reader alike. Each line below is backed by a test in pagedeck's own repo.",
+    );
+    expect(tiles(section)).toEqual([
+      ["One main landmark", ["Every page gets exactly one main landmark. A component that renders a second fails the build."]],
+      ["Search from the keyboard", ["Search is a combobox: arrow keys walk the results, Enter follows one, Escape closes them."]],
+      ["Nothing typed is lost", ["Text typed into search before it hydrates is kept, caret and all."]],
+    ]);
+    expect(links(section)).toEqual([["Try the search ›", `${PATHS.features}#search`]]);
+    expect(section?.textContent).not.toMatch(/motion/i);
+  });
+
+  test("closes with one line back to deck.cool", () => {
+    const family = sections()[6];
+    expect(text(family?.querySelector("p"))).toBe(
+      "pagedeck is part of deck.cool, a family of unstyled React packages that look like you and work like the browser. Meet the family ›",
+    );
+    expect(links(family)).toEqual([["Meet the family ›", umbrella.url]]);
+  });
+
+  test("uses no em dash anywhere", () => {
+    expect(html(PATHS.home)).not.toMatch(/\u2014|&mdash;/);
   });
 });
 

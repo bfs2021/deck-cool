@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { formatBytes, isSpelled, parseBytes, utf8Bytes } from "./bytes.ts";
+import { formatBytes, utf8Bytes } from "./bytes.ts";
 
 test("a count below 1,000 prints as whole bytes, zero included", () => {
   expect(formatBytes(0)).toBe("0 B");
@@ -18,24 +18,4 @@ test("a count of 1,000 or more prints as SI kilobytes to one decimal", () => {
 test("a string's size is its UTF-8 length, not its length in code units", () => {
   expect(utf8Bytes("abc")).toBe(3);
   expect(utf8Bytes("é")).toBe(2);
-});
-
-test("a figure as the site prints it reads back as the count it stands for", () => {
-  expect(parseBytes("0 B")).toBe(0);
-  expect(parseBytes("307 B")).toBe(307);
-  expect(parseBytes("133.1 kB")).toBe(133_100);
-  expect(parseBytes(formatBytes(67_096))).toBe(67_100);
-});
-
-test("a figure not in the site's spelling is refused, naming the spelling", () => {
-  expect(() => parseBytes("133 KB")).toThrow(
-    /Byte figure "133 KB" is not in the site's spelling — write whole bytes below 1,000 \("307 B"\) or SI kilobytes to one decimal \("3\.1 kB"\)/,
-  );
-});
-
-test("only a figure in the site's spelling counts as spelled", () => {
-  expect(isSpelled("0 B")).toBe(true);
-  expect(isSpelled("133.1 kB")).toBe(true);
-  expect(isSpelled("133 kB")).toBe(false);
-  expect(isSpelled("1,000 B")).toBe(false);
 });

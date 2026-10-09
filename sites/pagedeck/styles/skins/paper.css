@@ -1,0 +1,22 @@
+.paper .teaser {
+  padding: 36px 32px;
+  border-radius: 2px;
+  background: #f4efe6;
+  color: #2b2118;
+  font-family: Georgia, "Times New Roman", serif;
+  box-shadow: 0 18px 40px rgb(0 0 0 / .4);
+}
+.paper .teaser h3 {
+  margin: 0 0 8px;
+  font-size: 34px;
+  font-style: italic;
+  font-weight: 400;
+}
+.paper .teaser p {
+  margin: 0 0 18px;
+  font-size: 18px;
+  line-height: 1.5;
+}
+.paper .teaser a {
+  color: #8a3b12;
+}
