@@ -159,7 +159,7 @@ export default function LandingPage({ skins }: { skins: readonly Skin[] }) {
               <div className={`fw-skin__stage ${skin.className}`}>
                 <Teaser />
               </div>
-              <pre tabIndex={0}>
+              <pre tabIndex={0} aria-label={`${skin.name} CSS`}>
                 <code>{skin.css}</code>
               </pre>
             </figure>

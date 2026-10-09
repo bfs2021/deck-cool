@@ -2,8 +2,8 @@ import { readFileSync } from "node:fs";
 
 /**
  * The home page's two skins for one teaser. Each is a stylesheet the build
- * compiles into the site's sheet, and the home page shows that same file
- * beside the teaser it styles.
+ * compiles into the site's sheet, and the home page shows the source file the
+ * stylesheet is compiled from beside the teaser it styles.
  */
 export const SKINS = [
   { name: "Paper", className: "paper", file: "styles/skins/paper.css" },

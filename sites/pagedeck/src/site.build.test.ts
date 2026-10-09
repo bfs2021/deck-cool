@@ -444,7 +444,7 @@ describe("the home page", () => {
       expect(links(teaser)).toEqual([["See the whole entry", PATHS.serverData]]);
     });
 
-    test("shows beside each skin the very file the stylesheet compiles", () => {
+    test("shows beside each skin the source file the stylesheet is compiled from", () => {
       const css = readFileSync(`${SITE}site${present(parse(PATHS.home).head.querySelector('link[rel="stylesheet"]')?.getAttribute("href"), "the stylesheet link")}`, "utf8");
       expect(skins().map((skin) => skin.querySelector("pre code")?.textContent)).toEqual(
         SKINS.map((skin) => readFileSync(`${SITE}${skin.file}`, "utf8").trim()),

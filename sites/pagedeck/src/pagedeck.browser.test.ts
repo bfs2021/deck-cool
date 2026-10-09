@@ -146,6 +146,10 @@ describe("the pagedeck site in a browser", () => {
     expect(looks).toHaveLength(2);
     expect(looks[0]?.[0]).not.toBe(looks[1]?.[0]);
     expect(looks[0]?.[1]).not.toBe(looks[1]?.[1]);
+    // Each scrollable code block is focusable, so each is named.
+    for (const name of ["Paper CSS", "Signal CSS"]) {
+      expect(await page.getByLabel(name, { exact: true }).evaluate((element) => element.tagName)).toBe("PRE");
+    }
   });
 
   test("the island page's counter hydrates under the CSP and counts presses", async () => {
