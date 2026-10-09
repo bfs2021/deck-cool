@@ -1,9 +1,11 @@
-# Deploying deck.cool
+# Deploying deck.cool and slide.deck.cool
 
 The umbrella site (`sites/deck-cool`) is served at `https://deck.cool` by **Workers Static Assets**, the way pagedeck deploys its landing page. One `wrangler deploy` uploads the built `site/` and publishes a Worker named `deck-cool` that serves it. The Worker has no code of its own.
 
 wrangler is `sites/deck-cool`'s exact-version dev dependency. Run it as `pnpm exec wrangler` in `sites/deck-cool`, never as `npx wrangler`, which takes whatever version is latest.
 
+
+slidedeck's site (`sites/slidedeck`) deploys the same way, to its own Worker at `https://slide.deck.cool`. Everything below describes deck.cool; [slidedeck at slide.deck.cool](#slidedeck-at-slidedeckcool) lists what differs.
 ## What gets deployed
 
 `sites/deck-cool/wrangler.jsonc` declares the Worker:
@@ -129,3 +131,69 @@ A rollback publishes an earlier version as it was. The next run with `apply` dep
 ## Taking the site off the domain
 
 Remove the custom domain from the Worker (Workers & Pages → `deck-cool` → Settings → Domains & Routes). That deletes the DNS record Cloudflare created for it. Recreate the records you wrote down before the first deploy. Then take the route out of `wrangler.jsonc`, so the next deploy does not add it again.
+
+## slidedeck at slide.deck.cool
+
+`sites/slidedeck` is served at `https://slide.deck.cool` by a second Worker, `slidedeck`, on the same `deck.cool` zone. It replaces the Pages project `slidedeck` at `slidedeck.pages.dev`. There are no users yet, so `slidedeck.pages.dev` gets no redirect: the Pages project is deleted.
+
+Every section above applies, with these differences:
+
+- **The config.** `sites/slidedeck/wrangler.jsonc` declares the Worker `slidedeck`, with the route `{ "pattern": "slide.deck.cool", "custom_domain": true }`. The other settings are the same as deck.cool's. wrangler is `sites/slidedeck`'s exact-version dev dependency, at the same version as deck.cool's.
+- **The build.** `_headers` gets its CSP from `sites/slidedeck/src/csp.ts` and the other headers from `sites/slidedeck/src/headers.ts`, the same fields as deck.cool's. The pages' scripts and the stylesheet are content-hashed under `/assets/`, so they are `immutable`. `_redirects` and `.assetsignore` are the same as deck.cool's.
+- **The workflow.** `.github/workflows/deploy-slidedeck.yml` has the same three jobs as `deploy-deck-cool.yml`. A push runs its dry run only when it changes `sites/slidedeck/`, `packages/`, the root `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml` or the workflow itself. A manual run always runs.
+- **The token and the secret.** The publish job uses the same `CLOUDFLARE_API_TOKEN` in the `production` environment. Workers Editor is account-wide, and Workers Routes Write covers every hostname on the `deck.cool` zone, so the token deploys this Worker too.
+- **The zone.** Always Use HTTPS is a zone setting, so it already covers `slide.deck.cool`. deck.cool's HSTS has `includeSubDomains`, and slidedeck's `_headers` sends the same HSTS.
+
+### The first deploy
+
+The `slidedeck` Worker does not exist yet (checked 2026-10-09), and Workers Editor can't create a Worker. Do the first deploy one of two ways:
+
+- From your machine, after `pnpm exec wrangler login`. This is how deck.cool's Worker was created.
+- From CI, after you give the token Workers → **Admin** for that one run. Take Admin away when the run is done.
+
+Before the first deploy, check the zone's DNS records for `slide.deck.cool`. There were none on 2026-10-09, and the Pages project had no custom domain. The custom domain creates its own record, and it cannot be created on a hostname that already has a CNAME record.
+
+```sh
+gh workflow run deploy-slidedeck.yml -R pedrosousa13/deck-cool --ref main               # dry run
+gh workflow run deploy-slidedeck.yml -R pedrosousa13/deck-cool --ref main -f apply=true # publish
+gh run watch -R pedrosousa13/deck-cool
+```
+
+From your machine instead:
+
+```sh
+cd sites/slidedeck
+pnpm build
+pnpm exec wrangler deploy --dry-run   # lists the upload; sends nothing
+CLOUDFLARE_API_TOKEN=... pnpm exec wrangler deploy
+```
+
+### Verifying slidedeck
+
+```sh
+pnpm --filter @sites/slidedeck check-live                      # https://slide.deck.cool
+pnpm --filter @sites/slidedeck check-live https://example.com  # any other origin
+```
+
+`check-live` fetches `/`, `/examples/` and `/icons/slidedeck/still.svg`, and fails unless each answers `200` with every header in `sites/slidedeck/src/headers.ts`, at its exact value, and no `immutable`. The CSP, and `Strict-Transport-Security: max-age=31536000; includeSubDomains`, are among those headers. It then checks the hashed stylesheet that `/` links, as deck.cool's check does. It fails unless `/manifest.json` and `/no-such-page/` answer `404`, and unless `http://slide.deck.cool/` answers `301` to `https://slide.deck.cool/`. `sites/slidedeck/src/live-check.test.ts` runs the same checks against the build served locally.
+
+`src/live-check.ts` and its test are copies of deck.cool's, with this site's paths. #56 moves the sites' shared code into one package; take these copies with it.
+
+Rolling back, and taking the site off the domain, are the same as for deck.cool, with the Worker `slidedeck` in `sites/slidedeck`.
+
+### Retiring the Pages project
+
+Delete the Pages project `slidedeck` only after a run with `apply` has published the site and `check-live` passes against `https://slide.deck.cool`. A deletion can't be undone, so the maintainer confirms it first.
+
+The CI token has no Pages permission, so delete the project through the Cloudflare API with a credential that has Pages → Edit on the account (in an agent session, the `cloudflare-api` MCP):
+
+```sh
+curl -X DELETE -H "Authorization: Bearer $TOKEN" \
+  https://api.cloudflare.com/client/v4/accounts/c0bf36f52ec4652dabdacd6538b54983/pages/projects/slidedeck
+```
+
+Or the dashboard: Workers & Pages → `slidedeck` (Pages) → Settings → Delete project. Then check that `slidedeck.pages.dev` no longer answers:
+
+```sh
+curl -sI https://slidedeck.pages.dev/   # no 200
+```
