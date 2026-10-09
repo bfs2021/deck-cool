@@ -152,6 +152,22 @@ describe("the pagedeck site in a browser", () => {
     }
   });
 
+  test("a skin's CSS opens from the keyboard, named and in focus, and scrolls inside itself at 390px", async () => {
+    const { page } = await visit(PATHS.home, { width: 390 });
+    const code = page.getByLabel("Paper CSS", { exact: true });
+    expect(await code.isVisible()).toBe(false);
+    const summary = page.locator("summary", { hasText: "Paper CSS" });
+    await summary.focus();
+    expect(await summary.evaluate((element) => element.matches(":focus-visible"))).toBe(true);
+    expect(await summary.evaluate((element) => getComputedStyle(element).outlineStyle)).not.toBe("none");
+    await page.keyboard.press("Enter");
+    await expect.poll(() => code.isVisible()).toBe(true);
+    expect(await code.evaluate((element) => getComputedStyle(element).overflowX)).toBe("auto");
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+    // Closed, the sheet is hidden from axe: open, its highlighted tokens are checked too.
+    expect((await new AxeBuilder({ page }).include(".fw-skin details[open]").analyze()).violations).toEqual([]);
+  }, 15_000);
+
   test("the island page's counter hydrates under the CSP and counts presses", async () => {
     const { page, violations } = await visit(PATHS.interactive, { width: 1280 });
     const output = page.locator("main output");

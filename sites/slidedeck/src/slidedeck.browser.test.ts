@@ -216,6 +216,22 @@ describe("the decks in a browser", () => {
     }
   });
 
+  test("a skin's CSS opens from the keyboard, named and in focus, and scrolls inside itself at 390px", async () => {
+    const { page } = await visit("/", { width: 390, reducedMotion: "reduce" });
+    const code = page.getByLabel("Soft CSS", { exact: true });
+    expect(await code.isVisible()).toBe(false);
+    const summary = page.locator("summary", { hasText: "Soft CSS" });
+    await summary.focus();
+    expect(await summary.evaluate((element) => element.matches(":focus-visible"))).toBe(true);
+    expect(await summary.evaluate((element) => getComputedStyle(element).outlineStyle)).not.toBe("none");
+    await page.keyboard.press("Enter");
+    await expect.poll(() => code.isVisible()).toBe(true);
+    expect(await code.evaluate((element) => getComputedStyle(element).overflowX)).toBe("auto");
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+    // Closed, the sheet is hidden from axe: open, its highlighted tokens are checked too.
+    expect((await new AxeBuilder({ page }).include(".home-skin details[open]").analyze()).violations).toEqual([]);
+  }, 15_000);
+
   test("each skin's deck is live: its Next moves it, and only it, under the CSP", async () => {
     const { page, violations } = await visit("/", { width: 1280, reducedMotion: "reduce" });
     await hydrated(page);

@@ -1,0 +1,62 @@
+/*
+ * A skin's stylesheet, folded at the foot of the skin's tile
+ * (src/skin-sheet.tsx). The summary names the skin and its length, and its
+ * chevron turns as the sheet opens. Open, the sheet scrolls sideways inside
+ * itself, never the page.
+ */
+.skin-sheet {
+  min-width: 0;
+  border-top: 1px solid var(--rule);
+  background: var(--ground-raised);
+}
+
+.skin-sheet summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 20px 32px;
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 600;
+  list-style: none;
+  cursor: pointer;
+}
+
+.skin-sheet summary::-webkit-details-marker {
+  display: none;
+}
+
+/* Points down while closed, up once open. */
+.skin-sheet summary::after {
+  content: "";
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid var(--text-secondary);
+  border-bottom: 2px solid var(--text-secondary);
+  transform: translateY(-2px) rotate(45deg);
+  transition: transform .3s var(--ease);
+}
+
+.skin-sheet[open] summary::after {
+  transform: translateY(2px) rotate(225deg);
+}
+
+/* Inset: the tile clips what falls outside it. */
+.skin-sheet :focus-visible {
+  outline: 2px solid var(--text-link);
+  outline-offset: -4px;
+}
+
+/* `!important` wins over the highlighter's inline ground: the sheet sits on
+   the fold's. */
+.skin-sheet pre {
+  margin: 0;
+  padding: 4px 32px 32px;
+  overflow-x: auto;
+  border-radius: 0;
+  background-color: transparent !important;
+  font-size: 13px;
+  line-height: 1.6;
+}
