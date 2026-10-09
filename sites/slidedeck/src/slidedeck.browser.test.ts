@@ -1,0 +1,206 @@
+import { AxeBuilder } from "@axe-core/playwright";
+import { chromium, type Browser, type Page, type Response } from "playwright";
+import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
+import { CONTENT_SECURITY_POLICY } from "./csp.ts";
+import { serveSite, type ServedSite } from "./serve-site.ts";
+
+// Drives the built site (build.global-setup.ts) in Chromium, served with the
+// headers in the build's _headers file, so each page and its islands run
+// under the CSP. Needs Playwright's Chromium: `pnpm exec playwright install chromium`.
+
+declare global {
+  interface Window {
+    /** CSP violations the page reported, set by the init script in visit(). */
+    cspViolations?: string[];
+  }
+}
+
+// A page brings each deck into view before it checks, and axe reads a long page.
+vi.setConfig({ testTimeout: 30_000 });
+
+let site: ServedSite;
+let browser: Browser;
+
+beforeAll(async () => {
+  site = await serveSite();
+  browser = await chromium.launch();
+});
+
+afterAll(async () => {
+  await browser?.close();
+  await site?.close();
+});
+
+const PAGES = ["/", "/examples/"] as const;
+
+interface Visit {
+  page: Page;
+  response: Response | null;
+  /** Requests the page made to another origin. Each was aborted. */
+  offOrigin: string[];
+  /** CSP violations, from the event and from the console. */
+  violations: () => Promise<string[]>;
+  /** Console messages about the Permissions-Policy header. */
+  permissionsPolicy: string[];
+  /** Uncaught errors on the page. */
+  errors: string[];
+}
+
+async function visit(
+  path: string,
+  options: {
+    width: number;
+    reducedMotion: "reduce" | "no-preference";
+    /** Lay the page out as a phone does, honouring the viewport meta tag. */
+    isMobile?: boolean;
+  },
+): Promise<Visit> {
+  const context = await browser.newContext({
+    viewport: { width: options.width, height: 900 },
+    reducedMotion: options.reducedMotion,
+    isMobile: options.isMobile ?? false,
+  });
+  const offOrigin: string[] = [];
+  await context.route(
+    (url) => url.origin !== site.origin,
+    (route) => {
+      offOrigin.push(route.request().url());
+      return route.abort();
+    },
+  );
+  // An init script is not subject to the page's CSP.
+  await context.addInitScript(() => {
+    const seen: string[] = [];
+    window.cspViolations = seen;
+    window.addEventListener("securitypolicyviolation", (event) => {
+      seen.push(`${event.effectiveDirective} ${event.blockedURI}`);
+    });
+  });
+  const page = await context.newPage();
+  const logged: string[] = [];
+  const permissionsPolicy: string[] = [];
+  const errors: string[] = [];
+  page.on("console", (message) => {
+    if (/Content.Security.Policy/i.test(message.text())) logged.push(message.text());
+    if (/Permissions.Policy/i.test(message.text())) permissionsPolicy.push(message.text());
+  });
+  page.on("pageerror", (error) => errors.push(error.message));
+  const response = await page.goto(`${site.origin}${path}`, { waitUntil: "networkidle" });
+  return {
+    page,
+    response,
+    offOrigin,
+    permissionsPolicy,
+    errors,
+    violations: async () => [
+      ...logged,
+      ...(await page.evaluate(() => window.cspViolations ?? ["the CSP listener never ran"])),
+    ],
+  };
+}
+
+/**
+ * Brings every island into view, so each one that hydrates when visible does,
+ * then back to the top once their scripts have loaded.
+ */
+async function hydrated(page: Page) {
+  await page.evaluate(async () => {
+    for (const island of document.querySelectorAll("fw-island")) {
+      island.querySelector("[aria-roledescription], input")?.scrollIntoView({ block: "center" });
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+    }
+  });
+  await page.waitForLoadState("networkidle");
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+}
+
+describe.each(PAGES)("%s in a browser", (path) => {
+  test("is served with the CSP the build writes", async () => {
+    const { response } = await visit(path, { width: 1280, reducedMotion: "reduce" });
+    expect(await response?.headerValue(CONTENT_SECURITY_POLICY.name)).toBe(CONTENT_SECURITY_POLICY.value);
+  });
+
+  test("the browser recognizes every feature the Permissions-Policy names", async () => {
+    const { permissionsPolicy } = await visit(path, { width: 1280, reducedMotion: "reduce" });
+    expect(permissionsPolicy).toEqual([]);
+  });
+
+  test.each([390, 1280])(
+    "at %ipx, axe finds no violations, nothing leaves the origin, the CSP holds and no script fails",
+    async (width) => {
+      const { page, offOrigin, violations, errors } = await visit(path, { width, reducedMotion: "reduce" });
+      await hydrated(page);
+      expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+      expect(offOrigin).toEqual([]);
+      expect(await violations()).toEqual([]);
+      expect(errors).toEqual([]);
+    },
+  );
+
+  test.each([390, 1280])("at %ipx, the page does not scroll sideways", async (width) => {
+    const { page } = await visit(path, { width, reducedMotion: "reduce" });
+    await hydrated(page);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
+  });
+
+  test("on a phone, the page lays out at the phone's width, not a desktop one", async () => {
+    const { page } = await visit(path, { width: 390, reducedMotion: "reduce", isMobile: true });
+    expect(await page.evaluate(() => window.innerWidth)).toBe(390);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+  });
+
+  test("with prefers-reduced-motion: reduce, nothing moves and no deck plays", async () => {
+    const { page } = await visit(path, { width: 1280, reducedMotion: "reduce" });
+    await hydrated(page);
+    await page.mouse.wheel(0, 2000);
+    expect(await page.evaluate(() => document.getAnimations().map((animation) => animation.constructor.name))).toEqual([]);
+    for (const toggle of await page.locator("[data-slidedeck-autoplay-toggle]").all()) {
+      expect(await toggle.getAttribute("data-playing")).toBeNull();
+    }
+  });
+});
+
+describe("the decks in a browser", () => {
+  test("the testimonials' Next moves the deck, under the CSP", async () => {
+    const { page, violations } = await visit("/examples/", { width: 1280, reducedMotion: "reduce" });
+    await hydrated(page);
+    const deck = page.locator(".testimonials-deck");
+    const current = () => deck.locator('[data-slidedeck-dots] [aria-current="true"]').getAttribute("data-index");
+    expect(await current()).toBe("0");
+    await deck.locator("[data-slidedeck-next]").click();
+    await expect.poll(current).toBe("1");
+    expect(await violations()).toEqual([]);
+  });
+
+  test("with motion allowed, the feature deck plays on its own", async () => {
+    const { page } = await visit("/", { width: 1280, reducedMotion: "no-preference" });
+    await hydrated(page);
+    await expect
+      .poll(() => page.locator(".feature-deck [data-slidedeck-autoplay-toggle]").getAttribute("data-playing"))
+      .not.toBeNull();
+  });
+});
+
+describe("search in a browser", () => {
+  test("finds a page by its words and follows the result, under the CSP", async () => {
+    const { page, violations, offOrigin } = await visit("/", { width: 1280, reducedMotion: "reduce" });
+    await hydrated(page);
+    const box = page.getByRole("combobox", { name: "Search the docs" });
+    await box.fill("testimonials");
+    const result = page.getByRole("option").first();
+    await expect.poll(() => result.textContent()).toBe("Examples: decks built with slidedeck");
+    await box.press("ArrowDown");
+    await box.press("Enter");
+    await page.waitForURL(`${site.origin}/examples/`);
+    expect(await violations()).toEqual([]);
+    expect(offOrigin).toEqual([]);
+  });
+
+  test("says so when nothing matches", async () => {
+    const { page } = await visit("/", { width: 390, reducedMotion: "reduce" });
+    await hydrated(page);
+    await page.getByRole("combobox", { name: "Search the docs" }).fill("zebra");
+    await expect.poll(() => page.getByRole("status").textContent()).toBe("No page matches");
+  });
+});

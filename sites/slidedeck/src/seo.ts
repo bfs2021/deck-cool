@@ -1,0 +1,69 @@
+// What a page tells search engines and share cards, all from the page itself:
+// its title, and the `description` in its frontmatter.
+
+import { getEntry, type Collection, type ContentStoreReader } from "@pagedeck/content";
+import type { JsonLdNode, Page, PageHead, SocialImageInputs } from "@pagedeck/core";
+import type { MarkdownEntry } from "@pagedeck/markdown-loader";
+import { REPOSITORY } from "../components/links.ts";
+
+/**
+ * Where the site is served in production (CONTEXT.md). Every canonical,
+ * og:url and sitemap entry names it, whichever host serves a build, so a
+ * preview never claims to be the page.
+ */
+export const SITE_ORIGIN = "https://slide.deck.cool";
+
+interface Described {
+  title: string;
+  description: string | undefined;
+}
+
+function describe(page: Page, store: ContentStoreReader, pages: Collection<MarkdownEntry>): Described | undefined {
+  if (page.entry === undefined || page.collection !== pages.name) return undefined;
+  const entry = getEntry(store, pages, page.entry)?.data;
+  if (entry === undefined) return undefined;
+  const description = entry.frontmatter["description"];
+  return { title: entry.title, description: typeof description === "string" ? description : undefined };
+}
+
+const url = (path: string) => `${SITE_ORIGIN}${path}`;
+
+/** The home page: the repository, as schema.org describes source code. */
+function sourceCode(description: string | undefined): JsonLdNode {
+  return {
+    "@context": "https://schema.org",
+    "@type": "SoftwareSourceCode",
+    name: "slidedeck",
+    ...(description === undefined ? {} : { description }),
+    url: url("/"),
+    codeRepository: REPOSITORY,
+    programmingLanguage: "TypeScript",
+    runtimePlatform: "React 19",
+    license: "https://opensource.org/licenses/MIT",
+  };
+}
+
+/** build.head: the title, the description and, on the home page, the structured data. */
+export function headOf(page: Page, store: ContentStoreReader, pages: Collection<MarkdownEntry>): PageHead | undefined {
+  const described = describe(page, store, pages);
+  if (described === undefined) return undefined;
+  const { title, description } = described;
+  return {
+    title,
+    ...(description === undefined ? {} : { description }),
+    ...(page.path === "/" ? { jsonLd: sourceCode(description) } : {}),
+  };
+}
+
+/** build.socialImages' inputs: the card's headline. */
+export function socialInputsOf(
+  page: Page,
+  store: ContentStoreReader,
+  pages: Collection<MarkdownEntry>,
+): SocialImageInputs | undefined {
+  const described = describe(page, store, pages);
+  return described === undefined ? undefined : { headline: described.title };
+}
+
+/** The props of the chrome's `pageMeta`: what build.head has no field for. */
+export const pageMetaOf = (page: Page) => ({ url: url(page.path) });

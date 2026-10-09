@@ -93,4 +93,14 @@ describe("the Family bar", () => {
     expect(pills).toHaveLength(1);
     expect(pills[0]?.getAttribute("href")).toBe("/docs/install");
   });
+
+  test("renders its children, such as a search box, last in the row", () => {
+    const doc = render(
+      <FamilyBar current={slidedeck} links={links} install="/docs/install">
+        <input type="search" aria-label="Search" />
+      </FamilyBar>,
+    );
+    const row = present(doc.querySelector("header nav"), "the row");
+    expect(row.lastElementChild?.matches('input[type="search"]')).toBe(true);
+  });
 });
