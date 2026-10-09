@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { decks, type Deck, type umbrella } from "./decks.ts";
 
 export interface FamilyBarLink {
@@ -12,6 +13,8 @@ export interface FamilyBarProps {
   readonly links: readonly FamilyBarLink[];
   /** Where the Install pill points. No pill without it. */
   readonly install?: string;
+  /** Last in the row, after the Install pill, such as a site's search box. */
+  readonly children?: ReactNode;
 }
 
 /** The switcher's panel. One bar per page, so a fixed id. */
@@ -23,7 +26,7 @@ const PANEL = "family-bar-decks";
  * outside it. Every motion is CSS in `styles/family-bar.css`, which a site
  * lists in its `build.css`, so the bar ships no JavaScript.
  */
-export function FamilyBar({ current, links, install }: FamilyBarProps) {
+export function FamilyBar({ current, links, install, children }: FamilyBarProps) {
   const deck = "kind" in current ? current : undefined;
   return (
     <header className="family-bar" data-deck={deck?.name}>
@@ -92,6 +95,7 @@ export function FamilyBar({ current, links, install }: FamilyBarProps) {
             Install
           </a>
         )}
+        {children}
       </nav>
     </header>
   );
