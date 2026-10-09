@@ -1,0 +1,30 @@
+{
+  "name": "@sites/pagedeck",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "pagedeck sync && pagedeck build",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@deck-cool/brand": "workspace:*",
+    "@deck-cool/docs": "workspace:*",
+    "@pagedeck/adapter-cloudflare-pages": "0.2.3",
+    "@pagedeck/content": "0.2.3",
+    "@pagedeck/core": "0.2.3",
+    "@pagedeck/font-subset": "0.2.3",
+    "@pagedeck/islands": "0.2.3",
+    "@pagedeck/markdown-loader": "0.2.3",
+    "@pagedeck/search": "0.2.3",
+    "@pagedeck/social-image": "0.2.3",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "happy-dom": "20.14.5"
+  }
+}
