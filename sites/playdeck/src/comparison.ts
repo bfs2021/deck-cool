@@ -89,23 +89,33 @@ export function rewriteLinks(markdown: string): string {
  * GFM footnotes, written out: each `[^label]` reference becomes a numbered
  * superscript link, and the notes an ordered list at the end of the document,
  * each with a link back. Numbered in the order of first reference, as GitHub
- * numbers them. A reference with no note, or a note no reference names, fails.
+ * numbers them, and each id under `prefix`, so two documents' notes cannot
+ * share one. A fence is passed through: nothing in it is a note or a
+ * reference. Fails on a reference with no note, a note no reference names, and
+ * a note with a bare `<` or `&` outside a code span: the note is written out
+ * as HTML, so either would reach the page as markup.
  */
-export function footnotes(markdown: string): string {
+export function footnotes(markdown: string, prefix: string): string {
   const notes = new Map<string, string>();
   const lines = markdown.split("\n");
   const body: string[] = [];
+  let fenced = false;
   for (let at = 0; at < lines.length; at += 1) {
-    const definition = /^\[\^([^\]\s]+)\]:\s+(.*)$/.exec(lines[at] ?? "");
+    const line = lines[at] ?? "";
+    if (FENCE.test(line)) fenced = !fenced;
+    const definition = fenced ? null : /^\[\^([^\]\s]+)\]:\s+(.*)$/.exec(line);
     if (definition === null) {
-      body.push(lines[at] ?? "");
+      body.push(line);
       continue;
     }
     const [, label = "", first = ""] = definition;
     const text = [first];
     while (at + 1 < lines.length && /^\s+\S/.test(lines[at + 1] ?? "")) text.push((lines[(at += 1)] ?? "").trim());
     if (notes.has(label)) throw new Error(`comparison: the footnote [^${label}] is defined twice`);
-    notes.set(label, text.join(" "));
+    const note = text.join(" ");
+    const bare = /[<&]/.exec(note.replace(/`[^`]*`/g, ""));
+    if (bare !== null) throw new Error(`comparison: the footnote [^${label}] holds a bare ${bare[0]} outside a code span`);
+    notes.set(label, note);
   }
 
   const order: string[] = [];
@@ -115,7 +125,7 @@ export function footnotes(markdown: string): string {
       const first = !order.includes(label);
       if (first) order.push(label);
       const number = order.indexOf(label) + 1;
-      return `<sup><a href="#fn-${number}"${first ? ` id="fnref-${number}"` : ""}>${number}</a></sup>`;
+      return `<sup><a href="#${prefix}-fn-${number}"${first ? ` id="${prefix}-fnref-${number}"` : ""}>${number}</a></sup>`;
     }),
   );
   if (notes.size === 0) return referenced;
@@ -124,7 +134,7 @@ export function footnotes(markdown: string): string {
 
   const list = order.map(
     (label, index) =>
-      `${index + 1}. <span id="fn-${index + 1}"></span>${notes.get(label) ?? ""} <a href="#fnref-${index + 1}" aria-label="Back to reference ${index + 1}">↩</a>`,
+      `${index + 1}. <span id="${prefix}-fn-${index + 1}"></span>${notes.get(label) ?? ""} <a href="#${prefix}-fnref-${index + 1}" aria-label="Back to reference ${index + 1}">↩</a>`,
   );
   return [referenced.trimEnd(), "", '<section class="cmp-footnotes" aria-label="Footnotes">', "", ...list, "", "</section>"].join(
     "\n",
@@ -135,7 +145,7 @@ export function footnotes(markdown: string): string {
 export function comparisonDocument(dir: string): string {
   const sections = DOCUMENTS.map(({ file, anchor }) => {
     const source = readFileSync(join(dir, file), "utf8");
-    return `<a id="${anchor}"></a>\n\n${demoteHeadings(rewriteLinks(footnotes(source)))}`;
+    return `<a id="${anchor}"></a>\n\n${demoteHeadings(rewriteLinks(footnotes(source, anchor)))}`;
   });
   return [`# ${TITLE}`, ...sections].join("\n\n");
 }

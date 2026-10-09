@@ -2,7 +2,6 @@ import type { BuildSection } from "@pagedeck/core";
 
 // Each component's name in build.components.
 export const HOME_PAGE = "home_page";
-export const COPY_INSTALL = "copy_install";
 export const EXAMPLES_PAGE = "examples_page";
 export const STREAMING_SERVICE = "streaming_service";
 export const COURSE_PLATFORM = "course_platform";
@@ -16,7 +15,6 @@ export const DOCS_PAGE = "docsPage";
 
 export const components: BuildSection["components"] = {
   [HOME_PAGE]: "./components/home-page.tsx",
-  [COPY_INSTALL]: "./components/copy-install.tsx",
   [EXAMPLES_PAGE]: "./components/examples-page.tsx",
   [STREAMING_SERVICE]: "./components/archetype-streaming-service.tsx",
   [COURSE_PLATFORM]: "./components/archetype-course-platform.tsx",

@@ -14,7 +14,6 @@ import type { SourceFile } from "./components/examples-page.tsx";
 import { DOCS, ORIGIN, PATHS, REPO } from "./components/links.ts";
 import {
   components,
-  COPY_INSTALL,
   COURSE_PLATFORM,
   DOCS_PAGE,
   EXAMPLES_PAGE,
@@ -43,8 +42,9 @@ const HOME = {
   lede: "React primitives and hooks over native video, HLS, YouTube, Vimeo and Wistia. You write the markup, you write the CSS, and the same six lines drive all five.",
   install: "pnpm add @playdeck/react",
   // playdeck's scripts/bundle-budgets.mjs measures both at 1.3.0, and
-  // playdeck.video printed them on 2026-10-09, with the package name in
-  // backticks. Re-read them at each bump.
+  // playdeck.video printed them on 2026-10-09. Its literal backticks around
+  // the package name are dropped on purpose: they rendered as text, not code.
+  // Re-read the figures at each bump.
   measured:
     "23 kB gzipped, the whole of what @playdeck/react ships. Adding YouTube costs 7 kB. 0 requests to a provider before play.",
 } as const;
@@ -127,7 +127,6 @@ const BAR_LINKS = [
 // kilobyte. Re-measure rather than raise one.
 const BUDGET = {
   "/**": "0b",
-  [PATHS.home]: "60kb",
   [PATHS.examples]: "88kb",
   [PATHS.search]: "60kb",
 } as const;
@@ -179,6 +178,7 @@ async function homeContent(): Promise<PageContent> {
         props: {
           display: HOME.display,
           lede: HOME.lede,
+          install: HOME.install,
           start: DOCS.start,
           cards,
           measured: HOME.measured,
@@ -188,7 +188,6 @@ async function homeContent(): Promise<PageContent> {
             ["Examples", PATHS.examples],
           ],
         },
-        children: [{ component: COPY_INSTALL, props: { command: HOME.install } }],
       },
     ],
   };

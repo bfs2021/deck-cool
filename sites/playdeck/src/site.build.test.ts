@@ -150,7 +150,7 @@ describe("budgets, measured and pinned", () => {
   // Spelled again rather than imported, so a limit raised in the config fails here.
   // Each is the page's measured size rounded up to a whole kilobyte.
   const PINNED: Record<string, string> = {
-    [PATHS.home]: "60kb",
+    [PATHS.home]: "0b",
     [PATHS.examples]: "88kb",
     [PATHS.comparison]: "0b",
     [PATHS.search]: "60kb",
@@ -171,15 +171,15 @@ describe("budgets, measured and pinned", () => {
     }
   });
 
-  test("the comparison guide ships 0 B of JavaScript, and no script at all", () => {
-    expect(budget.find((row) => row.path === PATHS.comparison)?.actual).toBe(0);
-    expect(parse(PATHS.comparison).querySelectorAll("script, link[rel=modulepreload]")).toHaveLength(0);
+  test.each([PATHS.home, PATHS.comparison])("%s ships 0 B of JavaScript, and no script at all", (path) => {
+    expect(budget.find((row) => row.path === path)?.actual).toBe(0);
+    expect(parse(path).querySelectorAll("script, link[rel=modulepreload]")).toHaveLength(0);
   });
 
   test("each page with islands carries only its own", () => {
     const islands = Object.fromEntries(manifest.pages.map((page) => [page.path, [...page.components].sort()]));
     expect(islands).toEqual({
-      [PATHS.home]: ["copy_install"],
+      [PATHS.home]: [],
       [PATHS.examples]: ["course_platform", "streaming_service"],
       [PATHS.comparison]: [],
       [PATHS.search]: ["search"],
@@ -322,6 +322,10 @@ describe("the stylesheet", () => {
     expect(css.match(/::view-transition-group/g)).toHaveLength(1);
   });
 
+  test("selects the install command whole", () => {
+    expect(stylesheet()).toMatch(/\.pd-install__command\{[^}]*user-select:all/);
+  });
+
   test("is the only stylesheet the site serves", () => {
     expect(manifest.files.filter((path) => path.endsWith(".css"))).toEqual([expect.stringMatching(/^\/assets\//)]);
   });
@@ -398,13 +402,11 @@ describe("the home page, playdeck.video's copy", () => {
     );
   });
 
-  test("carries the install command, its copy button hidden until the island hydrates, and Start", () => {
-    const install = present(main().querySelector('[data-fw-component="copy_install"]'), "the copy island");
-    expect(text(install.querySelector("code"))).toBe("pnpm add @playdeck/react");
-    expect(install.querySelector("button")?.hasAttribute("hidden")).toBe(true);
-    expect([...main().querySelectorAll(".pd-thesis a")].map((a) => [text(a), a.getAttribute("href")])).toEqual([
-      ["Start →", DOCS.start],
-    ]);
+  test("carries the install command, selectable whole with no script, and Start", () => {
+    const thesis = present(main().querySelector(".pd-thesis"), "the thesis");
+    expect(text(thesis.querySelector("code.pd-install__command"))).toBe("pnpm add @playdeck/react");
+    expect(thesis.querySelectorAll("button, [data-fw-component]")).toHaveLength(0);
+    expect([...thesis.querySelectorAll("a")].map((a) => [text(a), a.getAttribute("href")])).toEqual([["Start →", DOCS.start]]);
   });
 
   test("holds the four feature cards, each with its snippet highlighted", () => {
@@ -514,6 +516,7 @@ describe("the comparison guide", () => {
     expect(notes).toHaveLength(192);
     for (const link of table.querySelectorAll("sup a")) {
       const note = present(doc().getElementById(String(link.getAttribute("href")).slice(1)), link.getAttribute("href") ?? "");
+      expect(link.getAttribute("href")).toMatch(/^#comparison-features-fn-\d+$/);
       expect(note.closest(".cmp-footnotes")).not.toBeNull();
     }
   });

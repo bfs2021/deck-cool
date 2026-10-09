@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import { unescapedHtml } from "@pagedeck/core/tree";
 import { PAGE } from "./shell.ts";
 
@@ -13,25 +12,26 @@ export interface Card {
 /**
  * playdeck.video's home page, with its copy as it stood on 2026-10-09 (#15):
  * the thesis, the four feature cards and the close. The bench, the live
- * player that sat under the thesis, is not ported. The install line arrives
- * as the child, the copy island.
+ * player that sat under the thesis, is not ported. The page ships no
+ * JavaScript: in place of a copy button, the install command selects whole
+ * in one click or tap (`user-select: all`).
  */
 export default function HomePage({
   display,
   lede,
+  install,
   start,
   cards,
   measured,
   links,
-  children,
 }: {
   display: string;
   lede: string;
+  install: string;
   start: string;
   cards: readonly Card[];
   measured: string;
   links: readonly (readonly [label: string, href: string])[];
-  children?: ReactNode;
 }) {
   return (
     <div className={`${PAGE} pd-home`}>
@@ -42,7 +42,9 @@ export default function HomePage({
         <p className="pd-thesis__display">{display}</p>
         <p className="pd-thesis__lede">{lede}</p>
         <div className="pd-thesis__actions">
-          {children}
+          <div className="pd-install">
+            <code className="pd-install__command">{install}</code>
+          </div>
           <a className="pd-button" href={start}>
             Start →
           </a>

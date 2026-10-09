@@ -151,14 +151,11 @@ describe("the playdeck site in a browser", () => {
     expect(timing.replaceAll("cubic-bezier(0.32, 0.72, 0, 1)", "").replace(/[\s,]/g, "")).toBe("");
   });
 
-  test("the home page's copy button appears once it hydrates, and copies the command", async () => {
-    const { page, violations } = await visit(PATHS.home, { width: 1280, clipboard: true });
-    const button = page.getByRole("button", { name: "Copy" });
-    await expect.poll(() => button.isVisible()).toBe(true);
-    await button.click();
-    await expect.poll(() => page.getByRole("status").textContent()).toBe("Copied pnpm add @playdeck/react to the clipboard.");
-    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe("pnpm add @playdeck/react");
-    expect(await violations()).toEqual([]);
+  test("the home page's install command is selected whole by one click, with no script", async () => {
+    const { page, scripts } = await visit(PATHS.home, { width: 1280 });
+    await page.locator(".pd-install__command").click();
+    expect(await page.evaluate(() => window.getSelection()?.toString())).toBe("pnpm add @playdeck/react");
+    expect(scripts).toEqual([]);
   });
 
   // CONTEXT.md's figure for playdeck: 0 requests to YouTube or Vimeo before
@@ -179,13 +176,18 @@ describe("the playdeck site in a browser", () => {
       await page.waitForLoadState("networkidle");
       expect(offOrigin).toEqual([]);
       const before = [...scripts];
+      const provider = /^\/assets\/_playdeck-provider-native-[A-Za-z0-9_-]{8}\.js$/;
+      // The page's own chunks are there, and the provider is not one of them.
+      expect(before.length).toBeGreaterThan(0);
+      expect(before.filter((path) => provider.test(path))).toEqual([]);
 
       await page.getByRole("button", { name: press, exact: true }).click();
       await expect.poll(() => offOrigin).toContain(`${MEDIA_ORIGINS[0]}${clip}`);
       // Only the player's own clip: no provider, no other host.
       for (const url of offOrigin) expect(new URL(url).origin).toBe(MEDIA_ORIGINS[0]);
       // The provider is code the press fetched, not code the page loaded.
-      expect(scripts.length).toBeGreaterThan(before.length);
+      await expect.poll(() => scripts.filter((path) => provider.test(path))).toHaveLength(1);
+      for (const path of scripts.filter((each) => /_playdeck-provider-/.test(each))) expect(path).toMatch(provider);
       expect(await violations()).toEqual([]);
       // The request is aborted, so the player reports a media error, not a script one.
       expect(errors).toEqual([]);

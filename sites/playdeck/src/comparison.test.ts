@@ -17,18 +17,37 @@ test("points a sibling document at its anchor, another file at playdeck's repo, 
   expect(rewriteTarget("#results")).toBe("#results");
 });
 
-test("writes footnotes out: numbered references, and the notes as a list with a way back", () => {
-  const html = footnotes("| a | b[^x] |\n\nText[^y], again[^x].\n\n[^x]: **X** note.\n\n[^y]: Y note\n  goes on.\n");
-  expect(html).toContain('b<sup><a href="#fn-1" id="fnref-1">1</a></sup>');
-  expect(html).toContain('Text<sup><a href="#fn-2" id="fnref-2">2</a></sup>, again<sup><a href="#fn-1">1</a></sup>.');
-  expect(html).toContain('1. <span id="fn-1"></span>**X** note. <a href="#fnref-1" aria-label="Back to reference 1">↩</a>');
-  expect(html).toContain('2. <span id="fn-2"></span>Y note goes on.');
+test("writes footnotes out: numbered references, and the notes as a list with a way back, each id under the document's", () => {
+  const html = footnotes("| a | b[^x] |\n\nText[^y], again[^x].\n\n[^x]: **X** note.\n\n[^y]: Y note\n  goes on.\n", "doc");
+  expect(html).toContain('b<sup><a href="#doc-fn-1" id="doc-fnref-1">1</a></sup>');
+  expect(html).toContain('Text<sup><a href="#doc-fn-2" id="doc-fnref-2">2</a></sup>, again<sup><a href="#doc-fn-1">1</a></sup>.');
+  expect(html).toContain('1. <span id="doc-fn-1"></span>**X** note. <a href="#doc-fnref-1" aria-label="Back to reference 1">↩</a>');
+  expect(html).toContain('2. <span id="doc-fn-2"></span>Y note goes on.');
   expect(html).not.toContain("[^");
 });
 
+test("gives two documents' notes ids that cannot meet", () => {
+  const one = footnotes("a[^1]\n\n[^1]: one", "first");
+  const two = footnotes("a[^1]\n\n[^1]: one", "second");
+  const ids = (html: string) => [...html.matchAll(/id="([^"]+)"/g)].map(([, id]) => id);
+  expect(ids(one).filter((id) => ids(two).includes(id))).toEqual([]);
+});
+
 test("refuses a reference with no note, and a note with no reference", () => {
-  expect(() => footnotes("a[^1]")).toThrow("[^1] has no note");
-  expect(() => footnotes("a[^1]\n\n[^1]: one\n\n[^2]: two")).toThrow("no reference names the footnotes 2");
+  expect(() => footnotes("a[^1]", "doc")).toThrow("[^1] has no note");
+  expect(() => footnotes("a[^1]\n\n[^1]: one\n\n[^2]: two", "doc")).toThrow("no reference names the footnotes 2");
+});
+
+test("refuses a note with a bare < or &, which would reach the page as HTML, but allows them in a code span", () => {
+  expect(() => footnotes("a[^1]\n\n[^1]: a <script> tag", "doc")).toThrow("[^1] holds a bare <");
+  expect(() => footnotes("a[^1]\n\n[^1]: this & that", "doc")).toThrow("[^1] holds a bare &");
+  expect(footnotes("a[^1]\n\n[^1]: a `<video>` & `a && b`".replace(" & ", " and "), "doc")).toContain("`<video>`");
+});
+
+test("reads no note, and rewrites no reference, inside a fence", () => {
+  const html = footnotes("a[^1]\n\n```md\n[^2]: not a note\nb[^2]\n```\n\n[^1]: one", "doc");
+  expect(html).toContain("```md\n[^2]: not a note\nb[^2]\n```");
+  expect(html).toContain('1. <span id="doc-fn-1"></span>one');
 });
 
 test("draws an icon beside each status word in the features table alone", () => {
