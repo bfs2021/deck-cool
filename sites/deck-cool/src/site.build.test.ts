@@ -1,6 +1,10 @@
+import { Window, type Document, type Element } from "happy-dom";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { expect, test } from "vitest";
+import { describe, expect, test } from "vitest";
+import { decks, umbrella } from "@deck-cool/brand/decks";
+import { GITHUB, NPM } from "../components/links.ts";
+import { CONTENT_SECURITY_POLICY } from "./csp.ts";
 
 const SITE = fileURLToPath(new URL("..", import.meta.url));
 const BRAND = fileURLToPath(new URL("../../../packages/brand/public/", import.meta.url));
@@ -51,9 +55,120 @@ test("the home page opens with the Family bar, after the stylesheets it needs", 
   expect(at('<link rel="stylesheet" href="/family-bar.css"/>')).toBeLessThan(header);
   // Outside <main>, so the header is the page's banner landmark.
   expect(header).toBeLessThan(at("<main>"));
-  // The deck icons sit in a closed <details>, so nothing fetches them early.
-  expect(html).not.toContain('rel="preload"');
+  // The bar's deck icons sit in a closed <details>, so nothing fetches them
+  // early. (React preloads the page's own images, which the page shows.)
+  for (const deck of decks) expect(html).not.toContain(`rel="preload" as="image" href="${deck.icons.still}"`);
 
   const served = readFileSync(`${SITE}site/family-bar.css`);
   expect(served.equals(readFileSync(`${BRAND}family-bar.css`))).toBe(true);
+});
+
+test("_headers sends the Content-Security-Policy on every path", () => {
+  const headers = readFileSync(`${SITE}site/_headers`, "utf8");
+  expect(headers).toContain(`/*\n`);
+  expect(headers).toContain(`  ${CONTENT_SECURITY_POLICY.name}: ${CONTENT_SECURITY_POLICY.value}\n`);
+});
+
+const window = new Window();
+
+function home(): Document {
+  return new window.DOMParser().parseFromString(readFileSync(`${SITE}site/index.html`, "utf8"), "text/html");
+}
+
+/** Narrows away `null` and `undefined`, failing the test when the value is missing. */
+function present<T>(value: T | null | undefined, what: string): T {
+  if (value == null) throw new Error(`${what} is missing`);
+  return value;
+}
+
+/** The element's text, with runs of white space as one space. */
+function text(element: Element | null | undefined): string | undefined {
+  return element?.textContent?.replace(/\s+/g, " ").trim();
+}
+
+function links(scope: Element | Document): [string | undefined, string | null][] {
+  return [...scope.querySelectorAll("a")].map((a) => [text(a), a.getAttribute("href")]);
+}
+
+test("the home page carries no script, no <style> and no inline style or handler", () => {
+  const doc = home();
+  expect(doc.querySelectorAll("script, style, [style]")).toHaveLength(0);
+  for (const element of doc.querySelectorAll("*")) {
+    for (const { name } of element.attributes) expect(name, element.tagName).not.toMatch(/^on/);
+  }
+});
+
+test("the home page is titled as on the board, and links umbrella.css", () => {
+  const html = readFileSync(`${SITE}site/index.html`, "utf8");
+  expect(home().title).toBe("deck.cool: unstyled React packages");
+  expect(html).toContain('<link rel="stylesheet" href="/umbrella.css"/>');
+  const served = readFileSync(`${SITE}site/umbrella.css`);
+  expect(served.equals(readFileSync(`${BRAND}umbrella.css`))).toBe(true);
+});
+
+test("the Family bar links each deck's card, and GitHub", () => {
+  const bar = present(home().querySelector(".family-bar__links"), "the bar's links");
+  expect(links(bar)).toEqual([
+    ...decks.map((deck): [string, string] => [deck.name, `#${deck.name}`]),
+    ["GitHub", GITHUB],
+  ]);
+});
+
+test("the hero shows the fanned cards, the headline, the line under it and two links", () => {
+  const hero = present(home().querySelector("main > section:first-of-type"), "the hero");
+  expect(hero?.querySelector("img")?.getAttribute("src")).toBe(umbrella.icons.animated);
+  expect(hero?.querySelector("img")?.getAttribute("alt")).toBe("");
+  expect(text(hero?.querySelector("h1"))).toBe("React, unstyled. One deck at a time.");
+  expect(text(hero?.querySelector("p"))).toBe(
+    "Small React packages that lean on what the browser already does. None of them ships a stylesheet. The look is yours.",
+  );
+  expect(links(hero)).toEqual([
+    ["Browse the decks", "#decks"],
+    ["GitHub ›", GITHUB],
+  ]);
+  expect(home().getElementById("decks")).not.toBeNull();
+});
+
+describe("each deck's card", () => {
+  test("there is one per deck, in the decks module's order", () => {
+    const cards = [...home().querySelectorAll("#decks article")];
+    expect(cards.map((card) => card.id)).toEqual(decks.map((deck) => deck.name));
+  });
+
+  test.each(decks)("$name's card holds its icon, copy, install command and figures", (deck) => {
+    const card = home().getElementById(deck.name);
+    expect(card?.querySelector("img")?.getAttribute("src")).toBe(deck.icons.animated);
+    expect(card?.querySelector("img")?.getAttribute("alt")).toBe("");
+    expect(text(card?.querySelector("h2"))).toBe(deck.name);
+    const paragraphs = [...(card?.querySelectorAll("p") ?? [])].map(text);
+    expect(paragraphs).toEqual([deck.kind, deck.claim, deck.description]);
+    expect(text(card?.querySelector("code"))).toBe(deck.install);
+    const figures = [...(card?.querySelectorAll("li") ?? [])].map((li) => [
+      text(li.firstElementChild),
+      text(li.lastElementChild),
+    ]);
+    expect(figures).toEqual(deck.figures.map(({ value, label }) => [value, label]));
+  });
+
+  test.each(decks)("$name's card links to its site", (deck) => {
+    expect(links(present(home().getElementById(deck.name), deck.name))).toEqual([[`Visit ${deck.name} ›`, deck.url]]);
+  });
+});
+
+test("the band says no stylesheet ships, with a part selector to style", () => {
+  const band = home().querySelector("main > section:last-of-type");
+  expect(text(band?.querySelector("h2"))).toBe("No stylesheet ships.");
+  expect(text(band?.querySelector("p"))).toBe(
+    "Every deck renders plain markup with stable part names. You style it with your own CSS, in your own design system.",
+  );
+  expect(band?.querySelector("pre")?.textContent).toBe("[data-playdeck-part='play-button'] {\n  border-radius: 999px;\n}");
+});
+
+test("the footer follows <main>, with deck.cool, the licence, GitHub and npm", () => {
+  const footer = present(home().querySelector("main + footer"), "the footer");
+  expect([...footer.querySelectorAll("span, a")].map(text)).toEqual(["deck.cool", "MIT licensed", "GitHub", "npm"]);
+  expect(links(footer)).toEqual([
+    ["GitHub", GITHUB],
+    ["npm", NPM],
+  ]);
 });
