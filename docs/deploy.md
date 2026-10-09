@@ -200,7 +200,7 @@ curl -sI https://slidedeck.pages.dev/   # no 200
 
 ## pagedeck at page.deck.cool
 
-`sites/pagedeck` is served at `https://page.deck.cool` by a third Worker, `pagedeck`, on the same `deck.cool` zone. It replaces the landing page at `pagedeck-landing.pedrodsousa.workers.dev`. Until #53 brings the docs to `/docs`, the site's docs links go to pagedeck's docs at `https://pagedeck-docs.pedrodsousa.workers.dev` (`DOCS_ORIGIN` in `sites/pagedeck/components/links.ts`).
+`sites/pagedeck` is served at `https://page.deck.cool` by a third Worker, `pagedeck`, on the same `deck.cool` zone. It takes over from the landing page at `pagedeck-landing.pedrodsousa.workers.dev`. Until #53 brings the docs to `/docs`, the site's docs links go to pagedeck's docs at `https://pagedeck-docs.pedrodsousa.workers.dev` (`DOCS_ORIGIN` in `sites/pagedeck/components/links.ts`).
 
 Every section above applies, with these differences:
 

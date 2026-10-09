@@ -115,7 +115,7 @@ const COPY = {
   i18n: {
     heading: "Locales",
     body: [
-      "This site publishes one locale. The dogfood site publishes English and German from one build, and each version of a page carries a canonical link and hreflang links to the other.",
+      "This site publishes one locale. pagedeck can publish several from one build, and each version of a page then carries a canonical link and hreflang links to the others.",
     ],
     docs: "Canonicals and hreflang",
   },
