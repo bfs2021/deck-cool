@@ -1,5 +1,5 @@
 ---
-title: 'slidedeck: a React carousel built on native scroll snap'
+title: 'slidedeck: a carousel that lets the browser do the scrolling'
 components: [landing]
-description: 'slidedeck is a headless React 19 carousel on native CSS scroll snap: the browser scrolls, snaps and focuses, and you style the deck with plain CSS.'
+description: 'slidedeck is an unstyled React carousel on native CSS scroll snap: the browser scrolls, snaps and focuses, and you style every part with plain CSS.'
 ---

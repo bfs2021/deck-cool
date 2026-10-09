@@ -7,6 +7,7 @@ import { defineSearch } from "@pagedeck/search";
 import { HASHED_FILE_HEADERS, RESPONSE_HEADERS } from "./src/headers.ts";
 import { stagePublic } from "./src/public.ts";
 import { headOf, pageMetaOf, SITE_ORIGIN, socialInputsOf } from "./src/seo.ts";
+import { SKINS } from "./src/skins.ts";
 import { socialCard } from "./src/social-card.ts";
 
 const brandSheet = (name: string) =>
@@ -33,8 +34,7 @@ export default defineConfig({
       landing: "./components/landing.tsx",
       examples: "./components/examples-page.tsx",
       // Each deck is an island where a page renders it.
-      featureDeck: "./components/feature-deck.tsx",
-      curveDeck: "./components/curve-deck.tsx",
+      skinDeck: "./components/skin-deck.tsx",
       galleryDeck: "./components/showcase/gallery-deck.tsx",
       heroDeck: "./components/showcase/hero-deck.tsx",
       testimonialsDeck: "./components/showcase/testimonials-deck.tsx",
@@ -57,10 +57,16 @@ export default defineConfig({
       after: [{ component: "footer" }],
     }),
     // One hashed sheet under /assets/, linked from every page's <head>, in this
-    // order. The brand's sheets by their real paths: on a site with islands,
-    // Pagedeck 0.2.3 puts a sheet in the core chunk only when its path is the
-    // one the bundler resolves, and a path through node_modules' link is not.
-    css: [brandSheet("brand.css"), brandSheet("family-bar.css"), "./styles/slidedeck.css"],
+    // order, the home page's two skins last. The brand's sheets by their real
+    // paths: on a site with islands, Pagedeck 0.2.3 puts a sheet in the core
+    // chunk only when its path is the one the bundler resolves, and a path
+    // through node_modules' link is not.
+    css: [
+      brandSheet("brand.css"),
+      brandSheet("family-bar.css"),
+      "./styles/slidedeck.css",
+      ...SKINS.map((skin) => `./${skin.file}`),
+    ],
     // Each page's title, description, share card and structured data: src/seo.ts.
     head: (page, store) => headOf(page, store, pages),
     socialImages: {
@@ -84,7 +90,7 @@ export default defineConfig({
     },
     // What each page transfers for first render, as `pnpm build` measured it,
     // rounded up to the next KB. A page with no budget of its own may ship none.
-    budget: { "/**": "0b", "/": "71kb", "/examples/": "71kb" },
+    budget: { "/**": "0b", "/": "61kb", "/examples/": "61kb" },
     adapter: cloudflarePages(),
   },
 });

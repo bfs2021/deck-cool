@@ -5,9 +5,11 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, test } from "vitest";
 import { REPOSITORY } from "../components/links.ts";
+import { umbrella } from "@deck-cool/brand/decks";
 import { slidedeck } from "../components/slidedeck.ts";
 import { CONTENT_SECURITY_POLICY, DECK_STYLE_HASHES } from "./csp.ts";
-import { libraries, size, version } from "./facts.ts";
+import { install, size, version } from "./facts.ts";
+import { SKINS } from "./skins.ts";
 import { SITE_ORIGIN } from "./seo.ts";
 import { BUILD_OUTPUT } from "./build.global-setup.ts";
 import { headersFor, parseHeaders } from "./serve-site.ts";
@@ -206,9 +208,7 @@ test("slidedeck.css times every transition with the brand's one easing curve", (
     for (const part of value?.split(",") ?? []) expect(part, value).toMatch(/var\(--ease\)/);
   }
   expect(css).not.toMatch(/cubic-bezier/);
-  // The one animation follows the scroll, not the clock, so it has no curve of its own.
-  const animations = [...css.matchAll(/\banimation:([^;}]+)/g)].map(([, value]) => value?.trim());
-  expect(animations).toEqual(["feature-focus linear both"]);
+  expect(css).not.toMatch(/\banimation:/);
 });
 
 test("the site serves no stylesheet but the hashed one", () => {
@@ -233,22 +233,52 @@ test("the icons are the brand's, byte for byte", () => {
   }
 });
 
-describe("the home page, its copy as slidedeck.pages.dev had it", () => {
-  test("is titled as before", () => {
-    expect(home().title).toBe("slidedeck: a React carousel built on native scroll snap");
+/** Each tile in a band, as [heading, body]. */
+function tiles(scope: Element | undefined): [string | undefined, string | undefined][] {
+  return [...(scope?.querySelectorAll(".home-tile") ?? [])].map((tile) => [
+    text(tile.querySelector("h3")),
+    text(tile.querySelector(".home-tile__body")),
+  ]);
+}
+
+// CONTEXT.md, "The landing pages' message", and the brief on #47.
+describe("the home page", () => {
+  const main = () => present(home().querySelector("main"), "<main>");
+  /** The sections of <main>, in order. */
+  const sections = () => [...main().querySelectorAll(":scope > section")];
+  const band = (heading: string) => sections().find((section) => text(section.querySelector("h2")) === heading);
+
+  test("is titled with the claim", () => {
+    expect(home().title).toBe("slidedeck: a carousel that lets the browser do the scrolling");
+    expect(home().head.querySelector('meta[name="description"]')?.getAttribute("content")).toBe(
+      "slidedeck is an unstyled React carousel on native CSS scroll snap: the browser scrolls, snaps and focuses, and you style every part with plain CSS.",
+    );
   });
 
-  test("the hero states the version and the size, and links the quickstart and the repo", () => {
-    const hero = present(home().querySelector(".landing-hero"), "the hero");
-    expect(text(hero.querySelector(".landing-eyebrow"))).toBe(`slidedeck ${version}`);
-    expect(text(hero.querySelector("h1"))).toBe("Smooth. Natively.");
-    expect(text(hero.querySelector(".landing-lede"))).toBe(
-      `A carousel for React that lets the browser do the scrolling. Native momentum, native snapping and native focus scrolling, in ${size} min+gzip.`,
-    );
-    expect(links(hero)).toEqual([
-      ["Get started", "/docs/quickstart/"],
-      ["View on GitHub ›", REPOSITORY],
+  test("runs hero, proof, the four quality sections, then the line back to deck.cool", () => {
+    expect(sections().map((section) => section.className)).toEqual([
+      "home-intro",
+      "home-proof",
+      "home-band",
+      "home-band",
+      "home-band",
+      "home-band",
+      "home-family",
     ]);
+  });
+
+  test("the hero: the version, the claim, one sentence for all three audiences, and the two calls to action", () => {
+    const hero = sections()[0];
+    expect(hero?.querySelector("img")?.getAttribute("src")).toBe(slidedeck.icons.animated);
+    expect(hero?.querySelector("img")?.getAttribute("alt")).toBe("");
+    expect(text(hero?.querySelector("h1"))).toBe(slidedeck.claim);
+    expect([...(hero?.querySelectorAll("p") ?? [])].map(text)).toEqual([
+      `slidedeck ${version}`,
+      "Compose it from a few React components, style every part with your own CSS, or hand it to your agent. The momentum, the snapping and the focus scrolling are the browser's own.",
+    ]);
+    expect(text(hero?.querySelector(".home-install code"))).toBe("pnpm add @slidedeck/react");
+    expect(install).toBe("pnpm add @slidedeck/react");
+    expect(links(hero)).toEqual([["Read the docs", "/docs/"]]);
   });
 
   // The shapes, not the values: each release of slidedeck brings its own.
@@ -257,38 +287,169 @@ describe("the home page, its copy as slidedeck.pages.dev had it", () => {
     expect(size).toMatch(/^\d+\.\d\d KB$/);
   });
 
-  test("the sections follow in order", () => {
-    const sections = [...home().querySelectorAll("main section[aria-labelledby]")];
-    expect(sections.map((section) => text(home().getElementById(section.getAttribute("aria-labelledby") ?? "")))).toEqual([
-      "Get to know slidedeck.",
-      "Feels native. Because it is.",
-      "Scroll it. It bends.",
-      "A few components.One deck.",
-      "Built with slidedeck.",
-      "Compare.",
+  // CONTEXT.md: the "plain markdown" line waits until @slidedeck/docs is on npm.
+  test("makes no claim about markdown docs or llms.txt", () => {
+    expect(main().textContent).not.toMatch(/Using an agent|markdown|llms\.txt/i);
+  });
+
+  test("the proof: the browser scrolls and slidedeck keeps count, beside the one figure, the README's", () => {
+    const proof = sections()[1];
+    expect(text(proof?.querySelector("h2"))).toBe("The browser scrolls. slidedeck keeps count.");
+    expect(
+      [...(proof?.querySelectorAll(".home-proof__points li") ?? [])].map((point) => [
+        text(point.querySelector("h3")),
+        text(point.querySelector("p")),
+      ]),
+    ).toEqual([
+      [
+        "A real scroll container",
+        "Every deck is a scroll container with CSS scroll snap, so touch, trackpad, mouse wheel, drag and keyboard all move it.",
+      ],
+      [
+        "slidedeck keeps count",
+        "It tracks where the deck comes to rest, and Prev, Next and the dots ask the browser to scroll there.",
+      ],
+      ["Works with no CSS", "The quickstart is a working deck before you write a single rule."],
+    ]);
+    expect([...(proof?.querySelectorAll(".home-proof__figure > p") ?? [])].map(text)).toEqual([
+      size,
+      slidedeck.figure.label,
+      slidedeck.figure.note,
+      "Measured by pnpm compare in slidedeck's repo, and its CI fails when the number goes stale.",
+    ]);
+    expect(links(proof)).toEqual([["How it is measured ›", "/docs/compare/"]]);
+  });
+
+  test("the four quality sections, in the brief's order", () => {
+    expect(sections().slice(2, 6).map((section) => text(section.querySelector("h2")))).toEqual([
+      "Unstyled, your look.",
+      "Small, leans on the browser.",
+      "Built for agents.",
+      "Accessible by default.",
     ]);
   });
 
-  test("renders its four decks on the server, each a labelled carousel", () => {
-    const labels = [...home().querySelectorAll('main [aria-roledescription="carousel"]')].map((deck) =>
-      deck.getAttribute("aria-label"),
-    );
-    expect(labels).toEqual(["Features", "Curve effect", "Product photos", "Travel stories"]);
+  describe("unstyled: one deck, two skins", () => {
+    const section = () => band("Unstyled, your look.");
+    const skins = () => [...(section()?.querySelectorAll(".home-skin") ?? [])];
+
+    test("says every part has a name for your CSS", () => {
+      expect(text(section()?.querySelector(".home-band__text p"))).toBe(
+        "slidedeck ships no stylesheet, so there is no theme to fight. Every part carries a name, like data-slidedeck-next or data-slidedeck-dots, for your CSS or your tokens to reach. Here is one live deck, shown twice: the markup is the same, and only the CSS changes.",
+      );
+    });
+
+    test("renders the same deck twice, each in its own skin, on the server", () => {
+      expect(skins().map((skin) => text(skin.querySelector("figcaption")))).toEqual(SKINS.map((skin) => skin.name));
+      const stages = skins().map((skin) => present(skin.querySelector(".home-skin__stage"), "a skin's stage"));
+      expect(stages.map((stage) => stage.className)).toEqual(SKINS.map((skin) => `home-skin__stage ${skin.className}`));
+      const decks = stages.map((stage) => present(stage.querySelector('[aria-roledescription="carousel"]'), "a deck"));
+      // Each deck is its own region, so each has its own name. Past that, the markup is the same.
+      expect(decks.map((deck) => deck.getAttribute("aria-label"))).toEqual(SKINS.map((skin) => `${skin.name} deck`));
+      const markup = decks.map((deck, i) => deck.outerHTML.replace(`aria-label="${SKINS[i]?.name} deck"`, ""));
+      expect(markup[0]).toBe(markup[1]);
+      expect([...present(decks[0], "the first deck").querySelectorAll("[data-slidedeck-slide]")].map(text)).toEqual([
+        "Momentum The browser's own.",
+        "Snapping The browser's own.",
+        "Focus scrolling The browser's own.",
+        "The look Yours.",
+      ]);
+      for (const part of ["viewport", "prev", "next", "dots", "counter"]) {
+        expect(decks[0]?.querySelector(`[data-slidedeck-${part}]`), part).not.toBeNull();
+      }
+    });
+
+    test("shows beside each skin the source file its CSS is compiled from, which styles it through part names", () => {
+      expect(skins().map((skin) => skin.querySelector("pre code")?.textContent)).toEqual(
+        SKINS.map((skin) => readFileSync(`${SITE}${skin.file}`, "utf8").trim()),
+      );
+      const css = stylesheet();
+      for (const skin of SKINS) {
+        expect(css).toContain(`.${skin.className} [data-slidedeck-next]`);
+        // Every rule is scoped to its skin, so neither sheet reaches the other deck.
+        const source = readFileSync(`${SITE}${skin.file}`, "utf8");
+        for (const [, list = ""] of source.matchAll(/^([^\s{}@][^{]*)\{/gm)) {
+          for (const selector of list.split(",")) {
+            expect(selector.trim(), skin.file).toMatch(new RegExp(`^\\.${skin.className} `));
+          }
+        }
+      }
+    });
   });
 
-  test("the quickstart is the README's, highlighted, in a block the keyboard reaches", () => {
-    const code = present(home().querySelector(".landing-quickstart pre"), "the quickstart");
+  test("small: native scroll snap, effects you import, and server rendering, with the README's size", () => {
+    const section = band("Small, leans on the browser.");
+    expect(text(section?.querySelector(".home-band__text p"))).toBe(
+      `The browser already knows how to scroll. slidedeck builds on that instead of rebuilding it, so a carousel with Prev and Next is ${size}, min+gzip, with React external.`,
+    );
+    expect(tiles(section)).toEqual([
+      [
+        "Native scroll snap",
+        "Momentum, snapping and focus scrolling are the browser's own. slidedeck tracks where the deck rests and asks the browser to move.",
+      ],
+      [
+        "Effects you import",
+        "Fade and curve each have an entry point of their own. A deck that imports neither ships none of their code.",
+      ],
+      [
+        "Rendered on the server",
+        "Slides, Prev and Next are in the HTML before any script runs, and React Server Components render the deck straight from a server file.",
+      ],
+    ]);
+  });
+
+  test("agents: a few named parts, typed, with mistakes that explain themselves, and the README's quickstart", () => {
+    const section = band("Built for agents.");
+    expect(text(section?.querySelector(".home-band__text p"))).toBe(
+      "Whether you write the code or your coding agent does, slidedeck leaves less to guess.",
+    );
+    expect(tiles(section)).toEqual([
+      [
+        "A few named parts",
+        "A deck is Deck.Root, Deck.Viewport and Deck.Slide, plus the controls you pick. The quickstart below is the whole of one.",
+      ],
+      [
+        "Typed all the way",
+        "slidedeck is written in TypeScript and ships its types, so your editor and your agent see every prop.",
+      ],
+      [
+        "Mistakes explain themselves",
+        "Pass index and defaultIndex together, or index without onIndexChange, and in development slidedeck says what to pass instead.",
+      ],
+    ]);
+    const code = present(section?.querySelector(".home-code pre"), "the quickstart");
     expect(code.getAttribute("tabindex")).toBe("0");
     expect(code.classList.contains("github-dark-default")).toBe(true);
     expect(code.textContent).toMatch(/^import \* as Deck from '@slidedeck\/react';\n/);
-    expect(text(home().querySelector(".landing-install"))).toBe("pnpm add @slidedeck/react");
   });
 
-  test("the comparison is the README's, one tile per library", () => {
-    const tiles = [...home().querySelectorAll(".landing-compare li")];
-    expect(tiles.map((tile) => text(tile.querySelector("strong")))).toEqual(libraries.map((row) => row.size));
-    expect(tiles.map((tile) => text(tile.querySelector("h3")))).toContain("@slidedeck/react");
+  // Only the claims a test in pedrosousa13/slidedeck proves: slidedeck's rows of #46's PR body, word for word.
+  test("accessible: slidedeck's five tested claims", () => {
+    const section = band("Accessible by default.");
+    expect(text(section?.querySelector(".home-band__text p"))).toBe(
+      "slidedeck takes care of the keyboard, focus and screen readers for you. Each line below is backed by a test in slidedeck's own repo.",
+    );
+    expect(tiles(section)).toEqual([
+      ["Named for screen readers", 'A labelled carousel region, each slide a group labelled "n of m".'],
+      ["Ready for the keyboard", "Arrow keys move the focused deck, and every dot is a button the keyboard reaches."],
+      ["Focus brings it into view", "Tab into an off-screen slide and it scrolls into view."],
+      ["Announced politely", "A polite live region announces your moves, never autoplay's."],
+      ["Calm under reduced motion", "Under reduced motion, moves jump instead of gliding, and autoplay starts stopped."],
+    ]);
+    expect(links(present(section, "the section"))).toEqual([["Try the examples ›", "/examples/"]]);
   });
+
+  test("closes with one line back to deck.cool", () => {
+    const family = sections()[6];
+    expect(text(family?.querySelector("p"))).toBe(
+      "slidedeck is part of deck.cool, a family of unstyled React packages that look like you and work like the browser. Meet the family ›",
+    );
+    expect(links(present(family, "the line"))).toEqual([["Meet the family ›", umbrella.url]]);
+  });
+});
+
+test.each(PAGES)("%s uses no em dash anywhere", (_path, file) => {
+  expect(readFileSync(`${OUT}/${file}`, "utf8")).not.toMatch(/—|&mdash;/);
 });
 
 describe("the Examples page", () => {

@@ -173,12 +173,48 @@ describe("the decks in a browser", () => {
     expect(await violations()).toEqual([]);
   });
 
-  test("with motion allowed, the feature deck plays on its own", async () => {
-    const { page } = await visit("/", { width: 1280, reducedMotion: "no-preference" });
+  // The page's script is its islands', so a click selects the command for copying instead.
+  test("one click on the home page's install command selects all of it, and nothing else", async () => {
+    const { page } = await visit("/", { width: 1280, reducedMotion: "reduce" });
+    await page.locator(".home-install code").click();
+    expect(await page.evaluate(() => window.getSelection()?.toString())).toBe("pnpm add @slidedeck/react");
+  });
+
+  test("the home page's two skins set the same deck in two different faces and grounds, none of it the site's own look", async () => {
+    const { page } = await visit("/", { width: 1280, reducedMotion: "reduce" });
     await hydrated(page);
-    await expect
-      .poll(() => page.locator(".feature-deck [data-slidedeck-autoplay-toggle]").getAttribute("data-playing"))
-      .not.toBeNull();
+    const looks = await page.locator(".home-skin__stage").evaluateAll((stages) =>
+      stages.map((stage) => {
+        const slide = getComputedStyle(stage.querySelector("[data-slidedeck-slide] > *") ?? stage);
+        const next = getComputedStyle(stage.querySelector("[data-slidedeck-next]") ?? stage);
+        return { font: slide.fontFamily, ground: slide.backgroundColor, next: next.backgroundColor, radius: next.borderRadius };
+      }),
+    );
+    expect(looks).toHaveLength(2);
+    expect(looks[0]?.font).not.toBe(looks[1]?.font);
+    expect(looks[0]?.ground).not.toBe(looks[1]?.ground);
+    expect(looks[0]?.next).not.toBe(looks[1]?.next);
+    expect(looks[0]?.radius).not.toBe(looks[1]?.radius);
+    // The site's deck controls are this translucent grey: a skin's sheet alone styles its deck.
+    for (const look of looks) expect(look.next).not.toBe("rgba(66, 66, 69, 0.72)");
+    // Each scrollable code block is focusable, so each is named.
+    for (const name of ["Soft CSS", "Stark CSS"]) {
+      expect(await page.getByLabel(name, { exact: true }).evaluate((element) => element.tagName)).toBe("PRE");
+    }
+  });
+
+  test("each skin's deck is live: its Next moves it, and only it, under the CSP", async () => {
+    const { page, violations } = await visit("/", { width: 1280, reducedMotion: "reduce" });
+    await hydrated(page);
+    const current = (name: string) =>
+      page
+        .getByRole("region", { name: `${name} deck` })
+        .locator('[data-slidedeck-dots] [aria-current="true"]')
+        .getAttribute("data-index");
+    await page.getByRole("region", { name: "Stark deck" }).getByRole("button", { name: "Next" }).click();
+    await expect.poll(() => current("Stark")).toBe("1");
+    expect(await current("Soft")).toBe("0");
+    expect(await violations()).toEqual([]);
   });
 });
 
