@@ -1,11 +1,11 @@
-# Deploying deck.cool, slide.deck.cool and page.deck.cool
+# Deploying deck.cool and its package sites
 
 The umbrella site (`sites/deck-cool`) is served at `https://deck.cool` by **Workers Static Assets**, the way pagedeck deploys its landing page. One `wrangler deploy` uploads the built `site/` and publishes a Worker named `deck-cool` that serves it. The Worker has no code of its own.
 
 wrangler is `sites/deck-cool`'s exact-version dev dependency. Run it as `pnpm exec wrangler` in `sites/deck-cool`, never as `npx wrangler`, which takes whatever version is latest.
 
 
-slidedeck's site (`sites/slidedeck`) and pagedeck's (`sites/pagedeck`) deploy the same way, each to its own Worker, at `https://slide.deck.cool` and `https://page.deck.cool`. Everything below describes deck.cool; [slidedeck at slide.deck.cool](#slidedeck-at-slidedeckcool) and [pagedeck at page.deck.cool](#pagedeck-at-pagedeckcool) list what differs.
+slidedeck's site (`sites/slidedeck`), pagedeck's (`sites/pagedeck`) and playdeck's (`sites/playdeck`) deploy the same way, each to its own Worker, at `https://slide.deck.cool`, `https://page.deck.cool` and `https://play.deck.cool`. Everything below describes deck.cool; [slidedeck at slide.deck.cool](#slidedeck-at-slidedeckcool), [pagedeck at page.deck.cool](#pagedeck-at-pagedeckcool) and [playdeck at play.deck.cool](#playdeck-at-playdeckcool) list what differs.
 ## What gets deployed
 
 `sites/deck-cool/wrangler.jsonc` declares the Worker:
@@ -254,3 +254,51 @@ Two things Cloudflare does on the zone are known, and the maintainer accepted bo
 ### The old Workers stay up
 
 `pagedeck-landing` and `pagedeck-docs` keep running. `pagedeck-docs` serves the docs that this site links to. Both retire in #53 or pedrosousa13/pagedeck#124, once `/docs` is served here. Delete neither before then: a deletion can't be undone, so the maintainer confirms each one first.
+
+## playdeck at play.deck.cool
+
+`sites/playdeck` is served at `https://play.deck.cool` by a fourth Worker, `play-deck-cool`, on the same `deck.cool` zone. Every page names its own path on `https://playdeck.video` as canonical, as `CONTEXT.md` says: `playdeck.video` stays the canonical address.
+
+**playdeck.video is deferred to #65.** `playdeck.video` is still served by the Worker `playdeck`, which pedrosousa13/playdeck's `deploy-site.yml` deploys. This repo does not touch that Worker, that zone or that workflow. Moving `playdeck.video` to this build is #65.
+
+Every section above applies, with these differences:
+
+- **The config.** `sites/playdeck/wrangler.jsonc` declares the Worker `play-deck-cool`, with the route `{ "pattern": "play.deck.cool", "custom_domain": true }`. The other settings are the same as deck.cool's. wrangler is `sites/playdeck`'s exact-version dev dependency, at the same version as deck.cool's.
+- **The build.** `_headers` gets its CSP from `sites/playdeck/src/csp.ts` and the other headers from `sites/playdeck/src/headers.ts`, the same fields as deck.cool's, except that `Permissions-Policy` allows `fullscreen=(self)` for the players. The pages' scripts and the stylesheet are content-hashed under `/assets/`, so they are `immutable`. `_redirects` and `.assetsignore` are the same as deck.cool's.
+- **The workflow.** `.github/workflows/deploy-playdeck.yml` has the same three jobs as `deploy-deck-cool.yml`. A push runs its dry run only when it changes `sites/playdeck/`, `packages/`, the root `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml` or the workflow itself. A manual run always runs.
+- **The token and the secret.** The publish job uses the same `CLOUDFLARE_API_TOKEN` in the `production` environment. Workers Editor is account-wide, and Workers Routes Write covers every hostname on the `deck.cool` zone, so the token deploys this Worker too. It has no permission on the `playdeck.video` zone, and this Worker needs none.
+- **The zone.** Always Use HTTPS is a zone setting, so it already covers `play.deck.cool`. deck.cool's HSTS has `includeSubDomains`, and playdeck's `_headers` sends the same HSTS.
+
+### The first deploy
+
+The `play-deck-cool` Worker exists: it was created empty through the Cloudflare API on 2026-10-09, so Workers Editor can deploy to it and the first deploy needs no Admin. Run it from CI.
+
+Before the first deploy, check the zone's DNS records for `play.deck.cool`. The custom domain creates its own record, and it cannot be created on a hostname that already has a CNAME record.
+
+```sh
+gh workflow run deploy-playdeck.yml -R pedrosousa13/deck-cool --ref main               # dry run
+gh workflow run deploy-playdeck.yml -R pedrosousa13/deck-cool --ref main -f apply=true # publish
+gh run watch -R pedrosousa13/deck-cool
+```
+
+From your machine instead:
+
+```sh
+cd sites/playdeck
+pnpm build
+pnpm exec wrangler deploy --dry-run   # lists the upload; sends nothing
+CLOUDFLARE_API_TOKEN=... pnpm exec wrangler deploy
+```
+
+### Verifying playdeck
+
+```sh
+pnpm --filter @sites/playdeck check-live                      # https://play.deck.cool
+pnpm --filter @sites/playdeck check-live https://example.com  # any other origin
+```
+
+`check-live` fetches `/`, `/examples/`, `/guides/comparison/`, `/docs/search/` and `/archetype-captions.vtt`, and fails unless each answers `200` with every header in `sites/playdeck/src/headers.ts`, at its exact value, and no `immutable`. The CSP, and `Strict-Transport-Security: max-age=31536000; includeSubDomains`, are among those headers. It fails unless each page's `<link rel="canonical">` is the same path on `https://playdeck.video`. It then checks the hashed stylesheet that `/` links, as deck.cool's check does. It fails unless `/manifest.json` and `/no-such-page/` answer `404`, and unless `http://play.deck.cool/` answers `301` to `https://play.deck.cool/`. `sites/playdeck/src/live-check.test.ts` runs the same checks against the build served locally.
+
+`src/live-check.ts` and its test are copies of slidedeck's, with this site's paths and the canonical check. #56 moves the sites' shared code into one package; take these copies with it.
+
+Rolling back, and taking the site off the domain, are the same as for deck.cool, with the Worker `play-deck-cool` in `sites/playdeck`.
