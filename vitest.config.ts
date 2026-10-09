@@ -7,6 +7,7 @@ export default defineConfig({
     globalSetup: [
       "sites/deck-cool/src/build.global-setup.ts",
       "sites/pagedeck/src/build.global-setup.ts",
+      "sites/playdeck/src/build.global-setup.ts",
       "sites/slidedeck/src/build.global-setup.ts",
     ],
   },

@@ -1,0 +1,640 @@
+/*
+ * playdeck's own pages, on the brand kit: the tokens in brand.css, the
+ * system font stack it sets on <body>, and the 980px measure the Family bar
+ * sits on. Every motion is under prefers-reduced-motion: no-preference, on
+ * the brand's one curve. The archetype players bring their own look, in the
+ * two archetype sheets.
+ */
+main,
+main *,
+main ::before,
+main ::after,
+.site-footer,
+.site-footer * {
+  box-sizing: border-box;
+}
+
+body {
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+main :is(h1, h2, h3, h4) {
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -.015em;
+  text-wrap: balance;
+}
+
+main a {
+  color: var(--text-link);
+  text-underline-offset: .2em;
+}
+main a:hover {
+  color: #5eb0ff;
+}
+main :focus-visible,
+.site-footer a:focus-visible {
+  outline: 2px solid var(--text-link);
+  outline-offset: 2px;
+}
+
+main :is(code, kbd, samp, pre) {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: .9em;
+}
+main :not(pre) > code {
+  padding: .1em .35em;
+  border-radius: 6px;
+  background: var(--ground-raised);
+}
+
+.pd-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* The measure every page is laid on. */
+.pd-wrap {
+  max-width: 980px;
+  margin-inline: auto;
+  padding-inline: 22px;
+}
+
+.pd-lede {
+  max-width: 60ch;
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 19px;
+  line-height: 1.42;
+}
+.pd-muted {
+  max-width: 60ch;
+  color: var(--text-secondary);
+  font-size: 15px;
+}
+
+/* A pill, filled with playdeck's accent. */
+main .pd-button {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 22px;
+  border-radius: 999px;
+  background: var(--playdeck-fill);
+  color: var(--fill-text);
+  font-size: 17px;
+  font-weight: 600;
+  text-decoration: none;
+}
+main .pd-button:hover {
+  background: #c01c46;
+  color: var(--fill-text);
+}
+
+/* Highlighted code. `!important` wins over the highlighter's inline ground. */
+.shiki {
+  margin: 0;
+  padding: 20px 24px;
+  overflow-x: auto;
+  border-radius: 18px;
+  background-color: var(--ground-tile) !important;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.line {
+  display: block;
+}
+/* A column flex container drops the whitespace text between blocked lines,
+   which would otherwise render as blank lines. */
+.shiki code {
+  display: flex;
+  flex-direction: column;
+}
+
+/* The home page. */
+.pd-home {
+  padding-block: 56px 88px;
+}
+.pd-thesis {
+  display: grid;
+  gap: 16px;
+  justify-items: start;
+}
+.pd-thesis__name {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 21px;
+}
+.pd-thesis__display {
+  max-width: 22ch;
+  margin: 0;
+  font-size: clamp(36px, 7vw, 64px);
+  font-weight: 600;
+  line-height: 1.05;
+  letter-spacing: -.025em;
+  text-wrap: balance;
+}
+.pd-thesis__lede {
+  max-width: 60ch;
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 19px;
+  line-height: 1.42;
+}
+.pd-thesis__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+.pd-install {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 4px 6px 4px 18px;
+  border-radius: 999px;
+  background: var(--ground-raised);
+}
+main .pd-install__command {
+  min-width: 0;
+  padding: 0;
+  overflow-wrap: anywhere;
+  background: none;
+  font-size: 15px;
+}
+.pd-install__copy {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--text-secondary);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+.pd-install__copy:hover {
+  background: var(--rule);
+}
+
+.pd-cards {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px;
+  margin-top: 72px;
+}
+@media (min-width: 48rem) {
+  .pd-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+main .pd-card {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  min-width: 0;
+  padding: 28px;
+  border-radius: 28px;
+  background: var(--ground-tile);
+  color: var(--text);
+  text-decoration: none;
+}
+main .pd-card:hover {
+  background: var(--ground-raised);
+  color: var(--text);
+}
+.pd-card__number {
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.pd-card__headline {
+  margin: 0;
+  color: var(--playdeck-text);
+  font-size: 24px;
+}
+.pd-card__line {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 15px;
+}
+.pd-card__snippet {
+  min-width: 0;
+  margin-top: 8px;
+}
+.pd-card .shiki {
+  padding: 14px 18px;
+  border-radius: 14px;
+  background-color: var(--ground-page) !important;
+  font-size: 13px;
+}
+
+.pd-close {
+  display: grid;
+  justify-items: start;
+  gap: 20px;
+  margin-top: 72px;
+  padding-top: 32px;
+  border-top: 1px solid var(--rule);
+}
+.pd-close__measured {
+  max-width: 60ch;
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+.pd-close__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  margin: 0;
+}
+
+/* /examples. */
+.pd-examples {
+  padding-block: 40px 88px;
+}
+.pd-examples > h1 {
+  margin: 0 0 20px;
+  font-size: clamp(32px, 5vw, 48px);
+  letter-spacing: -.02em;
+}
+.pd-archetype {
+  display: grid;
+  gap: 16px;
+  margin-top: 72px;
+}
+.pd-archetype > h2 {
+  margin: 0;
+  font-size: 28px;
+}
+.pd-archetype > p {
+  max-width: 60ch;
+  margin: 0;
+}
+/* `min-width: 0`, so a player cannot widen the column. */
+.pd-stage {
+  min-width: 0;
+}
+.pd-source {
+  border-block: 1px solid var(--rule);
+}
+.pd-source__summary {
+  min-height: 44px;
+  padding-block: 10px;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.pd-source__summary:hover {
+  color: var(--text);
+}
+.pd-source__well {
+  max-height: 32rem;
+  margin-bottom: 16px;
+  overflow: auto;
+  scrollbar-width: thin;
+}
+.pd-source__well .shiki {
+  overflow: visible;
+}
+
+/* The docs: the nav beside the page, on the measure. */
+.pd-docs {
+  display: grid;
+  gap: 24px;
+  padding-block: 40px 72px;
+}
+/* `min-width: 0`, or a grid child will not shrink below a wide <pre> and
+   widens the page. */
+.pd-doc {
+  min-width: 0;
+  overflow-wrap: break-word;
+}
+@media (min-width: 60rem) {
+  .pd-docs:has(> .pd-docnav) {
+    grid-template-columns: 13rem minmax(0, 1fr);
+    gap: 48px;
+  }
+}
+/* Not a sticky panel with its own scroll: axe reads a closed <details>'
+   contents as hidden and would report a scroll box with nothing focusable. */
+.pd-docnav {
+  font-size: 14px;
+}
+.pd-docnav__toggle {
+  border-block: 1px solid var(--rule);
+}
+.pd-docnav__summary {
+  padding: 12px 0;
+  font-size: 17px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.pd-docnav section {
+  padding-block: 12px;
+}
+.pd-docnav h2 {
+  margin: 0 0 4px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  letter-spacing: normal;
+}
+.pd-docnav ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+main .pd-docnav a {
+  display: block;
+  margin-inline: -10px;
+  padding: 4px 10px;
+  border-radius: 10px;
+  color: var(--text);
+  line-height: 1.35;
+  text-decoration: none;
+}
+main .pd-docnav a:hover {
+  color: var(--text-link);
+}
+main .pd-docnav a[aria-current="page"] {
+  background: var(--ground-tile);
+  color: var(--playdeck-text);
+  font-weight: 600;
+}
+@media (min-width: 60rem) {
+  @supports selector(::details-content) {
+    .pd-docnav__toggle {
+      border-block: 0;
+    }
+    .pd-docnav__summary {
+      display: none;
+    }
+    .pd-docnav__toggle::details-content {
+      content-visibility: visible;
+    }
+    .pd-docnav section:first-of-type {
+      padding-top: 0;
+    }
+  }
+}
+.pd-doc > h1 {
+  margin: 0 0 20px;
+  max-width: 24ch;
+  font-size: clamp(32px, 5vw, 48px);
+  letter-spacing: -.02em;
+}
+
+.pd-prose {
+  max-width: 46rem;
+  font-size: 17px;
+  line-height: 1.6;
+}
+.pd-prose > :first-child > :first-child {
+  margin-top: 0;
+}
+.pd-prose :is(h2, h3, h4) {
+  margin-block: 48px 12px;
+  scroll-margin-top: 76px;
+}
+.pd-prose h2 {
+  padding-top: 24px;
+  border-top: 1px solid var(--rule);
+  font-size: 28px;
+}
+.pd-prose h3 {
+  margin-top: 32px;
+  font-size: 21px;
+}
+.pd-prose :is(ul, ol) {
+  padding-inline-start: 24px;
+}
+.pd-prose li + li {
+  margin-top: 4px;
+}
+.pd-prose img {
+  max-width: 100%;
+  height: auto;
+}
+.pd-prose blockquote {
+  margin: 24px 0;
+  padding: 16px 24px;
+  border-radius: 18px;
+  background: var(--ground-tile);
+}
+.pd-prose pre {
+  margin: 24px 0;
+}
+.pd-prose :target {
+  scroll-margin-top: 76px;
+}
+
+.pd-pager {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  max-width: 46rem;
+  margin-top: 72px;
+}
+main .pd-pager__link {
+  display: flex;
+  flex: 1 1 16rem;
+  flex-direction: column;
+  gap: 4px;
+  padding: 20px 24px;
+  border-radius: 28px;
+  background: var(--ground-tile);
+  color: var(--text);
+  text-decoration: none;
+}
+.pd-pager__link[rel="next"] {
+  text-align: right;
+}
+main .pd-pager__link:hover {
+  background: var(--ground-raised);
+  color: var(--text);
+}
+.pd-pager__dir {
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+.pd-pager__title {
+  color: var(--playdeck-text);
+  font-size: 19px;
+  font-weight: 600;
+}
+
+/* The comparison guide's tables, each in a region that scrolls sideways. */
+.cmp-table {
+  margin: 24px 0;
+  overflow-x: auto;
+  border-radius: 18px;
+  background: var(--ground-tile);
+}
+.cmp-table table {
+  min-width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  line-height: 1.4;
+}
+.cmp-table :is(th, td) {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--rule);
+  text-align: left;
+  vertical-align: top;
+}
+.cmp-table th {
+  color: var(--text-secondary);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.cmp-table tr:last-child td {
+  border-bottom: 0;
+}
+/* A status and its footnote are one unit. The first column is the axis names,
+   which keep wrapping. */
+table.cmp-features td:not(:first-child) {
+  white-space: nowrap;
+}
+.cmp-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.cmp-status__icon {
+  width: 1em;
+  height: 1em;
+  flex-shrink: 0;
+}
+.cmp-status__word {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 12px;
+}
+/* Colour is never the status alone: the word and the shape carry it too. */
+.cmp-status[data-status="yes"] {
+  color: #30d158;
+}
+.cmp-status[data-status="partial"],
+.cmp-status[data-status="plugin"] {
+  color: #ffd60a;
+}
+.cmp-status[data-status="no"] {
+  color: #ff6961;
+}
+.cmp-status[data-status="n/a"] {
+  color: var(--text-secondary);
+}
+main table.cmp-features sup a {
+  color: var(--text-secondary);
+  font-size: 11px;
+  text-decoration: none;
+}
+.cmp-footnotes {
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+/* The search island, on /docs/search/. */
+.fw-search {
+  display: grid;
+  gap: 8px;
+  max-width: 46rem;
+}
+.pd-doc .fw-search {
+  margin-block: 32px;
+}
+.fw-search__label {
+  font-weight: 600;
+}
+/* --text-secondary for the field's edge: it clears WCAG's 3:1 for a control. */
+.fw-search__input {
+  width: 100%;
+  padding: 12px 20px;
+  border: 1px solid var(--text-secondary);
+  border-radius: 999px;
+  background: var(--ground-page);
+  color: var(--text);
+  font: inherit;
+  font-size: 17px;
+}
+.fw-search__results {
+  display: grid;
+  overflow: hidden;
+  border-radius: 18px;
+  background: var(--ground-raised);
+}
+main .fw-search__result {
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--rule);
+  color: var(--text);
+  text-decoration: none;
+}
+.fw-search__result:last-child {
+  border-bottom: 0;
+}
+main .fw-search__result:hover,
+main .fw-search__result[aria-selected="true"] {
+  background: var(--rule);
+  color: var(--text);
+}
+.fw-search__empty {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+/* The footer. */
+.site-footer {
+  padding: 32px 22px 48px;
+  border-top: 1px solid #1d1d1f;
+}
+.site-footer > div {
+  max-width: 936px;
+  margin: 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px 22px;
+  font-size: 12px;
+  color: #86868b;
+}
+.site-footer p {
+  margin: 0;
+}
+.site-footer ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 22px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.site-footer a {
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+.site-footer a:hover {
+  color: var(--text);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @view-transition {
+    navigation: auto;
+  }
+  ::view-transition-group(*) {
+    animation-timing-function: var(--ease);
+  }
+  main a,
+  main button,
+  main summary,
+  .site-footer a {
+    transition: color .2s var(--ease), background-color .2s var(--ease);
+  }
+}
