@@ -2,7 +2,8 @@
 // canonical links besides. #56 moves the sites' shared plumbing into one
 // package; this file goes with it.
 import { ORIGIN } from "../components/links.ts";
-import { HASHED_FILE_HEADERS, RESPONSE_HEADERS } from "./headers.ts";
+import { HASHED_FILE_HEADERS } from "@deck-cool/site-kit/headers";
+import { RESPONSE_HEADERS } from "./headers.ts";
 
 /** Every page, each of which names its own path on playdeck.video as canonical. */
 const PAGES = ["/", "/examples/", "/guides/comparison/", "/docs/search/"];

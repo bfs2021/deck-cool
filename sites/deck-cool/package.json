@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@deck-cool/brand": "workspace:*",
+    "@deck-cool/site-kit": "workspace:*",
     "@pagedeck/adapter-cloudflare-pages": "0.2.3",
     "@pagedeck/content": "0.2.3",
     "@pagedeck/core": "0.2.3",

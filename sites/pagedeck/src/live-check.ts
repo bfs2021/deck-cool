@@ -1,7 +1,8 @@
 // A copy of sites/slidedeck/src/live-check.ts with this site's paths, and the
 // font sheet besides the main one. #56 moves the sites' shared plumbing into one
 // package; this file goes with it.
-import { HASHED_FILE_HEADERS, RESPONSE_HEADERS } from "./headers.ts";
+import { HASHED_FILE_HEADERS } from "@deck-cool/site-kit/headers";
+import { RESPONSE_HEADERS } from "./headers.ts";
 
 /** Every page, and the embed demo's script, none content-hashed, so none may be immutable. */
 const SERVED = ["/", "/interactive/", "/features/", "/server-data/", "/docs/search/", "/embed/demo-embed.js"];

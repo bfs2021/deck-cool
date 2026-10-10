@@ -1,4 +1,5 @@
-import { HASHED_FILE_HEADERS, RESPONSE_HEADERS } from "./headers.ts";
+import { HASHED_FILE_HEADERS } from "@deck-cool/site-kit/headers";
+import { RESPONSE_HEADERS } from "./headers.ts";
 
 /** A page and a file, neither content-hashed, so neither may be immutable. */
 const SERVED = ["/", "/icons/deck-cool/still.svg"];

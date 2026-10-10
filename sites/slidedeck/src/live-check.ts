@@ -1,6 +1,7 @@
 // A copy of sites/deck-cool/src/live-check.ts with this site's paths. #56 moves
 // the sites' shared plumbing into one package; this file goes with it.
-import { HASHED_FILE_HEADERS, RESPONSE_HEADERS } from "./headers.ts";
+import { HASHED_FILE_HEADERS } from "@deck-cool/site-kit/headers";
+import { RESPONSE_HEADERS } from "./headers.ts";
 
 /** Two pages and a file, none content-hashed, so none may be immutable. */
 const SERVED = ["/", "/examples/", "/icons/slidedeck/still.svg"];

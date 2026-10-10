@@ -94,6 +94,9 @@ importers:
       '@deck-cool/brand':
         specifier: workspace:*
         version: link:../../packages/brand
+      '@deck-cool/site-kit':
+        specifier: workspace:*
+        version: link:../../packages/site-kit
       '@pagedeck/adapter-cloudflare-pages':
         specifier: 0.2.3
         version: 0.2.3(@babel/template@7.29.7)(@types/node@24.19.1)(@types/react@19.3.0)(esbuild@0.28.2)(supports-color@10.2.2)
@@ -131,6 +134,9 @@ importers:
       '@deck-cool/docs':
         specifier: workspace:*
         version: link:../../packages/docs
+      '@deck-cool/site-kit':
+        specifier: workspace:*
+        version: link:../../packages/site-kit
       '@pagedeck/adapter-cloudflare-pages':
         specifier: 0.2.3
         version: 0.2.3(@babel/template@7.29.7)(@types/node@24.19.1)(@types/react@19.3.0)(esbuild@0.28.2)(supports-color@10.2.2)
@@ -186,6 +192,9 @@ importers:
       '@deck-cool/docs':
         specifier: workspace:*
         version: link:../../packages/docs
+      '@deck-cool/site-kit':
+        specifier: workspace:*
+        version: link:../../packages/site-kit
       '@pagedeck/adapter-cloudflare-pages':
         specifier: 0.2.3
         version: 0.2.3(@babel/template@7.29.7)(@types/node@24.19.1)(@types/react@19.3.0)(esbuild@0.28.2)(supports-color@10.2.2)
@@ -256,6 +265,9 @@ importers:
       '@deck-cool/docs':
         specifier: workspace:*
         version: link:../../packages/docs
+      '@deck-cool/site-kit':
+        specifier: workspace:*
+        version: link:../../packages/site-kit
       '@pagedeck/adapter-cloudflare-pages':
         specifier: 0.2.3
         version: 0.2.3(@babel/template@7.29.7)(@types/node@24.19.1)(@types/react@19.3.0)(esbuild@0.28.2)(supports-color@10.2.2)

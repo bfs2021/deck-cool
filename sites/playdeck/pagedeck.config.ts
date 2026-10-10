@@ -27,7 +27,8 @@ import {
 } from "./src/catalog.ts";
 import { playdeckChunkNames } from "./src/chunk-names.ts";
 import { iconizeFeaturesTable, scrollTables, stageComparison } from "./src/comparison.ts";
-import { HASHED_FILE_HEADERS, HASHED_PREFIXES, RESPONSE_HEADERS } from "./src/headers.ts";
+import { HASHED_FILE_HEADERS } from "@deck-cool/site-kit/headers";
+import { HASHED_PREFIXES, RESPONSE_HEADERS } from "./src/headers.ts";
 
 const LOCALE = "en";
 
