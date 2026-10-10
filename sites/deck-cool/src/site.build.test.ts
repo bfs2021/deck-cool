@@ -3,9 +3,10 @@ import { readdirSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, test } from "vitest";
 import { decks, umbrella } from "@deck-cool/brand/decks";
+import { everyResponse, present, readManifest, text } from "@deck-cool/site-kit/build-test";
+import { headersFor, parseHeaders } from "@deck-cool/site-kit/serve-site";
 import { NPM } from "../components/links.ts";
 import { CONTENT_SECURITY_POLICY } from "./csp.ts";
-import { headersFor, parseHeaders } from "./serve-site.ts";
 
 const SITE = fileURLToPath(new URL("..", import.meta.url));
 const BRAND = fileURLToPath(new URL("../../../packages/brand/public/", import.meta.url));
@@ -66,7 +67,7 @@ test("the stylesheet holds brand.css, then family-bar.css, then umbrella.css", (
 });
 
 test("the site serves no stylesheet but the hashed one", () => {
-  const sheets = manifest.paths.filter((path) => path.endsWith(".css"));
+  const sheets = manifest.files.filter((path) => path.endsWith(".css"));
   expect(sheets).toHaveLength(1);
   expect(sheets[0]).toMatch(/^\/assets\//);
 });
@@ -85,36 +86,12 @@ test("the home page opens with the Family bar", () => {
   for (const deck of decks) expect(html).not.toContain(`rel="preload" as="image" href="${deck.icons.still}"`);
 });
 
-const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null;
-
-/** manifest.json's file paths and each tree's declared 404 page, checked as they are read. */
-function readManifest(): { paths: string[]; notFound: unknown[] } {
-  const value: unknown = JSON.parse(readFileSync(`${SITE}site/manifest.json`, "utf8"));
-  if (!isRecord(value) || !Array.isArray(value.files) || !isRecord(value.routing) || !Array.isArray(value.routing.trees)) {
-    throw new Error("manifest.json has no files or no routing.trees");
-  }
-  return {
-    paths: value.files.map((file: unknown) =>
-      present(isRecord(file) && typeof file.path === "string" ? file.path : undefined, "a manifest file's path"),
-    ),
-    notFound: value.routing.trees.map((tree: unknown) => (isRecord(tree) ? tree.notFound : undefined)),
-  };
-}
-
-const manifest = readManifest();
+const manifest = readManifest(SITE);
 const rules = parseHeaders(readFileSync(`${SITE}site/_headers`, "utf8"));
 /** Every path the Worker serves: the home page, and each file but the ones wrangler reads as configuration. */
-const served = ["/", ...manifest.paths.filter((path) => !/^\/_(headers|redirects)$/.test(path))];
+const served = ["/", ...manifest.files.filter((path) => !/^\/_(headers|redirects)$/.test(path))];
 
-/** The headers every response carries, page or file. */
-const EVERY_RESPONSE = {
-  [CONTENT_SECURITY_POLICY.name]: CONTENT_SECURITY_POLICY.value,
-  "X-Content-Type-Options": "nosniff",
-  "X-Frame-Options": "DENY",
-  "Referrer-Policy": "strict-origin-when-cross-origin",
-  "Cross-Origin-Opener-Policy": "same-origin",
-  "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
-};
+const EVERY_RESPONSE = everyResponse(CONTENT_SECURITY_POLICY);
 
 test("_headers sends the CSP, the security headers and HSTS on the home page and every file", () => {
   for (const path of served) {
@@ -170,17 +147,6 @@ const window = new Window();
 
 function home(): Document {
   return new window.DOMParser().parseFromString(readFileSync(`${SITE}site/index.html`, "utf8"), "text/html");
-}
-
-/** Narrows away `null` and `undefined`, failing the test when the value is missing. */
-function present<T>(value: T | null | undefined, what: string): T {
-  if (value == null) throw new Error(`${what} is missing`);
-  return value;
-}
-
-/** The element's text, with runs of white space as one space. */
-function text(element: Element | null | undefined): string | undefined {
-  return element?.textContent?.replace(/\s+/g, " ").trim();
 }
 
 function links(scope: Element | Document): [string | undefined, string | null][] {
