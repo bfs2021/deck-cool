@@ -10,6 +10,9 @@ import { CONTENT_SECURITY_POLICY } from "./csp.ts";
 import { figureValue } from "./facts.ts";
 
 const SITE = fileURLToPath(new URL("..", import.meta.url));
+// slidedeck's built site, which the cross-site test below reads. The root
+// vitest.config.ts's global setup builds every site first, so this file needs
+// the whole workspace's run, not deck.cool's build alone.
 const SLIDEDECK_SITE = fileURLToPath(new URL("../../slidedeck/", import.meta.url));
 const BRAND = fileURLToPath(new URL("../../../packages/brand/public/", import.meta.url));
 
@@ -213,7 +216,7 @@ describe("each deck's card", () => {
   // The format, not the value: a bump PR brings a new size, and both pages follow it.
   test("slidedeck's card shows the size slidedeck's home page shows, from its README", () => {
     const card = text(home().querySelector("#slidedeck .card__figure > p"));
-    expect(card).toMatch(/^\d+(\.\d+)? KB$/);
+    expect(card).toMatch(/^\d+(\.\d+)? (B|KB|kB|MB)$/);
     const slidedeckHome = new window.DOMParser().parseFromString(
       readFileSync(`${SLIDEDECK_SITE}site/index.html`, "utf8"),
       "text/html",
