@@ -65,8 +65,9 @@ export function readManifest(site: string): Manifest {
 
 /**
  * The headers every response from a site carries, page or file, given its CSP.
- * Spelled out here, not read from headers.ts, so a test that checks a build
- * against it checks headers.ts too.
+ * Spelled out here, not read from the site's `src/headers.ts` or from site-kit's
+ * `src/headers.ts`, which builds it, so a test that checks a build against it
+ * checks both. Permissions-Policy is left out: each site's build test checks it.
  */
 export function everyResponse(csp: HeaderField): Record<string, string> {
   return {
