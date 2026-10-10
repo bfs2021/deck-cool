@@ -18,8 +18,8 @@ export function checkCanonical(path: string, body: string): string[] {
 /** What `pnpm check-live` fetches from play.deck.cool. */
 export const LIVE_SITE: LiveSite = {
   headers: RESPONSE_HEADERS,
-  /** The pages and the captions file, none content-hashed. */
-  served: [...PAGES, "/archetype-captions.vtt"],
+  /** The pages, the captions file and the home page's posters, none content-hashed. */
+  served: [...PAGES, "/archetype-captions.vtt", "/sprite-fright-poster-1024w.webp", "/sprite-fright-poster-2048w.webp"],
   sheets: [{ page: "/", directory: "/assets/" }],
   /**
    * `/manifest.json` is proxied to the fallback 404 page, which .assetsignore
