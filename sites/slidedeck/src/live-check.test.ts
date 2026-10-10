@@ -1,15 +1,16 @@
 // A copy of sites/deck-cool/src/live-check.test.ts with this site's paths; #56 shares it.
 import { createServer, type ServerResponse } from "node:http";
+import { fileURLToPath } from "node:url";
 import { expect, test } from "vitest";
+import { serveSite } from "@deck-cool/site-kit/serve-site";
 import { RESPONSE_HEADERS } from "./headers.ts";
 import { checkSite } from "./live-check.ts";
-import { serveSite } from "./serve-site.ts";
 
 const SHEET = '<head><link rel="stylesheet" href="/assets/fw-core-AbCd1234.css"/></head>';
 const NOT_FOUND = ["/manifest.json", "/no-such-page/"];
 
 test("the build, served with its _headers, passes every check but the ones only the upload and the zone can pass", async () => {
-  const site = await serveSite();
+  const site = await serveSite(fileURLToPath(new URL("..", import.meta.url)));
   try {
     // The local server serves every file in site/, .assetsignore or not, and
     // answers plain HTTP itself, where the zone's Always Use HTTPS would redirect.
