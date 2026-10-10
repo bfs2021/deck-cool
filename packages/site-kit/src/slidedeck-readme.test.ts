@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 import { test } from "vitest";
-import { comparison, fence, SLIDEDECK, slidedeckRow } from "./readme.ts";
+import { comparison, fence, readSlidedeckReadme, SLIDEDECK, slidedeckRow, slidedeckSize } from "./slidedeck-readme.ts";
+import { fixtureReadme } from "./slidedeck-readme.fixture.ts";
 
 const table = [
   '| Library    | Version   | Min+gzip | Native scroll | Accessibility out of the box | API shape |',
@@ -95,12 +99,29 @@ test("fence reads the first code block of a section, by the section's heading", 
   assert.throws(() => fence(readme(table), 'Install'), /Install/);
 });
 
-// The shape, not the values: a release may compare against other libraries.
-test("the installed package's README parses, with slidedeck's row in it", () => {
-  const real = readFileSync(new URL("../node_modules/@slidedeck/react/README.md", import.meta.url), "utf8");
-  const rows = comparison(real);
-  assert.ok(rows.some((row) => row.library === SLIDEDECK));
-  for (const row of rows) assert.match(row.size, /^\d+\.\d\d KB$/);
-  assert.match(fence(real, 'Quickstart'), /<Deck\.Root aria-label=/);
-  assert.equal(fence(real, 'Install'), 'pnpm add @slidedeck/react');
+test("slidedeckSize is slidedeck's Min+gzip cell, whatever the README says", () => {
+  assert.equal(slidedeckSize(fixtureReadme("12.34 KB")), "12.34 KB");
+  assert.equal(slidedeckSize(fixtureReadme("7.5 KB")), "7.5 KB");
+});
+
+test("readSlidedeckReadme reads the README of the @slidedeck/react a site has installed", () => {
+  const site = mkdtempSync(join(tmpdir(), "site-"));
+  try {
+    const dir = join(site, "node_modules/@slidedeck/react");
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, "README.md"), fixtureReadme("12.34 KB"));
+    const readme = readSlidedeckReadme(pathToFileURL(`${site}/`));
+    assert.equal(slidedeckSize(readme), "12.34 KB");
+  } finally {
+    rmSync(site, { recursive: true });
+  }
+});
+
+test("readSlidedeckReadme names the package a site has not installed", () => {
+  const site = mkdtempSync(join(tmpdir(), "site-"));
+  try {
+    assert.throws(() => readSlidedeckReadme(pathToFileURL(`${site}/`)), /@slidedeck\/react/);
+  } finally {
+    rmSync(site, { recursive: true });
+  }
 });

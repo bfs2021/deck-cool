@@ -1,5 +1,7 @@
-// Facts the landing page reads from the package README at build time, so the
-// page says what the README says and `compare:check` keeps both honest.
+// What the sites read from @slidedeck/react's README at build time, so each
+// page says what the README says and `compare:check` keeps both honest:
+// slidedeck's home page and deck.cool's slidedeck card read the same figure.
+import { readFileSync } from "node:fs";
 
 /** A row of the README's comparison, its cells as the README writes them. */
 export interface Library {
@@ -94,4 +96,19 @@ export function fence(readme: string, heading: string): string {
     throw new Error(`The README has no code block under "## ${heading}".`);
   }
   return code;
+}
+
+/** Slidedeck's min+gzip size, as the README's comparison measures it: "8.84 KB". */
+export function slidedeckSize(readme: string): string {
+  return slidedeckRow(comparison(readme)).size;
+}
+
+/** The README of the @slidedeck/react installed in `site`, the site's directory. */
+export function readSlidedeckReadme(site: URL): string {
+  const file = new URL(`node_modules/${SLIDEDECK}/README.md`, site);
+  try {
+    return readFileSync(file, "utf8");
+  } catch (error) {
+    throw new Error(`The site at ${site.pathname} has no ${SLIDEDECK} installed: add it to its dependencies.`, { cause: error });
+  }
 }
