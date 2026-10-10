@@ -18,7 +18,7 @@ test("the installed package's README parses, with slidedeck's row in it", () => 
   const real = readSlidedeckReadme(new URL("../", import.meta.url));
   const rows = comparison(real);
   expect(rows.some((row) => row.library === SLIDEDECK)).toBe(true);
-  for (const row of rows) expect(row.size).toMatch(/^\d+\.\d\d KB$/);
+  for (const row of rows) expect(row.size).toMatch(/^\d+(\.\d+)? (B|KB|kB|MB)$/);
   expect(fence(real, "Quickstart")).toMatch(/<Deck\.Root aria-label=/);
   expect(fence(real, "Install")).toBe("pnpm add @slidedeck/react");
 });

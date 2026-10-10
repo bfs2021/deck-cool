@@ -3,8 +3,7 @@
 // retyped: a new release, with a new `pnpm compare` measurement, changes the
 // page on the next build.
 import { createMarkdownRenderer } from "@pagedeck/markdown-loader";
-import { readFileSync } from "node:fs";
-import { fence, readSlidedeckReadme, slidedeckSize } from "@deck-cool/site-kit/slidedeck-readme";
+import { fence, readSlidedeckReadme, readSlidedeckVersion, slidedeckSize } from "@deck-cool/site-kit/slidedeck-readme";
 
 const SITE = new URL("../", import.meta.url);
 
@@ -23,9 +22,7 @@ export function minorOf(version: string): string {
 }
 
 /** The installed version, as "1.0". */
-export const version = minorOf(
-  (JSON.parse(readFileSync(new URL("node_modules/@slidedeck/react/package.json", SITE), "utf8")) as { version: string }).version,
-);
+export const version = minorOf(readSlidedeckVersion(SITE));
 
 /** The README's install command. */
 export const install = fence(readme, "Install");
