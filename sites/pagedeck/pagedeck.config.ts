@@ -14,19 +14,19 @@ import { components, COUNTER, FAMILY_BAR, FOOTER, ISLAND_PAGE, SEARCH, SEARCH_PA
 import { CODE_THEME } from "./src/code-theme.ts";
 import { FEATURES_HEAD, featuresContent, FONTS, SCRIPTS, SOCIAL_IMAGES } from "./src/features.ts";
 import { HASHED_PREFIXES, RESPONSE_HEADERS } from "./src/headers.ts";
-import { SERVER_DATA_HEAD, serverDataContent } from "./src/server-data.ts";
+import { CMS_DEMO_HEAD, cmsDemoContent } from "./src/cms-demo.ts";
 import { SKINS, skins } from "./src/skins.ts";
 
 const LOCALE = "en";
 const TEMPLATE = "landing_page";
 
-// The landing's island page.
-const ISLAND = {
-  title: "One island, and the bill for it",
+// The interactive page: one island, charged to this page alone.
+const INTERACTIVE = {
+  title: "Interactive only where you need it",
   description:
-    "Pagedeck's landing site, second page: one interactive component, bundled and loaded for this page alone, while the front page still ships no JavaScript.",
+    "One button you can press, on a page that is otherwise plain HTML. Only this page loads the JavaScript the button needs, and pagedeck's home page still ships none.",
   intro:
-    "This page carries a single interactive component. Everything else on it is HTML the build wrote. The other page of this site still ships no JavaScript at all — an island is planned, bundled and loaded per page, so it is charged to the page that asked for it.",
+    "This page has one button that counts your presses. Everything else is plain HTML, finished before you arrived. The button is the only part that needs JavaScript, the code that lets a page react to you, so this page loads that code and the home page still loads none. Developers call a part like this an island: a small interactive spot in a page of plain HTML.",
   label: "Press me",
 } as const;
 
@@ -45,8 +45,8 @@ const SEARCH_COPY = {
 const BAR_LINKS = [
   { label: "Docs", href: `${DOCS_ORIGIN}/` },
   { label: "Features", href: PATHS.features },
-  { label: "Island demo", href: PATHS.interactive },
-  { label: "Server data", href: PATHS.serverData },
+  { label: "Interactive demo", href: PATHS.interactive },
+  { label: "Content demo", href: PATHS.cmsDemo },
   { label: "Search", href: PATHS.search },
   { label: "GitHub", href: REPO },
 ];
@@ -57,7 +57,7 @@ const BUDGET = {
   "/**": "0b",
   [PATHS.interactive]: "60kb",
   [PATHS.features]: "60kb",
-  [PATHS.serverData]: "59kb",
+  [PATHS.cmsDemo]: "59kb",
   [PATHS.search]: "59kb",
 } as const;
 
@@ -118,14 +118,14 @@ function entryOf(page: Page, store: ContentStoreReader): Entry<DocumentEntry> | 
 
 function contentOf(page: Page, store: ContentStoreReader): PageContent {
   if (page.path === PATHS.features) return featuresContent(page);
-  if (page.path === PATHS.serverData) return serverDataContent();
+  if (page.path === PATHS.cmsDemo) return cmsDemoContent();
   if (page.path === PATHS.interactive) {
     return {
       tree: [
         {
           component: ISLAND_PAGE,
-          props: { title: ISLAND.title, intro: ISLAND.intro },
-          children: [{ component: COUNTER, props: { label: ISLAND.label } }],
+          props: { title: INTERACTIVE.title, intro: INTERACTIVE.intro },
+          children: [{ component: COUNTER, props: { label: INTERACTIVE.label } }],
         },
       ],
     };
@@ -153,8 +153,8 @@ function contentOf(page: Page, store: ContentStoreReader): PageContent {
 
 function headOf(page: Page, store: ContentStoreReader): PageHead | undefined {
   if (page.path === PATHS.features) return FEATURES_HEAD;
-  if (page.path === PATHS.serverData) return SERVER_DATA_HEAD;
-  if (page.path === PATHS.interactive) return { title: ISLAND.title, description: ISLAND.description };
+  if (page.path === PATHS.cmsDemo) return CMS_DEMO_HEAD;
+  if (page.path === PATHS.interactive) return { title: INTERACTIVE.title, description: INTERACTIVE.description };
   if (page.path === PATHS.search) return { title: SEARCH_COPY.title, description: SEARCH_COPY.description };
   const entry = entryOf(page, store);
   return entry === undefined
@@ -170,7 +170,7 @@ export default defineConfig({
       locales: defineLocales({ en: { label: "English", direction: "ltr" } }),
       sources: [
         fromCollection(pages, { route: documentRoute }),
-        ...[PATHS.interactive, PATHS.features, PATHS.serverData, PATHS.search].map((path) =>
+        ...[PATHS.interactive, PATHS.features, PATHS.cmsDemo, PATHS.search].map((path) =>
           singlePage(path.slice(1, -1).split("/")),
         ),
       ],

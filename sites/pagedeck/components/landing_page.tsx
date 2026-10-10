@@ -14,31 +14,31 @@ import { DOCS_ORIGIN, PATHS } from "./links.ts";
  */
 const points = [
   {
-    heading: "Islands",
-    body: 'Start a component with "use client" once, in its own file, not at every place you use it. Each page that renders it gets it as an island, and no other page pays for it.',
+    heading: "Interactive only where you need it",
+    body: 'Mark a component "use client" once, in its own file. Every page that uses it comes alive there, and every page that does not stays plain HTML.',
   },
   {
     heading: "Zero JavaScript by default",
-    body: "A page with nothing interactive ships plain HTML and CSS, without one script tag.",
+    body: "A page with nothing to click, type or play ships plain HTML and CSS, without a single script.",
   },
   {
     heading: "React all the way down",
-    body: "Pages, layouts and islands are all React components. There is no template language to learn and no wrapper file to write.",
+    body: "Pages, layouts and interactive parts are all React components. There is no template language to learn and no wrapper file to write.",
   },
 ] as const;
 
 const agents = [
   {
     heading: "Just React",
-    body: 'Pages are React components, and islands use React\'s own "use client". An agent that knows React already knows how to build here.',
+    body: 'Pages are React components, and interactive parts use React\'s own "use client". An agent that knows React already knows how to build here.',
   },
   {
-    heading: "Typed from the config down",
-    body: "pagedeck is written in TypeScript and ships its types, so your editor and your agent see every option.",
+    heading: "Every option spelled out",
+    body: "pagedeck is written in TypeScript and ships its types, so your editor and your agent know every option and flag a wrong one as it is written, before the page is built.",
   },
   {
     heading: "Mistakes stop the build",
-    body: "Ship more JavaScript than a page's budget, link to a page that does not exist, or render a second main landmark, and the build stops. Your agent hears about it before your readers do.",
+    body: "Ship more JavaScript than a page's budget, link to a page that does not exist, or give a page a second main area, and the build stops. Your agent hears about it before your readers do.",
   },
 ] as const;
 
@@ -48,24 +48,27 @@ const agents = [
  */
 const accessible = [
   {
-    heading: "One main landmark",
-    body: "Every page gets exactly one main landmark. A component that renders a second fails the build.",
+    heading: "One main area per page",
+    body: "Screen readers let people jump straight to a page's main content. Every page gets exactly one main area to jump to (its main landmark), and a component that adds a second fails the build.",
   },
   {
     heading: "Search from the keyboard",
-    body: "Search is a combobox: arrow keys walk the results, Enter follows one, Escape closes them.",
+    body: "Search works from the keyboard alone: arrow keys move through the results, Enter opens one and Escape closes the list. It follows the pattern screen readers expect (a combobox).",
   },
-  { heading: "Nothing typed is lost", body: "Text typed into search before it hydrates is kept, caret and all." },
+  {
+    heading: "Nothing typed is lost",
+    body: "Start typing before search is ready, and your text is kept, cursor position and all.",
+  },
 ] as const;
 
-/** One teaser, set from the CMS entry /server-data reads. Both skins render this same markup. */
+/** One teaser, set from the CMS entry the content page reads. Both skins render this same markup. */
 function Teaser() {
   return (
     <article className="teaser">
       <h3>{PRODUCT.name}</h3>
       <p>{PRODUCT.tagline}</p>
       <p>{PICKER.price}</p>
-      <a href={PATHS.serverData}>See the whole entry</a>
+      <a href={PATHS.cmsDemo}>See the whole product</a>
     </article>
   );
 }
@@ -100,8 +103,8 @@ export default function LandingPage({ skins }: { skins: readonly Skin[] }) {
           <span>until a page needs it.</span>
         </h1>
         <p>
-          Write it in React, style it with your own CSS, or hand it to your agent: every page ships as plain HTML, and
-          only the components you mark "use client" wake up in the browser.
+          Build it in React, style it with your own CSS, or hand it to your agent. Every page reaches your visitors as
+          finished HTML, and only the parts you make interactive bring any JavaScript.
         </p>
         <div className="fw-intro__actions">
           {/* The page ships no script, so there is no Copy button: one click selects the command. */}
@@ -116,7 +119,7 @@ export default function LandingPage({ skins }: { skins: readonly Skin[] }) {
 
       <section className="fw-proof" aria-labelledby="proof">
         <div className="fw-proof__text">
-          <h2 id="proof">Islands, like Astro. React all the way down.</h2>
+          <h2 id="proof">As light as plain HTML. Built like a React app.</h2>
           <ul className="fw-proof__points">
             {points.map(({ heading, body }) => (
               <li key={heading}>
@@ -129,9 +132,9 @@ export default function LandingPage({ skins }: { skins: readonly Skin[] }) {
         <div className="fw-proof__figure">
           <p>{pagedeck.figure.value}</p>
           <p>{pagedeck.figure.label}</p>
-          <p>This page, measured by its own build. One byte more fails the build.</p>
+          <p>This page, measured when the site was built. One byte more and the build fails.</p>
           <a className="fw-more" href={PATHS.interactive}>
-            See what one island costs ›
+            See one interactive page, and what it costs ›
           </a>
         </div>
       </section>
@@ -140,8 +143,8 @@ export default function LandingPage({ skins }: { skins: readonly Skin[] }) {
         <div className="fw-band__text">
           <h2 id="unstyled">Unstyled, your look.</h2>
           <p>
-            pagedeck ships no CSS, no theme and no part names to learn: the markup is your own React. Here is one
-            component, rendered twice from the same CMS entry. Only the stylesheet changes, and neither one costs a byte
+            pagedeck brings no CSS and no theme, so there is nothing to undo: the markup is your own React. Here is one
+            product card, drawn twice from the same content. Only the stylesheet changes, and neither look costs a byte
             of JavaScript.
           </p>
         </div>
@@ -158,10 +161,10 @@ export default function LandingPage({ skins }: { skins: readonly Skin[] }) {
         </div>
         <div className="fw-skins__more">
           <a className="fw-button" href={PATHS.interactive}>
-            See an island ›
+            See an interactive page ›
           </a>
-          <a className="fw-button" href={PATHS.serverData}>
-            See the server data ›
+          <a className="fw-button" href={PATHS.cmsDemo}>
+            See how content ships ›
           </a>
         </div>
       </section>
@@ -178,7 +181,8 @@ export default function LandingPage({ skins }: { skins: readonly Skin[] }) {
           <li className="fw-tile">
             <h3>HTML first</h3>
             <p className="fw-tile__body">
-              Every page renders to HTML when the site builds, so your words are on screen before a single script runs.
+              Every page becomes finished HTML before anyone visits, so your words are on screen before a single script
+              runs.
             </p>
           </li>
           <li className="fw-tile">
@@ -189,13 +193,14 @@ export default function LandingPage({ skins }: { skins: readonly Skin[] }) {
             </p>
           </li>
           <li className="fw-tile">
-            <h3>Your data stays on the server</h3>
+            <h3>Send only what the page shows</h3>
             <p className="fw-tile__body">
-              A server component reads the whole CMS entry when the site builds. On /server-data it reads {read} and
-              sends the browser {sent}.
+              pagedeck reads your whole CMS entry while it builds the site, and sends the browser only what the page
+              needs. On the content demo it reads {read} and sends the browser just {sent}, so a phone has far less to
+              download.
             </p>
-            <a className="fw-more" href={PATHS.serverData}>
-              See it on /server-data ›
+            <a className="fw-more" href={PATHS.cmsDemo}>
+              See the content demo ›
             </a>
           </li>
         </ul>
@@ -213,8 +218,8 @@ export default function LandingPage({ skins }: { skins: readonly Skin[] }) {
         <div className="fw-band__text">
           <h2 id="accessible">Accessible by default.</h2>
           <p>
-            pagedeck looks after landmarks and search for you, for the keyboard and the screen reader alike. Each line
-            below is backed by a test in pagedeck's own repo.
+            pagedeck looks after page structure and search for you, for keyboard and screen reader users alike. Each
+            line below is backed by a test in pagedeck's own repo.
           </p>
           <a className="fw-more" href={`${PATHS.features}#search`}>
             Try the search ›
