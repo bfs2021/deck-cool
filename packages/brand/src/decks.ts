@@ -12,7 +12,11 @@ export interface Icons {
 
 /** A number from a deck's site, and what it counts. */
 export interface Figure {
-  readonly value: string;
+  /**
+   * Absent when each site reads it from the deck's installed package as it
+   * builds: slidedeck's size, from its README.
+   */
+  readonly value?: string;
   readonly label: string;
   /** How it was measured, shown small. */
   readonly note?: string;
@@ -54,8 +58,9 @@ export const umbrella = {
 
 // The card copy (claim to install) was taken from each deck's live site on
 // 2026-10-08, for the umbrella board (design/canvas/Main.dc.html). The one
-// figure per deck is CONTEXT.md's, from #45; slidedeck's size is its README's
-// measurement at @slidedeck/react 1.0.3.
+// figure per deck is CONTEXT.md's, from #45. slidedeck's size has no value
+// here: deck.cool and slidedeck's site read it from @slidedeck/react's README
+// when they build, so it follows each release.
 export const decks: readonly Deck[] = [
   {
     name: "slidedeck",
@@ -64,7 +69,7 @@ export const decks: readonly Deck[] = [
     description:
       "Native momentum, snapping and focus scrolling. Loop, fade, curve and autoplay as effects you import only when you use them.",
     install: "pnpm add @slidedeck/react",
-    figure: { value: "8.84 KB", label: "for a carousel with Prev and Next", note: "min+gzip, React external" },
+    figure: { label: "for a carousel with Prev and Next", note: "min+gzip, React external" },
     url: "https://slide.deck.cool",
     accent: { fill: "#0071e3", text: "#2997ff" },
     icons: icons("slidedeck"),
