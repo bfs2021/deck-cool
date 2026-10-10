@@ -314,6 +314,22 @@ const clearOfFades = async (page: Page, link: string) => {
   return ring.left - 4 >= box.left + start && ring.right + 4 <= box.right - end;
 };
 
+/**
+ * Whether the focused link's whole focus ring, its outline and the offset
+ * inside it, lies inside the box the links scroll in.
+ */
+const ringShows = (page: Page) =>
+  page.locator(LINKS).evaluate((links) => {
+    const a = document.activeElement;
+    if (a === null || !links.contains(a)) throw new Error("no link has focus");
+    const { outlineWidth, outlineOffset } = getComputedStyle(a);
+    const ring = parseFloat(outlineWidth) + parseFloat(outlineOffset);
+    const link = a.getBoundingClientRect();
+    const left = links.getBoundingClientRect().left + links.clientLeft;
+    const right = left + links.clientWidth;
+    return ring > 0 && link.left - ring >= left && link.right + ring <= right;
+  });
+
 // On a phone the links scroll sideways. The edge they scroll toward fades out,
 // so a link cut off at the edge reads as more to scroll, not as a layout bug
 // (#55). With motion allowed the fades follow the scroll; under reduced
@@ -324,7 +340,8 @@ describe("the Family bar's links", () => {
   test.each(motions)("on a phone at 390px, with %s motion, they overflow and the right edge fades", async (motion) => {
     const { page } = await visit("/", { width: 390, isMobile: true, reducedMotion: motion });
     expect(await overflows(page)).toBe(true);
-    expect(await fades(page)).toEqual({ start: 0, end: 24 });
+    // A scroll-driven fade can take a frame after load to apply its mask.
+    await expect.poll(() => fades(page)).toEqual({ start: 0, end: 24 });
   });
 
   test.each(motions)("at 1280px, with %s motion, they fit and carry no mask", async (motion) => {
@@ -333,9 +350,11 @@ describe("the Family bar's links", () => {
     expect(await fades(page)).toBeNull();
   });
 
-  test("on a phone with motion allowed, scrolled to the end, the end fade is gone and the start fades", async () => {
+  test("on a phone with motion allowed, scrolled to the end, the end fade is gone and the start fades", async ({ skip }) => {
     const { page } = await visit("/", { width: 390, isMobile: true, reducedMotion: "no-preference" });
-    if (!(await page.evaluate(() => CSS.supports("animation-timeline", "scroll()")))) return;
+    if (!(await page.evaluate(() => CSS.supports("animation-timeline", "scroll()")))) {
+      skip("this browser has no scroll-driven animations");
+    }
     await toEnd(page);
     await expect.poll(() => fades(page)).toEqual({ start: 24, end: 0 });
   });
@@ -362,11 +381,17 @@ describe("the Family bar's links", () => {
     await expect.poll(() => fades(page)).not.toBeNull();
   });
 
-  test.each(motions)("on a phone with %s motion, scrolled to the end, the last link shows its whole focus ring", async (motion) => {
+  // Chromium does not scroll a focused link that is partly in view, so the
+  // last link, cut off at the right edge before any scroll, would keep its
+  // ring cut off too.
+  test.each(motions)("on a phone with %s motion, each link Tab reaches shows its whole focus ring", async (motion) => {
     const { page } = await visit("/", { width: 390, isMobile: true, reducedMotion: motion });
-    await toEnd(page);
-    await page.locator(`${LINKS} li:nth-last-child(2) a`).focus();
-    await page.keyboard.press("Tab");
-    expect(await clearOfFades(page, `${LINKS} li:last-child a`)).toBe(true);
+    const links = page.locator(`${LINKS} a`);
+    await page.locator(".family-bar__name").focus();
+    for (let n = 0; n < (await links.count()); n++) {
+      await page.keyboard.press("Tab");
+      expect(await links.nth(n).evaluate((a) => a === document.activeElement)).toBe(true);
+      await expect.poll(() => ringShows(page)).toBe(true);
+    }
   });
 });

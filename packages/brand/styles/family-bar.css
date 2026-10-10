@@ -248,9 +248,13 @@
   white-space: nowrap;
 }
 /* On a narrow screen, the right edge fades: with motion reduced, and where
-   scroll-driven animations are missing. The end padding, the fade's width
-   plus room for a focus ring, lets the last link scroll out from under it,
-   and leaves the fade over nothing when the links fit. */
+   scroll-driven animations are missing. Only the right edge, as the brief
+   asks: without a scroll timeline the mask cannot tell when the list has
+   left its start, and a fixed fade at the start would cover the first link
+   at rest. The end padding, the fade's width plus room for a focus ring, lets
+   the last link scroll out from under it. 734px is the bar's phone
+   breakpoint, as for the decks' single column: deck.cool's three links fit
+   above it, so the fade has nothing to cover there. */
 @media (max-width: 734px) {
   .family-bar__links {
     padding-right: 28px;
@@ -271,11 +275,18 @@
     }
   }
 }
-/* A focused link shows its whole ring: the browser does not scroll a link
-   that is mostly in view, so the fade would cover the ring. */
+/* A focused link shows its whole ring. Chromium does not scroll a focused
+   link that is partly in view, and scroll-padding and scroll-margin do not
+   change that, so the ring would stay cut off at the edge. A snap point on
+   the focused link does: the list snaps it to the middle, or as far as the
+   list scrolls. The fade gives way too, so nothing covers the ring. */
 .family-bar__links:has(a:focus-visible) {
+  scroll-snap-type: x mandatory;
   mask-image: none;
   animation: none;
+}
+.family-bar__links li:has(> a:focus-visible) {
+  scroll-snap-align: center;
 }
 .family-bar__links a {
   color: var(--text-secondary);
