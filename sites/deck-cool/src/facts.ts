@@ -7,8 +7,6 @@ import { readSlidedeckReadme, slidedeckSize } from "@deck-cool/site-kit/slidedec
 const size = slidedeckSize(readSlidedeckReadme(new URL("../", import.meta.url)));
 
 /** The figure the deck's card shows: the decks module's, or slidedeck's size from its README. */
-export function figureValue(deck: Deck): string {
-  if (deck.name === "slidedeck") return size;
-  if (deck.figure.value === undefined) throw new Error(`The decks module gives ${deck.name}'s figure no value`);
-  return deck.figure.value;
+export function figureValue({ figure }: Deck): string {
+  return "source" in figure ? size : figure.value;
 }
