@@ -83,6 +83,12 @@ importers:
 
   packages/docs/fixtures/example-docs: {}
 
+  packages/site-kit:
+    dependencies:
+      '@pagedeck/core':
+        specifier: 0.2.3
+        version: 0.2.3(@babel/template@7.29.7)(@types/node@24.19.1)(@types/react@19.3.0)(esbuild@0.28.2)(supports-color@10.2.2)
+
   sites/deck-cool:
     dependencies:
       '@deck-cool/brand':
