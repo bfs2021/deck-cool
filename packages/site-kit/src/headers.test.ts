@@ -48,6 +48,11 @@ describe("responseHeaders", () => {
       [...OFF.filter((feature) => feature !== "fullscreen").map((feature) => `${feature}=()`), "fullscreen=(self)"].join(", "),
     );
   });
+
+  test("allows only a powerful feature it knows, so a misspelt one fails typecheck", () => {
+    // @ts-expect-error "fulscreen" is no powerful feature.
+    expect(value(responseHeaders(CSP, { allow: { fulscreen: "(self)" } }), "Permissions-Policy")).toContain("fullscreen=()");
+  });
 });
 
 test("a content-hashed file is cached for a year, as immutable", () => {

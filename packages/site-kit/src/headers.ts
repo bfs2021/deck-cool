@@ -18,13 +18,16 @@ const POWERFUL_FEATURES = [
   "serial",
   "usb",
   "xr-spatial-tracking",
-];
+] as const;
+
+/** A powerful feature, which a site may allow. */
+type PowerfulFeature = (typeof POWERFUL_FEATURES)[number];
 
 /**
  * Turns each powerful feature off, for the page and for anything it embeds,
  * but each one `allow` names, which goes last with the allowlist it gives.
  */
-function permissionsPolicy(allow: Readonly<Record<string, string>>): string {
+function permissionsPolicy(allow: Readonly<Partial<Record<PowerfulFeature, string>>>): string {
   return POWERFUL_FEATURES.filter((feature) => !(feature in allow))
     .map((feature) => `${feature}=()`)
     .concat(Object.entries(allow).map(([feature, allowlist]) => `${feature}=${allowlist}`))
@@ -41,7 +44,7 @@ export function responseHeaders(
   csp: HeaderField,
   options: {
     /** Powerful features the site uses, each with its allowlist, such as `{ fullscreen: "(self)" }`. */
-    allow?: Readonly<Record<string, string>>;
+    allow?: Readonly<Partial<Record<PowerfulFeature, string>>>;
   } = {},
 ): readonly HeaderField[] {
   return [
