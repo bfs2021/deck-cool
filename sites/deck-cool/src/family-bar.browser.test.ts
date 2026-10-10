@@ -1,63 +1,15 @@
 import { AxeBuilder } from "@axe-core/playwright";
-import { chromium, type Browser, type Page } from "playwright";
-import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { serveSite, type ServedSite } from "./serve-site.ts";
+import { fileURLToPath } from "node:url";
+import type { Page } from "playwright";
+import { describe, expect, test } from "vitest";
+import { browserHarness } from "@deck-cool/site-kit/browser-test";
 
 // Drives the built site (build.global-setup.ts) in Chromium, served with the
 // headers in the build's _headers file. Needs Playwright's Chromium:
 // `pnpm exec playwright install chromium`.
 
-declare global {
-  interface Window {
-    /** CSP violations the page reported, set by the init script in visit(). */
-    cspViolations?: string[];
-  }
-}
-
-let site: ServedSite;
-let browser: Browser;
-
-beforeAll(async () => {
-  site = await serveSite();
-  browser = await chromium.launch();
-});
-
-afterAll(async () => {
-  await browser?.close();
-  await site?.close();
-});
-
-interface Visit {
-  page: Page;
-  /** Requests the page made to another origin, such as a deck's site. Each was aborted. */
-  offOrigin: string[];
-}
-
-async function visit(options: { width?: number; reducedMotion: "reduce" | "no-preference" }): Promise<Visit> {
-  const context = await browser.newContext({
-    viewport: { width: options.width ?? 1280, height: 900 },
-    reducedMotion: options.reducedMotion,
-  });
-  const offOrigin: string[] = [];
-  await context.route(
-    (url) => url.origin !== site.origin,
-    (route) => {
-      offOrigin.push(route.request().url());
-      return route.abort();
-    },
-  );
-  // An init script is not subject to the page's CSP.
-  await context.addInitScript(() => {
-    const seen: string[] = [];
-    window.cspViolations = seen;
-    window.addEventListener("securitypolicyviolation", (event) => {
-      seen.push(`${event.effectiveDirective} ${event.blockedURI}`);
-    });
-  });
-  const page = await context.newPage();
-  await page.goto(`${site.origin}/`, { waitUntil: "load" });
-  return { page, offOrigin };
-}
+const site = browserHarness(fileURLToPath(new URL("..", import.meta.url)));
+const { visit } = site;
 
 const BUTTON = 'header button[aria-label="Switch deck"]';
 const PANEL = "header [popover]";
@@ -128,7 +80,7 @@ const recordClose = (page: Page) =>
 
 describe("the Family bar's switcher in a browser", () => {
   test.each([390, 1280])("at %ipx, axe finds no violations and the CSP holds, closed or open", async (width) => {
-    const { page } = await visit({ width, reducedMotion: "reduce" });
+    const { page } = await visit("/", { width, reducedMotion: "reduce" });
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
     await page.locator(BUTTON).click();
     expect(await isOpen(page)).toBe(true);
@@ -137,7 +89,7 @@ describe("the Family bar's switcher in a browser", () => {
   });
 
   test("the button opens the panel with Enter and with Space, and toggles it", async () => {
-    const { page } = await visit({ reducedMotion: "reduce" });
+    const { page } = await visit("/", { reducedMotion: "reduce" });
     await page.locator(BUTTON).focus();
     await page.keyboard.press("Enter");
     expect(await isOpen(page)).toBe(true);
@@ -150,7 +102,7 @@ describe("the Family bar's switcher in a browser", () => {
   });
 
   test("Tab moves from the button through every deck link, in order", async () => {
-    const { page } = await visit({ reducedMotion: "reduce" });
+    const { page } = await visit("/", { reducedMotion: "reduce" });
     await page.keyboard.press("Tab");
     expect(await focused(page)).toBe("Switch deck");
     await page.keyboard.press("Enter");
@@ -164,7 +116,7 @@ describe("the Family bar's switcher in a browser", () => {
   });
 
   test("Escape closes the panel and focus returns to the button", async () => {
-    const { page } = await visit({ reducedMotion: "reduce" });
+    const { page } = await visit("/", { reducedMotion: "reduce" });
     await page.locator(BUTTON).focus();
     await page.keyboard.press("Enter");
     await page.keyboard.press("Tab");
@@ -175,7 +127,7 @@ describe("the Family bar's switcher in a browser", () => {
   });
 
   test("a click on the shade closes the panel and does not reach the page under it", async () => {
-    const { page } = await visit({ width: 1280, reducedMotion: "reduce" });
+    const { page } = await visit("/", { width: 1280, reducedMotion: "reduce" });
     const browse = await box(page, 'main a[href="#decks"]');
     await page.locator(BUTTON).click();
     expect((await box(page, SHEET)).y + (await box(page, SHEET)).height).toBeLessThan(browse.y);
@@ -185,7 +137,7 @@ describe("the Family bar's switcher in a browser", () => {
   });
 
   test("a click on the bar closes the panel, and the bar's links still work", async () => {
-    const { page } = await visit({ width: 1280, reducedMotion: "reduce" });
+    const { page } = await visit("/", { width: 1280, reducedMotion: "reduce" });
     await page.locator(BUTTON).click();
     await page.locator('header nav a[href="#playdeck"]').click();
     expect(await isOpen(page)).toBe(false);
@@ -193,7 +145,7 @@ describe("the Family bar's switcher in a browser", () => {
   });
 
   test("a click on a deck link follows it", async () => {
-    const { page, offOrigin } = await visit({ reducedMotion: "reduce" });
+    const { page, offOrigin } = await visit("/", { reducedMotion: "reduce" });
     await page.locator(BUTTON).click();
     const link = page.locator(`${PANEL} a`).nth(1);
     const href = await link.getAttribute("href");
@@ -203,7 +155,7 @@ describe("the Family bar's switcher in a browser", () => {
   });
 
   test("the sheet sits under the bar, on the 980px measure", async () => {
-    const { page } = await visit({ width: 1280, reducedMotion: "reduce" });
+    const { page } = await visit("/", { width: 1280, reducedMotion: "reduce" });
     await page.locator(BUTTON).click();
     const bar = await box(page, "header");
     const row = await box(page, "header nav");
@@ -218,7 +170,7 @@ describe("the Family bar's switcher in a browser", () => {
     [390, 1],
     [1280, 3],
   ])("at %ipx, the decks sit in %i column(s)", async (width, columns) => {
-    const { page } = await visit({ width, reducedMotion: "reduce" });
+    const { page } = await visit("/", { width, reducedMotion: "reduce" });
     await page.locator(BUTTON).click();
     const lefts = await page
       .locator(`${SHEET} li`)
@@ -227,7 +179,7 @@ describe("the Family bar's switcher in a browser", () => {
   });
 
   test("with motion allowed, each deck's icon is there as its tile appears", async () => {
-    const { page } = await visit({ reducedMotion: "no-preference" });
+    const { page } = await visit("/", { reducedMotion: "no-preference" });
     const atFirstSight = await page.evaluate(
       () =>
         new Promise<boolean[]>((resolve) => {
@@ -247,7 +199,7 @@ describe("the Family bar's switcher in a browser", () => {
   });
 
   test("with motion allowed, opening and closing both animate, and the fan follows", async () => {
-    const { page } = await visit({ reducedMotion: "no-preference" });
+    const { page } = await visit("/", { reducedMotion: "no-preference" });
     await settled(page);
 
     await page.locator(BUTTON).click();
@@ -268,7 +220,7 @@ describe("the Family bar's switcher in a browser", () => {
   });
 
   test("with prefers-reduced-motion: reduce, nothing animates, opening or closing", async () => {
-    const { page } = await visit({ reducedMotion: "reduce" });
+    const { page } = await visit("/", { reducedMotion: "reduce" });
     expect(await running(page)).toEqual([]);
     await page.locator(BUTTON).click();
     expect(await isOpen(page)).toBe(true);
@@ -301,7 +253,7 @@ describe("the Family bar's switcher in a browser", () => {
     [1280, "a click on the shade"],
     [390, "a click on the shade"],
   ])("at %ipx, the sheet keeps its place under the bar while it closes on %s", async (width, how) => {
-    const { page } = await visit({ width, reducedMotion: "no-preference" });
+    const { page } = await visit("/", { width, reducedMotion: "no-preference" });
     await page.locator(BUTTON).click();
     await settled(page);
     const bar = await box(page, "header");
