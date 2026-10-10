@@ -16,5 +16,13 @@
   },
   "dependencies": {
     "@pagedeck/core": "0.2.3"
+  },
+  "devDependencies": {
+    "playwright": "1.63.0",
+    "vitest": "4.1.11"
+  },
+  "peerDependencies": {
+    "playwright": "^1.63.0",
+    "vitest": "^4.1.11"
   }
 }
