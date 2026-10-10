@@ -18,7 +18,7 @@ slidedeck's site (`sites/slidedeck`), pagedeck's (`sites/pagedeck`) and playdeck
 
 `pagedeck build` writes three files that wrangler reads as configuration and does not upload:
 
-- `_headers`: a `/*` rule and an `/assets/*` rule. Every page and file gets the CSP from `src/csp.ts`, then `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`, `Cross-Origin-Opener-Policy` and `Strict-Transport-Security: max-age=31536000; includeSubDomains`, all from `src/headers.ts`. Files under `/assets/` also get `Cache-Control: public, max-age=31536000, immutable`.
+- `_headers`: a `/*` rule and an `/assets/*` rule. Every page and file gets the CSP from `src/csp.ts`, then `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`, `Cross-Origin-Opener-Policy` and `Strict-Transport-Security: max-age=31536000; includeSubDomains`, all from `src/headers.ts`, which takes every field but the CSP from `packages/site-kit`. Files under `/assets/` also get `Cache-Control: public, max-age=31536000, immutable`.
 - `_redirects`: three rows that proxy `/manifest.json`, `/.pagedeck` and `/.pagedeck/*` to `/404.html`.
 - `.assetsignore`, from `packages/brand/public/` through passthrough. It keeps `/manifest.json`, `/.pagedeck` and `/404.html` out of the upload. Because `/404.html` is not uploaded, the proxy rows answer `404`.
 
