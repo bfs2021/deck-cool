@@ -1,6 +1,6 @@
 # Design source
 
-The decisions are in `../CONTEXT.md`. This folder holds the material they were made from.
+The decisions are in `../GLOSSARY.md`. This folder holds the material they were made from.
 
 ## `favicons/`
 
@@ -27,4 +27,4 @@ The source of the design canvas boards (https://claude.ai/artifact/QjhCKzzVi3X3B
 
 The umbrella site's copy for each deck is real: it was taken from slidedeck.pages.dev, playdeck.video and pagedeck's landing page on 2026-10-08.
 
-The umbrella's hero, quality sections and figures now come from the #33 grilling (`../CONTEXT.md`) and from the decks' READMEs, not from the 2026-10-08 sites.
+The umbrella's hero, quality sections and figures now come from the #33 grilling (`../GLOSSARY.md`) and from the decks' READMEs, not from the 2026-10-08 sites.

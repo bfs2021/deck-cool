@@ -148,7 +148,7 @@ describe("every page", () => {
     ]);
   });
 
-  // CONTEXT.md: a package site links its own deck's repo, never the maintainer's profile.
+  // GLOSSARY.md: a package site links its own deck's repo, never the maintainer's profile.
   test.each(PAGES)("%s links github.com only at pagedeck's repo", (path) => {
     const github = hrefs(parse(path)).filter((href) => /^https?:\/\/([^/]+\.)?github\.com/i.test(href ?? ""));
     expect(github.length).toBeGreaterThan(0);
@@ -285,7 +285,7 @@ function links(scope: Element | undefined): [string | undefined, string | null][
   return [...(scope?.querySelectorAll("a") ?? [])].map((a) => [text(a), a.getAttribute("href")]);
 }
 
-// CONTEXT.md, "The landing pages' message", and the maintainer's lead on #48.
+// GLOSSARY.md, "The landing pages' message", and the maintainer's lead on #48.
 describe("the home page", () => {
   const main = () => present(parse(PATHS.home).querySelector("main"), "<main>");
   /** The sections of <main>, in order. */
@@ -327,7 +327,7 @@ describe("the home page", () => {
     expect(links(hero)).toEqual([["Read the docs", `${DOCS_ORIGIN}/`]]);
   });
 
-  // CONTEXT.md: the "plain markdown" line waits until @pagedeck/docs is on npm.
+  // GLOSSARY.md: the "plain markdown" line waits until @pagedeck/docs is on npm.
   test("makes no claim about markdown docs or llms.txt", () => {
     expect(main().textContent).not.toMatch(/Using an agent|markdown|llms\.txt/i);
   });

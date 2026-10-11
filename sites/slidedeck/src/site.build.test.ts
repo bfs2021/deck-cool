@@ -215,7 +215,7 @@ function tiles(scope: Element | undefined): [string | undefined, string | undefi
   ]);
 }
 
-// CONTEXT.md, "The landing pages' message", and the brief on #47.
+// GLOSSARY.md, "The landing pages' message", and the brief on #47.
 describe("the home page", () => {
   const main = () => present(home().querySelector("main"), "<main>");
   /** The sections of <main>, in order. */
@@ -264,7 +264,7 @@ describe("the home page", () => {
     expect(size).toMatch(/^\d+\.\d\d KB$/);
   });
 
-  // CONTEXT.md: the "plain markdown" line waits until @slidedeck/docs is on npm.
+  // GLOSSARY.md: the "plain markdown" line waits until @slidedeck/docs is on npm.
   test("makes no claim about markdown docs or llms.txt", () => {
     expect(main().textContent).not.toMatch(/Using an agent|markdown|llms\.txt/i);
   });
@@ -509,7 +509,7 @@ describe("every page", () => {
     }
   });
 
-  // CONTEXT.md: each package site links its own deck's repo, never the maintainer's profile.
+  // GLOSSARY.md: each package site links its own deck's repo, never the maintainer's profile.
   test.each(readdirSync(OUT, { recursive: true, encoding: "utf8" }).filter((file) => file.endsWith(".html")))(
     "%s links nothing on github.com but slidedeck's repo",
     (file) => {

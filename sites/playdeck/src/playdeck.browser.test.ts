@@ -124,7 +124,7 @@ describe("the playdeck site in a browser", () => {
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
   });
 
-  // CONTEXT.md's figure for playdeck: 0 requests to YouTube or Vimeo before
+  // GLOSSARY.md's figure for playdeck: 0 requests to YouTube or Vimeo before
   // play. Each of the home page's three players embeds one, and this holds a
   // stronger claim that implies it: before a press, a player requests nothing
   // from any other origin, and loads no provider. After it, each frames its
