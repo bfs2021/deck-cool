@@ -1,4 +1,4 @@
-/** pagedeck's own repo. CONTEXT.md: a package site links its deck's repo, never a GitHub profile. */
+/** pagedeck's own repo. GLOSSARY.md: a package site links its deck's repo, never a GitHub profile. */
 export const REPO = "https://github.com/pedrosousa13/pagedeck";
 
 /**

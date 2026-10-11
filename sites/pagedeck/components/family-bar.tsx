@@ -12,7 +12,7 @@ const pagedeck = find("pagedeck");
 /**
  * Rendered by build.chrome before <main> on every page. The page's viewport
  * and icons go with it, and React lifts them into <head>. The favicon is the
- * still icon: pagedeck never animates it by script (CONTEXT.md).
+ * still icon: pagedeck never animates it by script (GLOSSARY.md).
  */
 export default function SiteFamilyBar({ links }: { links: readonly FamilyBarLink[] }) {
   return (

@@ -87,7 +87,7 @@ function Tiles({ tiles }: { tiles: readonly { readonly heading: string; readonly
 }
 
 /**
- * The home page: CONTEXT.md's "The landing pages' message", in the layout of
+ * The home page: GLOSSARY.md's "The landing pages' message", in the layout of
  * deck.cool's home page. Styled by pagedeck.css and the two skins' sheets.
  */
 export default function LandingPage({ skins }: { skins: readonly Skin[] }) {

@@ -1,4 +1,4 @@
-// The home page at /: CONTEXT.md's "The landing pages' message", in the layout
+// The home page at /: GLOSSARY.md's "The landing pages' message", in the layout
 // of deck.cool's home page. A server component: it ships no JavaScript of its
 // own. Its one player is an island, rendered once per skin.
 import { playdeck, umbrella } from "@deck-cool/brand/decks";
@@ -139,7 +139,7 @@ export default function HomePage({
             ))}
           </ul>
         </div>
-        {/* The figure is CONTEXT.md's. This site's browser test checks a
+        {/* The figure is GLOSSARY.md's. This site's browser test checks a
             stronger claim: before a press, nothing on this page reaches
             another host. */}
         <div className="pd-proof__figure">

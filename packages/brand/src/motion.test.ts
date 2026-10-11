@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { expect, test } from "vitest";
 
-// CONTEXT.md, "Motion": one easing curve, the brand's --ease.
+// GLOSSARY.md, "Motion": one easing curve, the brand's --ease.
 const SHEETS = ["brand.css", "family-bar.css", "skin-sheet.css", "umbrella.css"];
 
 test.each(SHEETS)("every transition and animation in %s uses the brand curve", (sheet) => {

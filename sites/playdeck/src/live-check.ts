@@ -5,7 +5,7 @@ import { RESPONSE_HEADERS } from "./headers.ts";
 /** Every page, each of which names its own path on play.deck.cool as canonical. */
 const PAGES = ["/", "/examples/", "/guides/comparison/", "/docs/search/"];
 
-/** Fails a page whose canonical link is not its own path on play.deck.cool, playdeck's canonical address (CONTEXT.md). */
+/** Fails a page whose canonical link is not its own path on play.deck.cool, playdeck's canonical address (GLOSSARY.md). */
 export function checkCanonical(path: string, body: string): string[] {
   if (!PAGES.includes(path)) return [];
   const canonical = /<link rel="canonical" href="([^"]+)"/.exec(body)?.[1];

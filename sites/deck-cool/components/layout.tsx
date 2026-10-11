@@ -34,7 +34,7 @@ const agents = [
 ] as const;
 
 /**
- * Only claims a test in the deck's own repo proves (CONTEXT.md). Each claim's
+ * Only claims a test in the deck's own repo proves (GLOSSARY.md). Each claim's
  * test is listed in the PR for #45. A claim with no test is filed in that
  * deck's repo instead: pagedeck's reduced motion is pedrosousa13/pagedeck#121.
  */
@@ -72,7 +72,7 @@ const accessible = [
 
 /**
  * The home page. Its layout is design/canvas/Main.dc.html's; its hero,
- * figures and quality sections are CONTEXT.md's "The landing pages' message".
+ * figures and quality sections are GLOSSARY.md's "The landing pages' message".
  * Styled by umbrella.css.
  */
 export default function Layout({ title }: Props) {

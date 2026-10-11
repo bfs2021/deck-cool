@@ -68,7 +68,7 @@ export const umbrella = {
 
 // The card copy (claim to install) was taken from each deck's live site on
 // 2026-10-08, for the umbrella board (design/canvas/Main.dc.html). The one
-// figure per deck is CONTEXT.md's, from #45. slidedeck's size has no value
+// figure per deck is GLOSSARY.md's, from #45. slidedeck's size has no value
 // here: deck.cool and slidedeck's site read it from @slidedeck/react's README
 // when they build, so it follows each release.
 export const slidedeck: Deck<ReadmeFigure> = {

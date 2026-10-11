@@ -7,7 +7,7 @@ import type { MarkdownEntry } from "@pagedeck/markdown-loader";
 import { REPOSITORY } from "../components/links.ts";
 
 /**
- * Where the site is served in production (CONTEXT.md). Every canonical,
+ * Where the site is served in production (GLOSSARY.md). Every canonical,
  * og:url and sitemap entry names it, whichever host serves a build, so a
  * preview never claims to be the page.
  */

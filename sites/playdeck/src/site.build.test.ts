@@ -157,7 +157,7 @@ describe("every page", () => {
     expect(doc.documentElement.getAttribute("lang")).toBe("en");
   });
 
-  // CONTEXT.md: play.deck.cool is playdeck's canonical address.
+  // GLOSSARY.md: play.deck.cool is playdeck's canonical address.
   test.each(PAGES)("%s names its own path on play.deck.cool as canonical", (path) => {
     const canonical = [...parse(path).head.querySelectorAll('link[rel="canonical"]')].map((link) => link.getAttribute("href"));
     // A literal, so the test does not just compare ORIGIN with itself.
@@ -180,7 +180,7 @@ describe("every page", () => {
     ]);
   });
 
-  // CONTEXT.md: a package site links its own deck's repo, never the maintainer's profile.
+  // GLOSSARY.md: a package site links its own deck's repo, never the maintainer's profile.
   test.each(PAGES)("%s links github.com only at playdeck's repo", (path) => {
     const github = hrefs(parse(path)).filter((href) => /^https?:\/\/([^/]+\.)?github\.com/i.test(href ?? ""));
     expect(github.length).toBeGreaterThan(0);
@@ -340,7 +340,7 @@ function tiles(scope: Element | undefined): [string | undefined, string | undefi
   return [...(scope?.querySelectorAll(".pd-tile") ?? [])].map((tile) => [text(tile.querySelector("h3")), text(tile.querySelector("p"))]);
 }
 
-// CONTEXT.md, "The landing pages' message".
+// GLOSSARY.md, "The landing pages' message".
 describe("the home page", () => {
   const main = () => present(parse(PATHS.home).querySelector("main"), "<main>");
   /** The sections of <main>, in order. */
@@ -385,7 +385,7 @@ describe("the home page", () => {
     expect(hero?.querySelector(".pd-intro__actions a")?.className).toBe("pd-button");
   });
 
-  // CONTEXT.md: the "plain markdown" line waits until @playdeck/docs is on npm.
+  // GLOSSARY.md: the "plain markdown" line waits until @playdeck/docs is on npm.
   test("makes no claim about markdown docs or llms.txt", () => {
     expect(main().textContent).not.toMatch(/Using an agent|markdown|llms\.txt/i);
   });

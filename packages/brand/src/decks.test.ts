@@ -87,7 +87,7 @@ test.each(decks)("$name's card copy is the board's, word for word", (deck) => {
   });
 });
 
-// CONTEXT.md's "One figure per deck". slidedeck's has no value but a source:
+// GLOSSARY.md's "One figure per deck". slidedeck's has no value but a source:
 // each site reads its size from @slidedeck/react's README when it builds.
 test("each deck has one figure", () => {
   expect(Object.fromEntries(decks.map((deck) => [deck.name, deck.figure]))).toEqual({

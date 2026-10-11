@@ -1,4 +1,4 @@
-// The home page at /: CONTEXT.md's "The landing pages' message", in the layout
+// The home page at /: GLOSSARY.md's "The landing pages' message", in the layout
 // of deck.cool's home page. A server component: it ships no JavaScript of its
 // own. Its one deck is an island, rendered once per skin.
 import { umbrella } from "@deck-cool/brand/decks";

@@ -33,7 +33,7 @@ import { SKINS, skins } from "./src/skins.ts";
 
 const LOCALE = "en";
 
-/** The home page: CONTEXT.md's "The landing pages' message". */
+/** The home page: GLOSSARY.md's "The landing pages' message". */
 const HOME = {
   title: "Playdeck: A video player you compose, not one you configure",
   description:
@@ -240,7 +240,7 @@ export default defineConfig({
   build: {
     adapter: cloudflarePages(),
     // Every page names its own path here as canonical: play.deck.cool is
-    // playdeck's canonical address (CONTEXT.md).
+    // playdeck's canonical address (GLOSSARY.md).
     origin: ORIGIN,
     pages: definePages({
       locales: defineLocales({ en: { label: "English", direction: "ltr" } }),

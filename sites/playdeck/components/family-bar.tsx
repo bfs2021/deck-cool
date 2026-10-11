@@ -12,7 +12,7 @@ const playdeck = find("playdeck");
 /**
  * Rendered by build.chrome before <main> on every page. The page's viewport
  * and icons go with it, and React lifts them into <head>. The favicon is the
- * still icon (CONTEXT.md).
+ * still icon (GLOSSARY.md).
  */
 export default function SiteFamilyBar({ links }: { links: readonly FamilyBarLink[] }) {
   return (

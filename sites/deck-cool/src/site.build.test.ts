@@ -175,7 +175,7 @@ test("the Family bar links each deck's card", () => {
   expect(links(bar)).toEqual(decks.map((deck): [string, string] => [deck.name, `#${deck.name}`]));
 });
 
-// CONTEXT.md: the umbrella site links no GitHub profile.
+// GLOSSARY.md: the umbrella site links no GitHub profile.
 test.each(readdirSync(`${SITE}site`).filter((file) => file.endsWith(".html")))("%s links nothing on github.com", (file) => {
   const html = readFileSync(`${SITE}site/${file}`, "utf8");
   expect(html).not.toMatch(/href="https?:\/\/([^/"]+\.)?github\.com/i);

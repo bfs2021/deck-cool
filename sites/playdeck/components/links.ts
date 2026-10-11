@@ -1,7 +1,7 @@
-/** playdeck's own repo. CONTEXT.md: a package site links its deck's repo, never a GitHub profile. */
+/** playdeck's own repo. GLOSSARY.md: a package site links its deck's repo, never a GitHub profile. */
 export const REPO = "https://github.com/pedrosousa13/playdeck";
 
-/** playdeck's canonical site. Every page here names its own path on it as canonical (CONTEXT.md). */
+/** playdeck's canonical site. Every page here names its own path on it as canonical (GLOSSARY.md). */
 export const ORIGIN = "https://play.deck.cool";
 
 /**
