@@ -87,8 +87,10 @@ main .pd-button:hover {
   color: var(--fill-text);
 }
 
-/* Highlighted code. `!important` wins over the highlighter's inline ground. */
-.shiki {
+/* Highlighted code, and a docs block the highlighter leaves plain. `!important`
+   wins over the highlighter's inline ground. */
+.shiki,
+.pd-prose pre {
   margin: 0;
   padding: 20px 24px;
   overflow-x: auto;
@@ -724,7 +726,7 @@ main .pd-pager__link:hover {
   font-weight: 600;
 }
 
-/* The comparison guide's tables, each in a region that scrolls sideways. */
+/* The docs' tables, each in a region that scrolls sideways. */
 .cmp-table {
   margin: 24px 0;
   overflow-x: auto;

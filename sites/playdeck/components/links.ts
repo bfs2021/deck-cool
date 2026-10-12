@@ -5,18 +5,18 @@ export const REPO = "https://github.com/pedrosousa13/playdeck";
 export const ORIGIN = "https://play.deck.cool";
 
 /**
- * playdeck's docs, where they are today: the Astro site at playdeck.video.
- * They move to /docs in #52, which points these links there. Until those
- * pages exist, the build's link check refuses a /docs/ link.
+ * playdeck's docs, under /docs, from @playdeck/docs. They have no index.md, so
+ * they start at start.md. examples.md is the page with the demos.
  */
 export const DOCS = {
-  start: "https://playdeck.video/start/",
+  start: "/docs/start/",
+  examples: "/docs/examples/",
 } as const;
 
-/** Each page this site builds, at the path playdeck.video serves it at today. */
+/** Each page this site builds itself, and the comparison guide, a docs page the Family bar links. */
 export const PATHS = {
   home: "/",
   examples: "/examples/",
-  comparison: "/guides/comparison/",
+  comparison: "/docs/guides/comparison/",
   search: "/docs/search/",
 } as const;
