@@ -32,10 +32,10 @@ const links = (scope: Element | null | undefined) =>
   [...(scope?.querySelectorAll("a") ?? [])].map((a) => [a.textContent, a.getAttribute("href")]);
 
 describe("the docs layout", () => {
-  test("titles the page for the tab and describes it", () => {
+  test("leaves the page's title and description to build.head", () => {
     const page = render("/docs/install/");
-    expect(page.querySelector("title")?.textContent).toBe("Install · slidedeck docs");
-    expect(page.querySelector('meta[name="description"]')?.getAttribute("content")).toBe("How to install slidedeck.");
+    expect(page.querySelector("title")).toBeNull();
+    expect(page.querySelector('meta[name="description"]')).toBeNull();
   });
 
   test("the sidebar lists nav.json's groups and pages in order, and marks the current page", () => {

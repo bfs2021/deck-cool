@@ -11,6 +11,8 @@ import { REPOSITORY } from "../components/links.ts";
 import { umbrella } from "@deck-cool/brand/decks";
 import { slidedeck } from "../components/slidedeck.ts";
 import { CONTENT_SECURITY_POLICY, DECK_STYLE_HASHES } from "./csp.ts";
+import { DEMOS } from "./demos.ts";
+import { DOCS_NAV } from "./docs-pages.ts";
 import { install, size, version } from "./facts.ts";
 import { SKINS } from "./skins.ts";
 import { SITE_ORIGIN } from "./seo.ts";
@@ -22,11 +24,22 @@ const OUT = `${SITE}site`;
 const BRAND = fileURLToPath(new URL("../../../packages/brand/public/", import.meta.url));
 
 
-/** The site's pages, by path and file. */
-const PAGES = [
+/** The site's own pages, by path and file. */
+const OWN_PAGES = [
   ["/", "index.html"],
   ["/examples/", "examples/index.html"],
 ] as const;
+
+/** Two docs pages, one with a demo and one without, which the tests of every page cover too. */
+const DOCS_PAGES = [
+  ["/docs/quickstart/", "docs/quickstart/index.html"],
+  ["/docs/install/", "docs/install/index.html"],
+] as const;
+
+const PAGES = [...OWN_PAGES, ...DOCS_PAGES] as const;
+
+/** Every page the site builds, by path: its own, then every docs page in nav.json's order. */
+const ALL_PATHS = [...OWN_PAGES.map(([path]) => path), ...DOCS_NAV.map(({ path }) => path)];
 
 const window = new Window();
 
@@ -54,19 +67,33 @@ const budget = (JSON.parse(readFileSync(`${SITE}.pagedeck/budget-report.json`, "
 
 describe("the JavaScript budget", () => {
   test("covers every page", () => {
-    expect(budget.map((page) => page.path).sort()).toEqual(PAGES.map(([path]) => path).sort());
+    expect(budget.map((page) => page.path).sort()).toEqual([...ALL_PATHS].sort());
   });
 
-  // A page's budget is what it ships, rounded up to the next KB: a page that
-  // ships more breaks the build, and one that ships much less needs its budget lowered.
-  test.each(PAGES)("%s ships the islands it renders, within a KB of its budget", (path) => {
-    const page = present(
+  const pageBudget = (path: string) =>
+    present(
       budget.find((each) => each.path === path),
       `${path}'s budget`,
     );
+  const demoPaths = DOCS_NAV.filter(({ demos }) => demos.length > 0).map(({ path }) => path);
+
+  // A page's budget is what it ships, rounded up to the next KB: a page that
+  // ships more breaks the build, and one that ships much less needs its budget lowered.
+  test.each(ALL_PATHS.filter((path) => !demoPaths.includes(path)))("%s ships the islands it renders, within a KB of its budget", (path) => {
+    const page = pageBudget(path);
     expect(page.actual).toBeGreaterThan(0);
     expect(page.limit - page.actual).toBeGreaterThanOrEqual(0);
     expect(page.limit - page.actual).toBeLessThan(1024);
+  });
+
+  // So a docs release that moves a demo to another page still builds.
+  test("the docs pages with demos share one budget, which the largest of them fills to within a KB", () => {
+    const pages = demoPaths.map(pageBudget);
+    expect(new Set(pages.map((page) => page.limit)).size).toBe(1);
+    const limit = pages[0]?.limit ?? 0;
+    const largest = Math.max(...pages.map((page) => page.actual));
+    expect(limit - largest).toBeGreaterThanOrEqual(0);
+    expect(limit - largest).toBeLessThan(1024);
   });
 });
 
@@ -449,7 +476,8 @@ describe("the home page", () => {
   });
 });
 
-test.each(PAGES)("%s uses no em dash anywhere", (_path, file) => {
+// The docs' words are slidedeck's own, from its docs package.
+test.each(OWN_PAGES)("%s uses no em dash anywhere", (_path, file) => {
   expect(readFileSync(`${OUT}/${file}`, "utf8")).not.toMatch(/—|&mdash;/);
 });
 
@@ -493,17 +521,13 @@ describe("every page", () => {
     }
   });
 
-  // Until #51 builds /docs/, the links there have no page; the build only warns.
-  test("every link the build warns names nothing is under /docs/", () => {
-    const output = readFileSync(buildOutput(SITE), "utf8");
-    const broken = [...output.matchAll(/^pagedeck: {3}en \S+ — "([^"]+)"$/gm)].map(([, href]) => href);
-    if (output.includes("references name nothing this build emitted")) expect(broken).not.toHaveLength(0);
-    for (const href of broken) expect(href).toMatch(/^\/docs\//);
+  test("the build warns of no link that names nothing", () => {
+    expect(readFileSync(buildOutput(SITE), "utf8")).not.toContain("references name nothing this build emitted");
   });
 
-  test.each(PAGES)("%s links only pages the site builds, or the docs to come", (_path, file) => {
+  test.each(PAGES)("%s links only pages the site builds", (_path, file) => {
     for (const [, href] of links(parse(file))) {
-      if (href === null || !href.startsWith("/") || href.startsWith("/docs/")) continue;
+      if (href === null || !href.startsWith("/")) continue;
       const path = href.split("#")[0] ?? "";
       expect(existsSync(`${OUT}${path.endsWith("/") ? `${path}index.html` : path}`), href).toBe(true);
     }
@@ -521,20 +545,19 @@ describe("every page", () => {
   );
 });
 
-test("the search index holds the two pages, within what one keystroke may fetch", () => {
+test("the search index holds the site's pages and every docs page, within what one keystroke may fetch", () => {
   const index = `${OUT}/search/en/`;
   const documents = JSON.parse(readFileSync(`${index}documents.json`, "utf8")) as { path: string; title?: string }[];
-  expect(documents.map(({ path }) => path)).toEqual(["/", "/examples/"]);
+  expect(documents.map(({ path }) => path).sort()).toEqual([...ALL_PATHS].sort());
   const bytes = readdirSync(index).reduce((total, file) => total + statSync(`${index}${file}`).size, 0);
   expect(bytes).toBeLessThanOrEqual(QUERY_CAP);
 });
 
 test("the sitemap and robots.txt name slide.deck.cool", () => {
   const sitemap = readFileSync(`${OUT}/sitemap-en.xml`, "utf8");
-  expect([...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map(([, loc]) => loc)).toEqual([
-    `${SITE_ORIGIN}/`,
-    `${SITE_ORIGIN}/examples/`,
-  ]);
+  expect([...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map(([, loc]) => loc).sort()).toEqual(
+    ALL_PATHS.map((path) => `${SITE_ORIGIN}${path}`).sort(),
+  );
   expect(readFileSync(`${OUT}/robots.txt`, "utf8")).toContain(`Sitemap: ${SITE_ORIGIN}/sitemap.xml`);
 });
 
@@ -583,5 +606,62 @@ describe("the served headers", () => {
     const redirects = readFileSync(`${OUT}/_redirects`, "utf8");
     expect(redirects).toContain("/manifest.json /404.html 200\n");
     expect(redirects).toContain("/.pagedeck/* /404.html 200\n");
+  });
+});
+
+describe("the docs, from @slidedeck/docs", () => {
+  /** The demos a built page renders, by name, in order. */
+  const demosOn = (doc: Document) =>
+    [...doc.querySelectorAll("article fw-island")].map((island) => island.getAttribute("data-fw-component")?.replace(/^docsDemo:/, ""));
+
+  // slidedeck's READMEs link https://slide.deck.cool/docs/.
+  test("serves /docs/, the docs' first page", () => {
+    expect(DOCS_NAV[0]?.path).toBe("/docs/");
+    expect(existsSync(`${OUT}/docs/index.html`)).toBe(true);
+  });
+
+  test.each(DOCS_NAV)("$path renders with each demo it marks, in order, rendered on the server", ({ html, demos }) => {
+    const doc = parse(html);
+    expect(demosOn(doc)).toEqual(demos);
+    for (const island of doc.querySelectorAll("article fw-island")) {
+      expect(island.querySelector('[aria-roledescription="carousel"] [data-slidedeck-slide]'), island.outerHTML.slice(0, 120)).not.toBeNull();
+    }
+  });
+
+  // The layout and the demos are the site's own words, unlike the prose they frame. A demo
+  // writes some only once it runs, so their source is read.
+  test.each(["components/docs-page.tsx", ...readdirSync(`${SITE}components/demos`).map((file) => `components/demos/${file}`)])(
+    "%s uses no em dash",
+    (file) => {
+      expect(readFileSync(`${SITE}${file}`, "utf8")).not.toMatch(/—|&mdash;/);
+    },
+  );
+
+  test("marks each demo the site registers once, and no other", () => {
+    expect(DOCS_NAV.flatMap((page) => page.demos).sort()).toEqual(Object.keys(DEMOS).sort());
+  });
+
+  test("the sidebar lists every page in nav.json's order, each by its label or else its title", () => {
+    const sidebar = present(parse("docs/install/index.html").querySelector('nav[aria-label="Documentation"]'), "the sidebar");
+    expect([...sidebar.querySelectorAll("a")].map((a) => a.getAttribute("href"))).toEqual(DOCS_NAV.map(({ path }) => path));
+    expect(text(sidebar.querySelector('a[href="/docs/"]'))).toBe("Introduction");
+    expect(text(sidebar.querySelector('a[href="/docs/install/"]'))).toBe("Install");
+  });
+
+  test("titles each page for the tab, once", () => {
+    const doc = parse("docs/install/index.html");
+    expect(doc.querySelectorAll("title")).toHaveLength(1);
+    expect(doc.title).toBe("Install · slidedeck docs");
+    expect(text(doc.querySelector("article h1"))).toBe("Install");
+  });
+
+  test("a page with no demo ships the search island alone, and every such page ships the same", () => {
+    const plain = DOCS_NAV.filter(({ demos }) => demos.length === 0);
+    expect(plain.length).toBeGreaterThan(0);
+    for (const { html } of plain) {
+      expect([...parse(html).querySelectorAll("fw-island")].map((island) => island.getAttribute("data-fw-component"))).toEqual(["search"]);
+    }
+    const sizes = new Set(plain.map(({ path }) => budget.find((each) => each.path === path)?.actual));
+    expect(sizes.size).toBe(1);
   });
 });

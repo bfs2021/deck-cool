@@ -1,6 +1,7 @@
 import type { Loader } from "@pagedeck/content";
+import type { TrailingSlash } from "@pagedeck/core";
 import { createMarkdownRenderer } from "@pagedeck/markdown-loader";
-import { cpSync, existsSync, readdirSync, readFileSync, rmSync, statSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync } from "node:fs";
 import { createRequire } from "node:module";
 import { join, posix, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -11,6 +12,8 @@ import type { BodyPart, Fault } from "./page.ts";
 export interface DocsPage {
   readonly title: string;
   readonly description: string;
+  /** What the nav names the page: its optional `label`, or else its title. */
+  readonly label: string;
   /** The page's file in the docs package, such as `guides/layout.md`. */
   readonly file: string;
   /** The address the site serves the page at, such as `/docs/guides/layout/`. */
@@ -23,6 +26,7 @@ export interface DocsPage {
 
 export interface NavGroup {
   readonly label: string;
+  /** Each page's `title` here is what the nav names it: its `label`, or else its title. */
   readonly pages: readonly { readonly title: string; readonly href: string }[];
 }
 
@@ -76,13 +80,20 @@ function entryPath(base: string, file: string): string {
   return [...segments(base), ...segments(file.slice(0, -EXTENSION.length))].join("/");
 }
 
-/** The address a page is served at, under the site's trailing-slash policy. */
-function hrefOf(options: DocsOptions, file: string): string {
-  const parts = segments(entryPath(options.base, file));
+/**
+ * The address a page is served at, from its file in the docs package, under the site's base
+ * and trailing-slash policy: `guides/layout.md` under `/docs` is `/docs/guides/layout/`.
+ */
+export function docsHref(base: string, file: string, trailingSlash: TrailingSlash = "always"): string {
+  const parts = segments(entryPath(base, file));
   if (parts.at(-1) === "index") parts.pop();
   if (parts.length === 0) return "/";
   const path = `/${parts.join("/")}`;
-  return (options.trailingSlash ?? "always") === "always" ? `${path}/` : path;
+  return trailingSlash === "always" ? `${path}/` : path;
+}
+
+function hrefOf(options: DocsOptions, file: string): string {
+  return docsHref(options.base, file, options.trailingSlash);
 }
 
 const NAV = "nav.json";
@@ -203,6 +214,7 @@ export function createDocsLoader(options: DocsOptions): Loader<DocsPage> {
       pages.push({
         title: page.title,
         description: page.description,
+        label: page.label,
         file: page.file,
         href: hrefOf(options, page.file),
         body: splitAtDemos(rendered.html),
@@ -211,6 +223,8 @@ export function createDocsLoader(options: DocsOptions): Loader<DocsPage> {
 
     const contentRoot = contentRootOf(options.from);
     rmSync(contentRoot, { recursive: true, force: true });
+    // build.passthrough refuses a contentRoot that does not exist, so a package with no images has one too.
+    mkdirSync(contentRoot, { recursive: true });
     if (existsSync(join(root, "assets"))) {
       cpSync(join(root, "assets"), join(contentRoot, ...segments(options.base), "assets"), { recursive: true });
     }
@@ -220,7 +234,7 @@ export function createDocsLoader(options: DocsOptions): Loader<DocsPage> {
       label: group.label,
       pages: group.pages.flatMap((file) => {
         const page = byFile.get(file);
-        return page === undefined ? [] : [{ title: page.title, href: page.href }];
+        return page === undefined ? [] : [{ title: page.label, href: page.href }];
       }),
     }));
     const changed = [];

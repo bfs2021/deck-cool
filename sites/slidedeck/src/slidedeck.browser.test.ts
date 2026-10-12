@@ -4,6 +4,8 @@ import type { Page } from "playwright";
 import { describe, expect, test, vi } from "vitest";
 import { browserHarness, islandsHydrated } from "@deck-cool/site-kit/browser-test";
 import { CONTENT_SECURITY_POLICY } from "./csp.ts";
+import { DEMOS } from "./demos.ts";
+import { DOCS_NAV } from "./docs-pages.ts";
 
 // Drives the built site (build.global-setup.ts) in Chromium, served with the
 // headers in the build's _headers file, so each page and its islands run
@@ -15,7 +17,11 @@ vi.setConfig({ testTimeout: 30_000 });
 const site = browserHarness(fileURLToPath(new URL("..", import.meta.url)));
 const { visit } = site;
 
-const PAGES = ["/", "/examples/"] as const;
+// The docs pages, one with a demo and one without, as site.build.test.ts covers them.
+const PAGES = ["/", "/examples/", "/docs/quickstart/", "/docs/install/"] as const;
+
+/** Every docs page that marks a demo. */
+const DEMO_PAGES = DOCS_NAV.filter(({ demos }) => demos.length > 0);
 
 /**
  * Waits until every island has hydrated, the search box among them, and every
@@ -179,5 +185,43 @@ describe("search in a browser", () => {
     await hydrated(page);
     await page.getByRole("combobox", { name: "Search the docs" }).fill("zebra");
     await expect.poll(() => page.getByRole("status").textContent()).toBe("No page matches");
+  });
+});
+
+describe("the docs' demos in a browser", () => {
+  test("the pages visited below carry every demo the site registers", () => {
+    expect(DEMO_PAGES.flatMap(({ demos }) => demos).sort()).toEqual(Object.keys(DEMOS).sort());
+  });
+
+  // Every demo island runs under the CSP, loads nothing from another origin, and no script fails.
+  test.each(DEMO_PAGES)("$path's demos run, under the CSP, with nothing off the origin, and axe finds no violations", async ({ path }) => {
+    const { page, offOrigin, violations, errors } = await visit(path, { width: 1280, reducedMotion: "reduce" });
+    await hydrated(page);
+    expect(await page.locator("article [data-slidedeck-slide][data-in-view]").count()).toBeGreaterThan(0);
+    // The curve effect fades a slide with its distance from the focal one: the neighbours' faint text is the effect.
+    const faded = ".example-curve [data-slidedeck-slide]:not([data-focal]), .example-curve-size [data-slidedeck-slide]:not([data-focal])";
+    expect((await new AxeBuilder({ page }).include("article").exclude(faded).analyze()).violations).toEqual([]);
+    expect(offOrigin).toEqual([]);
+    expect(await violations()).toEqual([]);
+    expect(errors).toEqual([]);
+  });
+
+  test.each(DEMO_PAGES)("at 390px, $path does not scroll sideways", async ({ path }) => {
+    const { page } = await visit(path, { width: 390, reducedMotion: "reduce" });
+    await hydrated(page);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+  });
+
+  // demo-theme.css: theme.css styles the Theme demo's controls, and no other deck's.
+  test("the Theme demo's Next wears slidedeck's theme.css, and another demo's keeps the site's pill", async () => {
+    const nextLook = async (path: string, deck: string) => {
+      const { page } = await visit(path, { width: 1280, reducedMotion: "reduce" });
+      await hydrated(page);
+      return page
+        .locator(`${deck} [data-slidedeck-next]`)
+        .evaluate((button) => [getComputedStyle(button).borderTopStyle, getComputedStyle(button).backgroundColor]);
+    };
+    expect(await nextLook("/docs/guides/theme/", ".example-theme")).toEqual(["solid", "rgb(0, 0, 0)"]);
+    expect(await nextLook("/docs/quickstart/", "article")).toEqual(["none", "rgba(66, 66, 69, 0.72)"]);
   });
 });
