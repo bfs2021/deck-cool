@@ -1,7 +1,7 @@
 import type { HeaderField } from "@pagedeck/core";
 
 /**
- * The <style> elements @slidedeck/react 1.0.3 renders with a deck, by the
+ * The <style> elements @slidedeck/react renders with a deck, by the
  * `data-href` React dedupes them by: its base rules, alone or with an
  * effect's. site.build.test.ts fails on a page with a <style> not listed here.
  */
@@ -9,6 +9,7 @@ export const DECK_STYLE_HASHES = {
   "slidedeck-slide": "'sha256-27tsD7IAHNKKdm97Pb+mN7y8p4RrpTyHv2pd5Yv6b3Y='",
   "slidedeck-slide slidedeck-curve": "'sha256-o8ClCv6cXWCQ58PwZTnPP04Xjm2bM5ffe8Uen8FNPEU='",
   "slidedeck-slide slidedeck-fade": "'sha256-B3wFKR5JG1hSJjhJ6p5f3MXQcfrk0DrGO5FA9WGHPbs='",
+  "slidedeck-slide slidedeck-stack": "'sha256-hfMOzVMraAzFgbS74lgYyM3v3Q/4SPDMWwRzf3yEDto='",
 } as const;
 
 /**
