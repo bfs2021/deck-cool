@@ -1,11 +1,10 @@
 /** pagedeck's own repo. GLOSSARY.md: a package site links its deck's repo, never a GitHub profile. */
 export const REPO = "https://github.com/pedrosousa13/pagedeck";
 
-/**
- * pagedeck's live docs, on their own Worker until #53 moves them to /docs here.
- * Until the pages exist, the build's link check refuses a /docs/ link.
- */
-export const DOCS_ORIGIN = "https://pagedeck-docs.pedrodsousa.workers.dev";
+/** pagedeck's docs, under /docs, from @pagedeck/docs: index.md is /docs/. */
+export const DOCS = {
+  start: "/docs/",
+} as const;
 
 /** Each page this site builds. */
 export const PATHS = {
