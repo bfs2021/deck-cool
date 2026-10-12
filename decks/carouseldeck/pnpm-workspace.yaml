@@ -1,0 +1,22 @@
+packages:
+  - packages/*
+  - apps/*
+  # The library comparison's fixture: pinned installs of the compared
+  # carousels, bundled by scripts/compare-libraries.mjs. Private, never
+  # published.
+  - tests/compare
+  # Throwaway prototypes (#3), deleted after the engine go/no-go.
+  - prototypes/scroll-snap
+# A 24-hour hold, in minutes, before a newly published version is eligible to
+# resolve, copied from playdeck. A maintainer-compromise release carries no
+# advisory yet, so only time separates us from it. A frozen-lockfile install
+# replays resolutions that already happened and is unaffected.
+minimumReleaseAge: 1440
+# pagedeck is the maintainer's own framework, released by its own workflow
+# and developed alongside deck.cool, so by the maintainer's decision its
+# releases skip the 24-hour hold. scripts/docs-contract.mjs uses
+# @pagedeck/markdown-loader.
+minimumReleaseAgeExclude:
+  - '@pagedeck/*'
+allowBuilds:
+  esbuild@0.28.2: true

@@ -1,0 +1,16 @@
+.scratch/
+.factory/run.lock
+.factory/journal.json
+node_modules/
+dist/
+storybook-static/
+*storybook.log
+playwright-report/
+test-results/
+*.tsbuildinfo
+.turbo/
+# Next.js output of the server components fixture, tests/next-rsc.
+.next/
+# Written by vitest browser mode when a test fails.
+.vitest-attachments/
+__screenshots__/
