@@ -14,8 +14,8 @@ Its pages are markdown in [packages/docs](packages/docs), published as
 [packages/react/README.md](packages/react/README.md), has a quickstart and a
 comparison with Embla and Keen.
 
-| Package                              | What it is                                      |
-| ------------------------------------ | ----------------------------------------------- |
+| Package                                 | What it is                                      |
+| --------------------------------------- | ----------------------------------------------- |
 | [`@carouseldeck/react`](packages/react) | The React primitives. The only one to install.  |
 | [`@carouseldeck/core`](packages/core)   | The framework-neutral engine `react` builds on. |
 | [`@carouseldeck/docs`](packages/docs)   | The docs as markdown, for deck.cool's site.     |

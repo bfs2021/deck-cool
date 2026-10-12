@@ -6,20 +6,20 @@ description: 'The continuous state carouseldeck writes to the DOM for CSS to rea
 Carouseldeck writes continuous state to the DOM, not to React state, so CSS can
 read it while the deck scrolls:
 
-| Where                 | Attribute or property        | Meaning                                                                                                                      |
-| --------------------- | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| Each slide            | `--deck-slide-progress`      | Signed distance from the focal position, in slides: 0 there, -1 one slide before, 2.25 two and a quarter after. Every frame. |
-| Each slide            | `--deck-slide-index`         | The slide's index. Static, so server HTML has it.                                                                            |
-| Each slide            | `--deck-slide-count`         | The number of slides, copies not counted. Static, so server HTML has it.                                                     |
-| Each slide            | `data-in-view`               | Any part of the slide is in the viewport. Hides nothing.                                                                     |
-| Each slide            | `data-focal`                 | The focal slide.                                                                                                             |
-| Each slide            | `data-current`               | The current slide.                                                                                                           |
-| `Deck.Root`           | `data-index`                 | The current index, as of the last settle; before the first measurement, the `defaultIndex` (or `index`) as given.            |
-| `Deck.Viewport`       | `data-orientation`           | `horizontal` or `vertical`.                                                                                                  |
-| `Deck.Prev`/`Next`    | `data-disabled`              | Disabled, at an end or by your `disabled` prop.                                                                              |
-| `Deck.Dots`           | `data-index`, `data-count`   | The current page and the page count; each dot has `data-index`.                                                              |
-| `Deck.Counter`        | `data-index`, `data-count`   | The same.                                                                                                                    |
-| `Deck.AutoplayToggle` | `data-playing`               | Autoplay is on.                                                                                                              |
+| Where                 | Attribute or property           | Meaning                                                                                                                      |
+| --------------------- | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Each slide            | `--deck-slide-progress`         | Signed distance from the focal position, in slides: 0 there, -1 one slide before, 2.25 two and a quarter after. Every frame. |
+| Each slide            | `--deck-slide-index`            | The slide's index. Static, so server HTML has it.                                                                            |
+| Each slide            | `--deck-slide-count`            | The number of slides, copies not counted. Static, so server HTML has it.                                                     |
+| Each slide            | `data-in-view`                  | Any part of the slide is in the viewport. Hides nothing.                                                                     |
+| Each slide            | `data-focal`                    | The focal slide.                                                                                                             |
+| Each slide            | `data-current`                  | The current slide.                                                                                                           |
+| `Deck.Root`           | `data-index`                    | The current index, as of the last settle; before the first measurement, the `defaultIndex` (or `index`) as given.            |
+| `Deck.Viewport`       | `data-orientation`              | `horizontal` or `vertical`.                                                                                                  |
+| `Deck.Prev`/`Next`    | `data-disabled`                 | Disabled, at an end or by your `disabled` prop.                                                                              |
+| `Deck.Dots`           | `data-index`, `data-count`      | The current page and the page count; each dot has `data-index`.                                                              |
+| `Deck.Counter`        | `data-index`, `data-count`      | The same.                                                                                                                    |
+| `Deck.AutoplayToggle` | `data-playing`                  | Autoplay is on.                                                                                                              |
 | `Deck.Viewport`       | `data-carouseldeck-effect`      | The effect's name, `fade`, `curve` or `stack`, when it has one.                                                              |
 | Loop copies           | `data-carouseldeck-copy`        | `before` or `after` the slides. Copies are `inert` and `aria-hidden`.                                                        |
 | Snap targets          | `data-carouseldeck-snap-target` | The empty elements fade and stack lay out to snap to. Not slides.                                                            |

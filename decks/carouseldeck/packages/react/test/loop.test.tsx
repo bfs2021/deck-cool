@@ -57,7 +57,8 @@ const renderLoop = (props: Parameters<typeof TestDeck>[0] = {}) => {
       within(root)
         .getByRole('group', { name: 'Choose page' })
         .querySelectorAll('button'),
-    counter: () => root.querySelector('[data-carouseldeck-counter]')?.textContent,
+    counter: () =>
+      root.querySelector('[data-carouseldeck-counter]')?.textContent,
     /** Where a slide (copies are out of the accessibility tree, so never a
      * copy) starts, from the viewport's start edge. */
     offsetOf: (label: string) =>
@@ -254,7 +255,9 @@ describe('loop', () => {
     // Measured in WebKit: a copy can rest a pixel or two off its slide's
     // rest plus a set's length. A scroll margin on the copies alone moves
     // their rests 2px here, in every browser.
-    addStyle('.margined > [data-carouseldeck-copy] { scroll-margin-left: 2px; }');
+    addStyle(
+      '.margined > [data-carouseldeck-copy] { scroll-margin-left: 2px; }'
+    );
     const { root, viewport, next, onIndexChange } = renderLoop({
       defaultIndex: 4,
       viewportClassName: 'margined'
@@ -871,7 +874,10 @@ describe("loop and the deck's other features", () => {
           at,
           Number(slide.style.getPropertyValue('--deck-slide-progress'))
         ]);
-        if (Math.abs(at) < 0.01 && slide.hasAttribute('data-carouseldeck-copy')) {
+        if (
+          Math.abs(at) < 0.01 &&
+          slide.hasAttribute('data-carouseldeck-copy')
+        ) {
           copyAtStart = true;
         }
       }
@@ -1010,7 +1016,9 @@ describe('loop with an effect', () => {
       screen.getByRole('region', { name: 'Test deck' })
     );
     const run = runOf(viewport);
-    const slides = run.filter((el) => !el.hasAttribute('data-carouseldeck-copy'));
+    const slides = run.filter(
+      (el) => !el.hasAttribute('data-carouseldeck-copy')
+    );
     expect(run).toHaveLength(12);
     // A copy is stacked with the slides, as every slide of a fade is.
     const box = viewport.getBoundingClientRect();

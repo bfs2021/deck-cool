@@ -43,7 +43,9 @@ test('a ref reaches the element of every primitive but Viewport', () => {
   expect(refs.next.current).toHaveAttribute('data-carouseldeck-next');
   expect(refs.dots.current).toHaveAttribute('data-carouseldeck-dots');
   expect(refs.counter.current).toHaveAttribute('data-carouseldeck-counter');
-  expect(refs.toggle.current).toHaveAttribute('data-carouseldeck-autoplay-toggle');
+  expect(refs.toggle.current).toHaveAttribute(
+    'data-carouseldeck-autoplay-toggle'
+  );
 });
 
 test('server HTML holds the styles before the viewport, unescaped, and React 18 warns of nothing', () => {

@@ -42,7 +42,10 @@ function adapt(create: Jsx): Jsx {
     // renders just before the viewport instead. Each child keeps its slot,
     // style or not, so a style that comes or goes, as an effect's does, never
     // moves the viewport, which would remount it and lose its scroll.
-    if ('data-carouseldeck-viewport' in props && Array.isArray(props.children)) {
+    if (
+      'data-carouseldeck-viewport' in props &&
+      Array.isArray(props.children)
+    ) {
       const children: unknown[] = props.children;
       const styles = children.map((child) => (isStyle(child) ? child : null));
       const rest = children.map((child) => (isStyle(child) ? null : child));

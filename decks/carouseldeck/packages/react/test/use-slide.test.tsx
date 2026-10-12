@@ -39,13 +39,13 @@ test('useSlide reports the index in each slide and the side in each copy', () =>
       return [Number(probe.dataset.index), probe.dataset.copy];
     });
 
-  expect(reported('[data-carouseldeck-slide]:not([data-carouseldeck-copy])')).toEqual(
-    [
-      [0, 'none'],
-      [1, 'none'],
-      [2, 'none']
-    ]
-  );
+  expect(
+    reported('[data-carouseldeck-slide]:not([data-carouseldeck-copy])')
+  ).toEqual([
+    [0, 'none'],
+    [1, 'none'],
+    [2, 'none']
+  ]);
   expect(reported('[data-carouseldeck-copy=after]')).toEqual([
     [0, 'after'],
     [1, 'after'],

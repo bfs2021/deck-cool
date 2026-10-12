@@ -219,9 +219,9 @@ test('a looping deck starts on the slide at defaultIndex without layout shift', 
   const { viewport, index } = await hydrate(
     { loop: true, defaultIndex: 2 },
     (viewport) => {
-      expect(viewport.querySelectorAll('[data-carouseldeck-copy]')).toHaveLength(
-        10
-      );
+      expect(
+        viewport.querySelectorAll('[data-carouseldeck-copy]')
+      ).toHaveLength(10);
       expect(slideOffset(viewport)).toBe(0);
     }
   );

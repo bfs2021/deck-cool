@@ -68,7 +68,10 @@ const fakes = (appearsAfter, released = []) => {
 };
 
 test('a version published in this run is tagged once npm shows it', async () => {
-  const f = fakes({ '@carouseldeck/core@0.2.0': 3, '@carouseldeck/react@0.2.0': 1 });
+  const f = fakes({
+    '@carouseldeck/core@0.2.0': 3,
+    '@carouseldeck/react@0.2.0': 1
+  });
   await tagReleases({
     releases: [core, react],
     published: [core, react],
@@ -150,7 +153,9 @@ test('only the versions published in this run are waited for', async () => {
 });
 
 test('a version that already has a release is not released again', async () => {
-  const f = fakes({ '@carouseldeck/core@0.2.0': 0 }, ['@carouseldeck/core@0.2.0']);
+  const f = fakes({ '@carouseldeck/core@0.2.0': 0 }, [
+    '@carouseldeck/core@0.2.0'
+  ]);
   await tagReleases({
     releases: [core],
     published: [],
@@ -158,7 +163,9 @@ test('a version that already has a release is not released again', async () => {
     ...f
   });
   assert.deepEqual(f.created, []);
-  assert.ok(f.logged.includes('@carouseldeck/core@0.2.0 already has a release.'));
+  assert.ok(
+    f.logged.includes('@carouseldeck/core@0.2.0 already has a release.')
+  );
 });
 
 test("a release's notes are its version's changelog section", async () => {
@@ -191,7 +198,12 @@ test('during the wait, an npm error counts as "not yet", and the last one is nam
   /** @type {Record<string, (string | boolean)[]>} */
   const answers = {
     '@carouseldeck/core@0.2.0': ['HTTP 503', 'no answer: timed out', true],
-    '@carouseldeck/react@0.2.0': ['HTTP 429', 'HTTP 429', 'HTTP 429', 'HTTP 429']
+    '@carouseldeck/react@0.2.0': [
+      'HTTP 429',
+      'HTTP 429',
+      'HTTP 429',
+      'HTTP 429'
+    ]
   };
   const f = fakes({});
   await assert.rejects(

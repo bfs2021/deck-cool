@@ -35,7 +35,8 @@ const renderPagedDeck = (onIndexChange?: (index: number) => void) => {
       within(root)
         .getByRole('group', { name: 'Choose page' })
         .querySelectorAll('button'),
-    counter: () => root.querySelector('[data-carouseldeck-counter]')?.textContent
+    counter: () =>
+      root.querySelector('[data-carouseldeck-counter]')?.textContent
   };
 };
 

@@ -382,9 +382,9 @@ test('before the viewport is measured, useDeck clamps index as Counter does', ()
   const probe = container.querySelector<HTMLElement>('[data-probe]')!.dataset;
   expect(probe.index).toBe('4');
   expect(probe.count).toBe('null');
-  expect(container.querySelector('[data-carouseldeck-counter]')!.textContent).toBe(
-    '5 / 5'
-  );
+  expect(
+    container.querySelector('[data-carouseldeck-counter]')!.textContent
+  ).toBe('5 / 5');
 });
 
 test('useDeck outside a deck names the missing primitive', () => {

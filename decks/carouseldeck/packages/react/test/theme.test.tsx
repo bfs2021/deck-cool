@@ -60,7 +60,9 @@ const renderDeck = (props: Parameters<typeof TestDeck>[0] = {}) => {
     next: within(root).getByRole('button', { name: 'Next' }),
     dots: within(group).getAllByRole('button'),
     counter: root.querySelector<HTMLElement>('[data-carouseldeck-counter]')!,
-    toggle: root.querySelector<HTMLElement>('[data-carouseldeck-autoplay-toggle]')!
+    toggle: root.querySelector<HTMLElement>(
+      '[data-carouseldeck-autoplay-toggle]'
+    )!
   };
 };
 

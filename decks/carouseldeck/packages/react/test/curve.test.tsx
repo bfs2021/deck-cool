@@ -258,7 +258,9 @@ describe('curve', () => {
     const { viewport, slides } = renderDeck();
 
     expect(slides().map((slide) => slide.inert)).toEqual(Array(6).fill(false));
-    expect(viewport.querySelector('[data-carouseldeck-snap-target]')).toBeNull();
+    expect(
+      viewport.querySelector('[data-carouseldeck-snap-target]')
+    ).toBeNull();
   });
 
   test('fans across the other axis in a vertical deck', async () => {
