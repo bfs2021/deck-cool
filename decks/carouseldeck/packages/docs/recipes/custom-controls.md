@@ -9,10 +9,10 @@ are built from a design system's button, whose API is not a native button's:
 
 <!-- demo:example-custom-controls -->
 
-[example: custom-controls.tsx]: https://github.com/pedrosousa13/slidedeck/blob/main/apps/storybook/stories/recipes/custom-controls.tsx
+[example: custom-controls.tsx]: https://github.com/pedrosousa13/deck-cool/blob/main/decks/carouseldeck/apps/storybook/stories/recipes/custom-controls.tsx
 
 ```tsx
-import * as Deck from '@slidedeck/react';
+import * as Deck from '@carouseldeck/react';
 // Your design system's button.
 import { Button } from './design-system';
 

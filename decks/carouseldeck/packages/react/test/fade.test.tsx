@@ -3,8 +3,8 @@ import { render, screen } from '@testing-library/react';
 import { renderToString } from 'react-dom/server';
 import { describe, expect, test } from 'vitest';
 import { userEvent } from 'vitest/browser';
-import * as Deck from '@slidedeck/react';
-import { fade } from '@slidedeck/react/fade';
+import * as Deck from '@carouseldeck/react';
+import { fade } from '@carouseldeck/react/fade';
 import {
   addStyle,
   expectSettledTo,
@@ -58,7 +58,7 @@ function FadeDeck({
 }
 
 const slidesOf = (viewport: HTMLElement) => [
-  ...viewport.querySelectorAll<HTMLElement>('[data-slidedeck-slide]')
+  ...viewport.querySelectorAll<HTMLElement>('[data-carouseldeck-slide]')
 ];
 
 const readDeck = (root: HTMLElement) => {
@@ -208,7 +208,7 @@ describe('fade', () => {
       box.left + box.width / 2,
       box.top + box.height / 2
     );
-    expect(hit?.closest('[data-slidedeck-slide]')).toBe(slides()[1]);
+    expect(hit?.closest('[data-carouseldeck-slide]')).toBe(slides()[1]);
     await userEvent.click(screen.getByRole('button', { name: 'Button 2' }));
     expect(document.activeElement).toBe(
       screen.getByRole('button', { name: 'Button 2' })

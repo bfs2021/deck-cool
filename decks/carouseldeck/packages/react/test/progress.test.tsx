@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/react';
 import { renderToString } from 'react-dom/server';
 import { describe, expect, test, vi } from 'vitest';
 import { userEvent } from 'vitest/browser';
-import * as Deck from '@slidedeck/react';
+import * as Deck from '@carouseldeck/react';
 import {
   addStyle,
   CENTRED,
@@ -250,7 +250,7 @@ describe('--deck-slide-count', () => {
 
     // Copies are not counted.
     expect(
-      slides.filter((slide) => slide.hasAttribute('data-slidedeck-copy'))
+      slides.filter((slide) => slide.hasAttribute('data-carouseldeck-copy'))
     ).toHaveLength(6);
     expect(
       slides.map((slide) => slide.style.getPropertyValue('--deck-slide-count'))

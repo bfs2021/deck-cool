@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, onTestFinished, test, vi } from 'vitest';
 import { userEvent } from 'vitest/browser';
-import * as Deck from '@slidedeck/react';
+import * as Deck from '@carouseldeck/react';
 import {
   addStyle,
   expectRestOnASlide,

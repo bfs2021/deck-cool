@@ -2,7 +2,7 @@
   "stampVersion": "2.0.0",
   "tracker": {
     "kind": "github",
-    "repo": "pedrosousa13/slidedeck"
+    "repo": "pedrosousa13/deck-cool"
   },
   "merge": {
     "policy": "squash"

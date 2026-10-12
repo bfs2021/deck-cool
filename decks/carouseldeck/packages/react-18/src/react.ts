@@ -1,4 +1,4 @@
-// `react` for @slidedeck/react's source, built for React 18. The source is
+// `react` for @carouseldeck/react's source, built for React 18. The source is
 // written for React 19; each export here is React 18's own, or stands in for
 // the React 19 API the source uses. A name the source imports and this
 // module does not export fails the build.
@@ -27,8 +27,8 @@ declare const process: { env: { NODE_ENV?: string } };
 
 if (process.env.NODE_ENV !== 'production' && !version.startsWith('18.')) {
   console.error(
-    `@slidedeck/react-18 is for React 18, and this is React ${version}. ` +
-      'Use @slidedeck/react with React 19.'
+    `@carouseldeck/react-18 is for React 18, and this is React ${version}. ` +
+      'Use @carouseldeck/react with React 19.'
   );
 }
 

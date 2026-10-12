@@ -2,7 +2,7 @@ import { useState, type ComponentProps } from 'react';
 import { render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import { userEvent } from 'vitest/browser';
-import * as Deck from '@slidedeck/react';
+import * as Deck from '@carouseldeck/react';
 import {
   expectSettledTo,
   setReducedMotion,
@@ -202,9 +202,9 @@ describe('Dots accessibility', () => {
 });
 
 describe('Dots state as data attributes', () => {
-  test('the group carries data-slidedeck-dots, data-index and data-count', async () => {
+  test('the group carries data-carouseldeck-dots, data-index and data-count', async () => {
     const { viewport, group, dots } = renderDeck();
-    expect(group.getAttribute('data-slidedeck-dots')).toBe('');
+    expect(group.getAttribute('data-carouseldeck-dots')).toBe('');
     expect(group.getAttribute('data-count')).toBe('5');
     expect(group.getAttribute('data-index')).toBe('0');
 
@@ -221,7 +221,7 @@ describe('Dots state as data attributes', () => {
           {...{
             'data-index': 'x',
             'data-count': 'y',
-            'data-slidedeck-dots': 'z'
+            'data-carouseldeck-dots': 'z'
           }}
         />
       )
@@ -229,7 +229,7 @@ describe('Dots state as data attributes', () => {
 
     expect(group.getAttribute('data-index')).toBe('0');
     expect(group.getAttribute('data-count')).toBe('5');
-    expect(group.getAttribute('data-slidedeck-dots')).toBe('');
+    expect(group.getAttribute('data-carouseldeck-dots')).toBe('');
   });
 
   // data-current marks the current slide (CONTEXT.md); a dot is a page, and

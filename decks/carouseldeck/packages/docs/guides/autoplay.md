@@ -1,6 +1,6 @@
 ---
 title: Autoplay
-description: 'Autoplay moves a slidedeck deck one snap point at an interval. It pauses on hover and in a hidden tab, stops on focus, and Deck.AutoplayToggle stops it.'
+description: 'Autoplay moves a carouseldeck deck one snap point at an interval. It pauses on hover and in a hidden tab, stops on focus, and Deck.AutoplayToggle stops it.'
 ---
 
 `autoplay={5000}` moves the deck on one snap point every 5 seconds, counted
@@ -11,7 +11,7 @@ controls, so motion can always be stopped (WCAG 2.2.2):
 <!-- demo:example-autoplay -->
 
 ```tsx
-import * as Deck from '@slidedeck/react';
+import * as Deck from '@carouseldeck/react';
 
 export function Hero() {
   return (

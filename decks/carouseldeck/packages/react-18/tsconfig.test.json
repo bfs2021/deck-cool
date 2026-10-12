@@ -8,8 +8,8 @@
     "skipLibCheck": false,
     "types": [],
     "paths": {
-      "@slidedeck/react": ["./dist/index.d.ts"],
-      "@slidedeck/react/fade": ["./dist/fade.d.ts"]
+      "@carouseldeck/react": ["./dist/index.d.ts"],
+      "@carouseldeck/react/fade": ["./dist/fade.d.ts"]
     }
   },
   "include": ["test/consumer.tsx"]

@@ -33,7 +33,7 @@ export const STEPS = [
   'typecheck',
   'test',
   // The React package's tests again, on React 18, against
-  // @slidedeck/react-18's build.
+  // @carouseldeck/react-18's build.
   'test:react-18',
   'test:scripts',
   'build',

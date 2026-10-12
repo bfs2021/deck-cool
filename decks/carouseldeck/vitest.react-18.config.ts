@@ -1,4 +1,4 @@
-// The React package's tests, run on React 18 against @slidedeck/react-18's
+// The React package's tests, run on React 18 against @carouseldeck/react-18's
 // build: the same tests, with `react`, `react-dom` and the package resolved
 // to React 18 and the built package. Build it first.
 import { fileURLToPath, URL } from 'node:url';
@@ -17,18 +17,18 @@ export default defineConfig({
         replacement: `${react18}node_modules/react$1$2`
       },
       {
-        find: /^@slidedeck\/core$/,
+        find: /^@carouseldeck\/core$/,
         replacement: here('./packages/core/src/index.ts')
       },
       {
-        find: /^@slidedeck\/react\/(fade|curve)$/,
+        find: /^@carouseldeck\/react\/(fade|curve)$/,
         replacement: `${react18}dist/$1.js`
       },
       {
-        find: /^@slidedeck\/react\/theme\.css/,
+        find: /^@carouseldeck\/react\/theme\.css/,
         replacement: here('./packages/react/src/theme.css')
       },
-      { find: /^@slidedeck\/react$/, replacement: `${react18}dist/index.js` }
+      { find: /^@carouseldeck\/react$/, replacement: `${react18}dist/index.js` }
     ]
   },
   test: {

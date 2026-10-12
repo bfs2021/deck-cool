@@ -162,7 +162,7 @@ test('two files cannot share a route', () => {
   ]);
 });
 
-// The demos a page may mark. slidedeck's site, sites/slidedeck in
+// The demos a page may mark. carouseldeck's site, sites/slidedeck in
 // pedrosousa13/deck-cool, will register each one (deck-cool#51). Agree a new
 // one with the site before a release uses it.
 const SITE_DEMOS = [
@@ -190,7 +190,7 @@ const SITE_DEMOS = [
   'vertical'
 ];
 
-test('@slidedeck/docs follows the contract, with the demos the site registers', () => {
+test('@carouseldeck/docs follows the contract, with the demos the site registers', () => {
   const demos = new Set(SITE_DEMOS.map((name) => `example-${name}`));
   assert.deepEqual(docsFaults(join(repoRoot, 'packages/docs'), { demos }), []);
 });

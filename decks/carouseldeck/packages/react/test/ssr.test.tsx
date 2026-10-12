@@ -2,7 +2,7 @@ import { act, type ComponentProps } from 'react';
 import { hydrateRoot } from 'react-dom/client';
 import { renderToString } from 'react-dom/server';
 import { afterEach, expect, test, vi } from 'vitest';
-import * as Deck from '@slidedeck/react';
+import * as Deck from '@carouseldeck/react';
 // Internal: see the test that uses it.
 import { ServerSlidesProvider } from '../src/server-slides';
 import { nextFrame, TestDeck, viewportOf, WIDTH } from './fixtures';
@@ -122,9 +122,9 @@ const controls = (
 const readControls = (viewport: HTMLElement) => {
   const root = viewport.closest('[data-index]')!;
   return {
-    dots: root.querySelectorAll('[data-slidedeck-dots] > button').length,
+    dots: root.querySelectorAll('[data-carouseldeck-dots] > button').length,
     current: root.querySelector('[aria-current="true"]')?.ariaLabel,
-    counter: root.querySelector('[data-slidedeck-counter]')?.textContent
+    counter: root.querySelector('[data-carouseldeck-counter]')?.textContent
   };
 };
 
@@ -214,12 +214,12 @@ test('index={NaN} renders and hydrates as index 0', async () => {
 test('a looping deck starts on the slide at defaultIndex without layout shift', async () => {
   const slideOffset = (viewport: HTMLElement) =>
     viewport
-      .querySelector('[aria-label="3 of 5"]:not([data-slidedeck-copy])')!
+      .querySelector('[aria-label="3 of 5"]:not([data-carouseldeck-copy])')!
       .getBoundingClientRect().left - viewport.getBoundingClientRect().left;
   const { viewport, index } = await hydrate(
     { loop: true, defaultIndex: 2 },
     (viewport) => {
-      expect(viewport.querySelectorAll('[data-slidedeck-copy]')).toHaveLength(
+      expect(viewport.querySelectorAll('[data-carouseldeck-copy]')).toHaveLength(
         10
       );
       expect(slideOffset(viewport)).toBe(0);
@@ -266,9 +266,9 @@ test('Dots and Counter count the slides a server component counted', () => {
       </Deck.Root>
     </ServerSlidesProvider>
   );
-  const counters = container.querySelectorAll('[data-slidedeck-counter]');
+  const counters = container.querySelectorAll('[data-carouseldeck-counter]');
   expect(
-    container.querySelectorAll('[data-slidedeck-dots] button')
+    container.querySelectorAll('[data-carouseldeck-dots] button')
   ).toHaveLength(3);
   expect([...counters].map((counter) => counter.textContent)).toEqual([
     '',

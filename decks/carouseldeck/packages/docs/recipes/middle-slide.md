@@ -1,6 +1,6 @@
 ---
 title: Highlight the middle slide in view
-description: 'Two ways to highlight the middle of several slides in view in a slidedeck deck: centre the slides and style data-focal, or style by scroll progress.'
+description: 'Two ways to highlight the middle of several slides in view in a carouseldeck deck: centre the slides and style data-focal, or style by scroll progress.'
 ---
 
 The focal slide is the slide at the snap alignment point (see
@@ -19,18 +19,18 @@ With centred slides, the alignment point is the centre, so the focal slide is
 the middle one. Style `[data-focal]`. `onFocalChange` and
 `clickToFocus` then follow the middle slide too.
 
-[example: middle-centred.css]: https://github.com/pedrosousa13/slidedeck/blob/main/apps/storybook/stories/recipes/middle-centred.css
+[example: middle-centred.css]: https://github.com/pedrosousa13/deck-cool/blob/main/decks/carouseldeck/apps/storybook/stories/recipes/middle-centred.css
 
 ```css
 /* Three slides in view, centred: the focal slide is the middle one. */
-.products [data-slidedeck-viewport] {
+.products [data-carouseldeck-viewport] {
   gap: 16px;
 }
-.products [data-slidedeck-slide] {
+.products [data-carouseldeck-slide] {
   width: calc((100% - 2 * 16px) / 3);
   scroll-snap-align: center;
 }
-.products [data-slidedeck-slide][data-focal] {
+.products [data-carouseldeck-slide][data-focal] {
   outline: 3px solid #335;
   outline-offset: -3px;
 }
@@ -48,15 +48,15 @@ stays the first in view, at progress 0, so the middle of three is at progress
 highlight moves with the scroll, whereas `[data-focal]` changes when the deck
 settles.
 
-[example: middle-by-progress.css]: https://github.com/pedrosousa13/slidedeck/blob/main/apps/storybook/stories/recipes/middle-by-progress.css
+[example: middle-by-progress.css]: https://github.com/pedrosousa13/deck-cool/blob/main/decks/carouseldeck/apps/storybook/stories/recipes/middle-by-progress.css
 
 ```css
 /* Three slides in view, at the start: the focal slide is the first in view,
    at progress 0, and the middle one is at progress 1. */
-.products [data-slidedeck-viewport] {
+.products [data-carouseldeck-viewport] {
   gap: 16px;
 }
-.products [data-slidedeck-slide] {
+.products [data-carouseldeck-slide] {
   width: calc((100% - 2 * 16px) / 3);
   /* Slides from the middle, at most 1. abs() spelled with max() for older
      browsers. */

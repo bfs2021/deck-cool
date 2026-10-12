@@ -1,6 +1,6 @@
 ---
 title: Server rendering
-description: 'How slidedeck renders on the server: at defaultIndex with no layout shift, progress in the server HTML, and Deck.Root as a React Server Component.'
+description: 'How carouseldeck renders on the server: at defaultIndex with no layout shift, progress in the server HTML, and Deck.Root as a React Server Component.'
 ---
 
 The primitives render on the server. Where the browser supports
@@ -26,9 +26,9 @@ its total at hydration.
 
 A React Server Components framework such as the Next.js App Router renders
 the deck straight from a server component, `effect={fade}` and the theme
-included. The client entries, `@slidedeck/react` and its effects, start with
+included. The client entries, `@carouseldeck/react` and its effects, start with
 `'use client'`. Under the `react-server` export condition, which these
-frameworks resolve for a server component, `@slidedeck/react` resolves to a
+frameworks resolve for a server component, `@carouseldeck/react` resolves to a
 server entry instead. Its `Deck.Root` is a server component that counts the
 slides, so Dots and Counter count a page per slide there too. Every other
 export is the client entry's own. A framework that does not resolve

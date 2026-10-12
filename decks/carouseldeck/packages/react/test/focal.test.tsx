@@ -3,7 +3,7 @@ import { act, render, screen } from '@testing-library/react';
 import { renderToString } from 'react-dom/server';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
-import * as Deck from '@slidedeck/react';
+import * as Deck from '@carouseldeck/react';
 import {
   addStyle,
   CENTRED,

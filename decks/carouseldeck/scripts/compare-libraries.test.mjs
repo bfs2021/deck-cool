@@ -107,8 +107,8 @@ test('spliceDocsTable replaces the page from its first table row on', () => {
   assert.throws(() => spliceDocsTable('Intro.\n', '| t |'), /compare\.md/);
 });
 
-test("versionCell gives slidedeck's own packages no version, so a release never stales the table", () => {
+test("versionCell gives carouseldeck's own packages no version, so a release never stales the table", () => {
   const read = () => '9.9.9';
-  assert.equal(versionCell('@slidedeck/react', read), 'this repo');
+  assert.equal(versionCell('@carouseldeck/react', read), 'this repo');
   assert.equal(versionCell('keen-slider', read), '9.9.9');
 });

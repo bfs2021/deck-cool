@@ -1,7 +1,7 @@
 import { render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import { page, userEvent } from 'vitest/browser';
-import * as Deck from '@slidedeck/react';
+import * as Deck from '@carouseldeck/react';
 import {
   addStyle,
   expectSettledTo,
@@ -35,7 +35,7 @@ const renderPagedDeck = (onIndexChange?: (index: number) => void) => {
       within(root)
         .getByRole('group', { name: 'Choose page' })
         .querySelectorAll('button'),
-    counter: () => root.querySelector('[data-slidedeck-counter]')?.textContent
+    counter: () => root.querySelector('[data-carouseldeck-counter]')?.textContent
   };
 };
 

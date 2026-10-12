@@ -10,7 +10,7 @@ pnpm verify
 
 It runs every gate in order and stops at the first failure: `format:check`,
 `lint`, `typecheck`, `test` (vitest in browser mode), `test:react-18` (the
-same tests on React 18, against `@slidedeck/react-18`'s build), `test:scripts`
+same tests on React 18, against `@carouseldeck/react-18`'s build), `test:scripts`
 (the scripts' own tests), `build`, `docs:check` (the code blocks in
 the package README and the docs type-check), `compare:check` (the
 README's and the docs' comparison table is fresh), `test:packages` (publint and attw on the
@@ -65,10 +65,10 @@ aim, not a gate (ADR-0001). Read the numbers; do not add a budget.
 `compare:check` fails when the comparison in `packages/react/README.md`, or
 the same table at the end of `packages/docs/compare.md`, no longer matches a
 fresh measurement: after a bump of a compared library in `tests/compare`, or
-any change to `packages/*/src` that moves slidedeck's gzipped size. Run
+any change to `packages/*/src` that moves carouseldeck's gzipped size. Run
 `pnpm build && pnpm compare` and commit the new tables. The size is
 reported, never budgeted (ADR-0001): a bigger number is not a failure, only a
-stale one is. A release does not stale it: slidedeck's row has no version.
+stale one is. A release does not stale it: carouseldeck's row has no version.
 
 Formatting is checked, never written by the gate. Run
 `pnpm exec prettier --write <files>` on the files you changed.
@@ -83,10 +83,10 @@ prop that React 18 handles differently, `test:react-18` fails: adapt it in
 
 ## Releasing
 
-`@slidedeck/core`, `@slidedeck/react` and `@slidedeck/docs` release together
+`@carouseldeck/core`, `@carouseldeck/react` and `@carouseldeck/docs` release together
 at one version (`fixed` in `.changeset/config.json`).
 
-`@slidedeck/react-18` is in the same `fixed` group but is private, so nothing
+`@carouseldeck/react-18` is in the same `fixed` group but is private, so nothing
 publishes it. It is first published as `@carouseldeck/react-18`, after the
 move into deck-cool (pedrosousa13/deck-cool#105).
 
@@ -108,8 +108,8 @@ runs `pnpm verify` first, then:
   creates the GitHub releases. Then `tell-deck-cool` sends
   pedrosousa13/deck-cool a `deck-released` dispatch with the version, with a
   token from the `deck-cool-releases` App (the `DECK_APP_ID` variable and the
-  `DECK_APP_PRIVATE_KEY` secret). deck.cool bumps `@slidedeck/docs` and
-  rebuilds slidedeck's docs from it. Nobody needs to send a dispatch again:
+  `DECK_APP_PRIVATE_KEY` secret). deck.cool bumps `@carouseldeck/docs` and
+  rebuilds carouseldeck's docs from it. Nobody needs to send a dispatch again:
   deck-cool's daily scheduled bump checks npm every day, so it picks up a
   version its one-day hold refused at dispatch, or one whose dispatch was lost.
 
@@ -129,9 +129,9 @@ every push, and nothing is published:
 2. Make the repository public. npm generates provenance only from a public
    repository, and both packages require it (`publishConfig.provenance`).
    Done: public since 2026-10-05.
-3. Claim the `@slidedeck` scope on npm as an organization (#5).
+3. Claim the `@carouseldeck` scope on npm as an organization (#5).
 4. Add an `NPM_TOKEN` repository secret for the first publish: a granular
-   token that can publish the `@slidedeck` scope. npm configures trusted
+   token that can publish the `@carouseldeck` scope. npm configures trusted
    publishing per package, so a package must exist before it can have one.
 5. Set the `RELEASE_ENABLED` repository variable to `true`.
 
@@ -139,25 +139,25 @@ With releases on, the publish job's first step fails loudly, before anything
 reaches npm, if the repository is private or no credential can publish.
 
 After the first publish, on npmjs.com add a trusted publisher to each
-package: GitHub Actions, `pedrosousa13` / `slidedeck` / `release.yml`, no
+package: GitHub Actions, `pedrosousa13` / `deck-cool` / `release.yml`, no
 environment. Then delete the `NPM_TOKEN` secret; later releases publish over
 OIDC. Done on 2026-10-07 (#79): releases now publish over OIDC only.
 
-`@slidedeck/docs` (#133) is not on npm yet, and trusted publishing needs a
+`@carouseldeck/docs` (#133) is not on npm yet, and trusted publishing needs a
 package to exist. The merge that adds it is its first release: its 1.0.3 is
 not on npm, so the release run after the merge tries to publish it.
 
 - If no `NPM_TOKEN` secret is set, that run fails at "Check a credential can
   publish", and nothing is published. Add an `NPM_TOKEN` secret, a token that
-  can create new packages under the `@slidedeck` scope, then re-run the
+  can create new packages under the `@carouseldeck` scope, then re-run the
   `publish` job.
-- Once `@slidedeck/docs@1.0.3` is on npm, add its trusted publisher on
+- Once `@carouseldeck/docs@1.0.3` is on npm, add its trusted publisher on
   npmjs.com, as above, and delete the `NPM_TOKEN` secret.
 
 ## Docs
 
-The docs are `packages/docs`, published as `@slidedeck/docs`: markdown,
-`nav.json` and `assets/`, no code. deck.cool builds slidedeck's docs site
+The docs are `packages/docs`, published as `@carouseldeck/docs`: markdown,
+`nav.json` and `assets/`, no code. deck.cool builds carouseldeck's docs site
 from the published package, so every page follows deck.cool's docs contract
 (`docs/docs-contract.md` in pedrosousa13/deck-cool):
 
@@ -170,7 +170,7 @@ from the published package, so every page follows deck.cool's docs contract
   `scripts/docs-contract.test.mjs`. It is the only HTML a page may hold.
 - a code block that must match a file in the repo follows an unused link
   definition to the file,
-  `[example: <name>]: https://github.com/pedrosousa13/slidedeck/blob/main/<path>`.
+  `[example: <name>]: https://github.com/pedrosousa13/deck-cool/blob/main/decks/carouseldeck/<path>`.
 
 `scripts/docs-contract.test.mjs`, in `test:scripts`, checks the package
 against the contract with the rules deck.cool's docs loader applies.
@@ -179,17 +179,17 @@ against the contract with the rules deck.cool's docs loader applies.
 
 The site lives in pedrosousa13/deck-cool, as `sites/slidedeck`, and is served
 at https://slide.deck.cool. It will build its docs pages from the published
-`@slidedeck/docs` once deck-cool#51 lands. This repo deploys nothing.
+`@carouseldeck/docs` once deck-cool#51 lands. This repo deploys nothing.
 
 ## Agent skills
 
 ### Issue tracker
 
-Issues live in the repo itself — GitHub issues on pedrosousa13/slidedeck, via the `gh` CLI. See `docs/agents/issue-tracker.md`.
+Issues live in the repo itself — GitHub issues on pedrosousa13/deck-cool, via the `gh` CLI. See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 
-Canonical label names, as repo labels on pedrosousa13/slidedeck — plus `in-progress` and `P0`–`P3`, labels that stand in for a missing field. See `docs/agents/triage-labels.md`.
+Canonical label names, as repo labels on pedrosousa13/deck-cool — plus `in-progress` and `P0`–`P3`, labels that stand in for a missing field. See `docs/agents/triage-labels.md`.
 
 ### Domain docs
 

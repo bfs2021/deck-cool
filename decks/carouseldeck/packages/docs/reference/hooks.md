@@ -1,6 +1,6 @@
 ---
 title: Hooks
-description: "Reference for slidedeck's hooks: Deck.useDeck() gives your own controls the deck's index, count and moves, and Deck.useSlide() tells a slide about itself."
+description: "Reference for carouseldeck's hooks: Deck.useDeck() gives your own controls the deck's index, count and moves, and Deck.useSlide() tells a slide about itself."
 ---
 
 `Deck.useDeck()`, called by any component inside `Deck.Root`, gives it the
@@ -29,7 +29,7 @@ starts, stops, or pauses for a pointer or a hidden tab. Called outside a
 
 ```tsx
 import type { ReactNode } from 'react';
-import * as Deck from '@slidedeck/react';
+import * as Deck from '@carouseldeck/react';
 
 // Your design system's button.
 declare function Button(props: {

@@ -1,4 +1,4 @@
-export const metadata = { title: 'slidedeck in a server component' };
+export const metadata = { title: 'carouseldeck in a server component' };
 
 export default function RootLayout({ children }) {
   return (

@@ -1,7 +1,7 @@
 ---
 title: Play a playdeck video in the focal slide
 label: Playdeck video
-description: 'A social-style feed of videos with slidedeck and playdeck: the video in the focal slide plays muted, the others pause, and it works with loop.'
+description: 'A social-style feed of videos with carouseldeck and playdeck: the video in the focal slide plays muted, the others pause, and it works with loop.'
 ---
 
 A social-style deck of videos, where the video in the focal slide plays,
@@ -14,7 +14,7 @@ scroll settles, and each player's handle plays or pauses it. It works with
 pnpm add @playdeck/react
 ```
 
-[example: video-deck.tsx]: https://github.com/pedrosousa13/slidedeck/blob/main/apps/storybook/stories/video-deck.tsx
+[example: video-deck.tsx]: https://github.com/pedrosousa13/deck-cool/blob/main/decks/carouseldeck/apps/storybook/stories/video-deck.tsx
 
 ```tsx
 import {
@@ -24,7 +24,7 @@ import {
   useRef,
   type Ref
 } from 'react';
-import * as Deck from '@slidedeck/react';
+import * as Deck from '@carouseldeck/react';
 import * as Player from '@playdeck/react';
 
 const REDUCED_MOTION = '(prefers-reduced-motion: reduce)';
@@ -145,10 +145,10 @@ function SlideVideo({
 Show part of the next slide so the deck reads as a feed:
 
 ```css
-[data-slidedeck-viewport] {
+[data-carouseldeck-viewport] {
   gap: 16px;
 }
-[data-slidedeck-slide] {
+[data-carouseldeck-slide] {
   width: 80%;
 }
 ```

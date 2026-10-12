@@ -5,10 +5,10 @@
     "noEmit": true,
     "types": ["node", "vite/client", "@vitest/browser-playwright"],
     "paths": {
-      "@slidedeck/react": ["./src/index.tsx"],
-      "@slidedeck/react/fade": ["./src/fade.ts"],
-      "@slidedeck/react/curve": ["./src/curve.ts"],
-      "@slidedeck/react/stack": ["./src/stack.ts"]
+      "@carouseldeck/react": ["./src/index.tsx"],
+      "@carouseldeck/react/fade": ["./src/fade.ts"],
+      "@carouseldeck/react/curve": ["./src/curve.ts"],
+      "@carouseldeck/react/stack": ["./src/stack.ts"]
     },
     "tsBuildInfoFile": "dist/.tsbuildinfo.test"
   },

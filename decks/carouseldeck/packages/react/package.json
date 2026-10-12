@@ -1,13 +1,13 @@
 {
-  "name": "@slidedeck/react",
+  "name": "@carouseldeck/react",
   "version": "1.1.0",
   "description": "Headless, composable React 19 carousel primitives built on native scroll snap.",
   "license": "MIT",
   "homepage": "https://slide.deck.cool",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/pedrosousa13/slidedeck.git",
-    "directory": "packages/react"
+    "url": "git+https://github.com/pedrosousa13/deck-cool.git",
+    "directory": "decks/carouseldeck/packages/react"
   },
   "type": "module",
   "sideEffects": [
@@ -45,7 +45,7 @@
     "provenance": true
   },
   "dependencies": {
-    "@slidedeck/core": "workspace:*"
+    "@carouseldeck/core": "workspace:*"
   },
   "peerDependencies": {
     "react": ">=19 <20",

@@ -15,7 +15,7 @@ import {
   type Mock
 } from 'vitest';
 import { cdp } from 'vitest/browser';
-import * as Deck from '@slidedeck/react';
+import * as Deck from '@carouseldeck/react';
 
 /** Viewport width every fixture deck uses, so snap points are predictable. */
 export const WIDTH = 300;
@@ -66,10 +66,10 @@ export const CENTRED = `.centred > * { width: calc(100% / 3.5); scroll-snap-alig
 // page is a snap target. Both rules have the same specificity, so a later
 // page size, as in a media query, overrides every slide's alignment.
 export const pagesOf = (size: number, selector = '.pages') => `
-  ${selector} > [data-slidedeck-slide]:nth-child(${size}n + 1) {
+  ${selector} > [data-carouseldeck-slide]:nth-child(${size}n + 1) {
     scroll-snap-align: start;
   }
-  ${selector} > [data-slidedeck-slide]:not(:nth-child(${size}n + 1)) {
+  ${selector} > [data-carouseldeck-slide]:not(:nth-child(${size}n + 1)) {
     scroll-snap-align: none;
   }
 `;
@@ -91,7 +91,7 @@ export async function expectSettledTo<T>(read: () => T, expected: T) {
 }
 
 export const viewportOf = (root: HTMLElement) =>
-  root.querySelector<HTMLElement>('[data-slidedeck-viewport]')!;
+  root.querySelector<HTMLElement>('[data-carouseldeck-viewport]')!;
 
 /** Each slide's `--deck-slide-progress`, as the engine last wrote it; with
  * `copies: false`, a loop's copies left out. */
@@ -101,7 +101,7 @@ export const progressOf = (
 ) =>
   [
     ...viewport.querySelectorAll<HTMLElement>(
-      `:scope > [data-slidedeck-slide]${copies ? '' : ':not([data-slidedeck-copy])'}`
+      `:scope > [data-carouseldeck-slide]${copies ? '' : ':not([data-carouseldeck-copy])'}`
     )
   ].map((slide) =>
     Number(slide.style.getPropertyValue('--deck-slide-progress'))
@@ -411,7 +411,7 @@ export async function expectRestOnASlide(
     .toBe(true);
   expect(viewport.style.scrollSnapType).not.toBe('none');
   const current = viewport.querySelector<HTMLElement>('[data-current]')!;
-  expect(current.hasAttribute('data-slidedeck-copy')).toBe(false);
+  expect(current.hasAttribute('data-carouseldeck-copy')).toBe(false);
   const box = current.getBoundingClientRect();
   const view = viewport.getBoundingClientRect();
   const centre = getComputedStyle(current).scrollSnapAlign.includes('center');

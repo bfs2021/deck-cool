@@ -1,6 +1,6 @@
 ---
 title: Pages
-description: 'Snap a slidedeck deck a page at a time: make the first slide of each group a snap point, and Next moves a page while Dots and Counter count pages.'
+description: 'Snap a carouseldeck deck a page at a time: make the first slide of each group a snap point, and Next moves a page while Dots and Counter count pages.'
 ---
 
 To snap in groups, make only the first slide of each group a snap point. Next
@@ -11,13 +11,13 @@ then moves a page, and Dots and Counter count pages:
 ```css
 /* Three slides in view, three to a page, from 640px. */
 @media (min-width: 640px) {
-  .products [data-slidedeck-slide] {
+  .products [data-carouseldeck-slide] {
     width: calc(100% / 3);
   }
-  .products [data-slidedeck-slide]:nth-child(3n + 1) {
+  .products [data-carouseldeck-slide]:nth-child(3n + 1) {
     scroll-snap-align: start;
   }
-  .products [data-slidedeck-slide]:not(:nth-child(3n + 1)) {
+  .products [data-carouseldeck-slide]:not(:nth-child(3n + 1)) {
     scroll-snap-align: none;
   }
 }

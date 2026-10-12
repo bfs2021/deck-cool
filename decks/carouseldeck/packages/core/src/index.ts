@@ -71,7 +71,7 @@ export interface DeckEngine {
  *
  * Loop (clone and jump, ADR-0006, as built in ADR-0009): where the viewport
  * holds a copy of every slide before the slides and another after them, each
- * marked `data-slidedeck-copy` (`before` or `after`; DOM order does not
+ * marked `data-carouseldeck-copy` (`before` or `after`; DOM order does not
  * matter), scrolling past the last snap point arrives at the first, and
  * back. The copies are the caller's to render, inert and `aria-hidden`. Only
  * the slides' snap points are counted: a step across the seam scrolls on
@@ -1340,10 +1340,10 @@ const SCROLL_KEYS = new Set([
 
 const PROGRESS = '--deck-slide-progress';
 /** Marks a viewport child as a snap target rather than a slide. */
-export const SNAP_TARGET = 'data-slidedeck-snap-target';
+export const SNAP_TARGET = 'data-carouseldeck-snap-target';
 /** Marks a viewport child as a loop's copy of a slide rather than a slide:
  * `before` the slides, or `after` them. */
-export const COPY = 'data-slidedeck-copy';
+export const COPY = 'data-carouseldeck-copy';
 const IN_VIEW = 'data-in-view';
 /** How much of a slide the scrollport must show for it to be in view. */
 const IN_VIEW_MIN_PX = 1;
@@ -1423,10 +1423,10 @@ function nearest(points: number[], position: number): number {
 
 /**
  * The viewport's slides; the run of slides along the axis, which with loop is
- * the copies before the slides (children marked `data-slidedeck-copy=before`),
+ * the copies before the slides (children marked `data-carouseldeck-copy=before`),
  * the slides and the copies after them, and without is the slides; and the
  * box each of the run is measured by: its own, or where the viewport holds
- * snap targets (children marked `data-slidedeck-snap-target`), the target in
+ * snap targets (children marked `data-carouseldeck-snap-target`), the target in
  * the same place among them. Snap targets and copies are not slides. An effect
  * that stacks the slides in one place, where none of them could mark a snap
  * point, lays out one per slide, and per copy, along the axis instead.

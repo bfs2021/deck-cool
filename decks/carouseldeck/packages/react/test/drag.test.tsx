@@ -1,7 +1,7 @@
 import { useState, type ComponentProps } from 'react';
 import { act, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, test, vi } from 'vitest';
-import * as Deck from '@slidedeck/react';
+import * as Deck from '@carouseldeck/react';
 import {
   expectSettledTo,
   expectSnaps,

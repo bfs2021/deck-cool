@@ -1,9 +1,9 @@
 import { createRef, type ComponentProps, type Ref } from 'react';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, test, vi } from 'vitest';
-import * as Deck from '@slidedeck/react';
-import { curve } from '@slidedeck/react/curve';
-import { fade } from '@slidedeck/react/fade';
+import * as Deck from '@carouseldeck/react';
+import { curve } from '@carouseldeck/react/curve';
+import { fade } from '@carouseldeck/react/fade';
 import {
   addStyle,
   expectSettledTo,
@@ -53,7 +53,7 @@ function SwitchDeck({ effect, slides = SLIDES, ...props }: SwitchDeckProps) {
 }
 
 const renderSwitch = (defaultIndex: number, layout: Layout = {}) => {
-  addStyle('.half > [data-slidedeck-slide] { width: 50%; }');
+  addStyle('.half > [data-carouseldeck-slide] { width: 50%; }');
   const onIndexChange = vi.fn();
   const { rerender } = render(
     <SwitchDeck
@@ -77,7 +77,7 @@ const renderSwitch = (defaultIndex: number, layout: Layout = {}) => {
           {...next}
         />
       ),
-    live: () => root.querySelector('[data-slidedeck-live]')?.textContent
+    live: () => root.querySelector('[data-carouseldeck-live]')?.textContent
   };
 };
 
@@ -89,21 +89,21 @@ const renderSwitch = (defaultIndex: number, layout: Layout = {}) => {
  */
 const restOf = (root: HTMLElement, viewport: HTMLElement, index: number) => {
   const targets = viewport.querySelectorAll(
-    ':scope > [data-slidedeck-snap-target]'
+    ':scope > [data-carouseldeck-snap-target]'
   );
   const before = viewport.querySelectorAll(
-    ':scope > [data-slidedeck-copy=before]'
+    ':scope > [data-carouseldeck-copy=before]'
   ).length;
   const box =
     targets.length > 0
       ? targets[before + index]
       : viewport.querySelectorAll(
-          ':scope > [data-slidedeck-slide]:not([data-slidedeck-copy])'
+          ':scope > [data-carouseldeck-slide]:not([data-carouseldeck-copy])'
         )[index];
   const current = root.querySelector('[data-current]');
   return [
     root.dataset.index,
-    current?.hasAttribute('data-slidedeck-copy')
+    current?.hasAttribute('data-carouseldeck-copy')
       ? 'a copy'
       : current?.getAttribute('aria-label'),
     Math.round(

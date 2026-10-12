@@ -1,9 +1,9 @@
 /* Three slides in view, at the start: the focal slide is the first in view,
    at progress 0, and the middle one is at progress 1. */
-.products [data-slidedeck-viewport] {
+.products [data-carouseldeck-viewport] {
   gap: 16px;
 }
-.products [data-slidedeck-slide] {
+.products [data-carouseldeck-slide] {
   width: calc((100% - 2 * 16px) / 3);
   /* Slides from the middle, at most 1. abs() spelled with max() for older
      browsers. */

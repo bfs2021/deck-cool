@@ -1,14 +1,14 @@
 {
-  "name": "@slidedeck/react-18",
+  "name": "@carouseldeck/react-18",
   "private": true,
   "version": "1.0.3",
-  "description": "@slidedeck/react built for React 18: headless, composable carousel primitives on native scroll snap.",
+  "description": "@carouseldeck/react built for React 18: headless, composable carousel primitives on native scroll snap.",
   "license": "MIT",
   "homepage": "https://slide.deck.cool",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/pedrosousa13/slidedeck.git",
-    "directory": "packages/react-18"
+    "url": "git+https://github.com/pedrosousa13/deck-cool.git",
+    "directory": "decks/carouseldeck/packages/react-18"
   },
   "type": "module",
   "sideEffects": [
@@ -39,14 +39,14 @@
     "provenance": true
   },
   "dependencies": {
-    "@slidedeck/core": "workspace:*"
+    "@carouseldeck/core": "workspace:*"
   },
   "peerDependencies": {
     "react": ">=18 <19",
     "react-dom": ">=18 <19"
   },
   "devDependencies": {
-    "@slidedeck/react": "workspace:*",
+    "@carouseldeck/react": "workspace:*",
     "@types/react": "18.3.31",
     "@types/react-dom": "18.3.7",
     "react": "18.3.1",

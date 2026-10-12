@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { expect, test, vi } from 'vitest';
-import * as Deck from '@slidedeck/react';
+import * as Deck from '@carouseldeck/react';
 import { viewportOf, WIDTH } from './fixtures';
 
 // Deck.useSlide: which slide a slide's content is in, and whether it is a
@@ -39,19 +39,19 @@ test('useSlide reports the index in each slide and the side in each copy', () =>
       return [Number(probe.dataset.index), probe.dataset.copy];
     });
 
-  expect(reported('[data-slidedeck-slide]:not([data-slidedeck-copy])')).toEqual(
+  expect(reported('[data-carouseldeck-slide]:not([data-carouseldeck-copy])')).toEqual(
     [
       [0, 'none'],
       [1, 'none'],
       [2, 'none']
     ]
   );
-  expect(reported('[data-slidedeck-copy=after]')).toEqual([
+  expect(reported('[data-carouseldeck-copy=after]')).toEqual([
     [0, 'after'],
     [1, 'after'],
     [2, 'after']
   ]);
-  expect(reported('[data-slidedeck-copy=before]')).toEqual([
+  expect(reported('[data-carouseldeck-copy=before]')).toEqual([
     [0, 'before'],
     [1, 'before'],
     [2, 'before']

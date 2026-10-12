@@ -5,7 +5,7 @@ import {
   useRef,
   type Ref
 } from 'react';
-import * as Deck from '@slidedeck/react';
+import * as Deck from '@carouseldeck/react';
 import * as Player from '@playdeck/react';
 
 const REDUCED_MOTION = '(prefers-reduced-motion: reduce)';

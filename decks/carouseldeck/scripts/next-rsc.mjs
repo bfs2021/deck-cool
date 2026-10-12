@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Builds tests/next-rsc, a Next.js App Router app whose server component
-// renders a deck, against the packed @slidedeck tarballs, and checks that the
+// renders a deck, against the packed @carouseldeck tarballs, and checks that the
 // prerendered HTML holds the slides and the controls. It fails if a React
 // entry loses its `'use client'` directive: the server component would then
 // run the deck's hooks itself.
@@ -51,7 +51,7 @@ run(
 
 // Each tarball goes where a package manager would put it, as a consumer
 // installs it: what npm would ship, not the workspace's symlinks.
-const destination = mkdtempSync(join(tmpdir(), 'slidedeck-next-'));
+const destination = mkdtempSync(join(tmpdir(), 'carouseldeck-next-'));
 try {
   for (const { manifest } of publishablePackages(repoRoot)) {
     const { name } = manifest;
@@ -88,13 +88,13 @@ const expected = [
   'Slide one',
   'Slide two',
   'Slide three',
-  'data-slidedeck-copy="after"',
-  'data-slidedeck-effect="fade"',
-  'data-slidedeck-effect="curve"',
-  '<style data-precedence="slidedeck"',
+  'data-carouseldeck-copy="after"',
+  'data-carouseldeck-effect="fade"',
+  'data-carouseldeck-effect="curve"',
+  '<style data-precedence="carouseldeck"',
   '>Previous</button>',
   '>Next</button>',
-  'data-slidedeck-dots=""',
+  'data-carouseldeck-dots=""',
   'aria-label="Go to page 1" aria-current="true"',
   'aria-label="Go to page 3"',
   '>1 / 3</span>'
@@ -109,8 +109,8 @@ if (html.includes('aria-label="Go to page 4"')) {
 // starting slide, so an effect, or CSS on progress, draws from the first
 // paint: in document order, the slides, then a loop's copies after them,
 // then those before (#125).
-const fade = html.indexOf('data-slidedeck-effect="fade"');
-const curve = html.indexOf('data-slidedeck-effect="curve"');
+const fade = html.indexOf('data-carouseldeck-effect="fade"');
+const curve = html.indexOf('data-carouseldeck-effect="curve"');
 /**
  * @param {string} effect
  * @param {string} part the server HTML from the effect's viewport on

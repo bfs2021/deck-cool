@@ -1,6 +1,6 @@
-import * as Deck from '@slidedeck/react';
-import { curve } from '@slidedeck/react/curve';
-import { stack } from '@slidedeck/react/stack';
+import * as Deck from '@carouseldeck/react';
+import { curve } from '@carouseldeck/react/curve';
+import { stack } from '@carouseldeck/react/stack';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 // Each recipe's CSS is a file its docs page quotes byte for byte, inlined into
 // its story's <style> so it applies to that story alone.
@@ -24,8 +24,8 @@ const slidesOf = (count: number) =>
 
 // The look, apart from each recipe's CSS.
 const look = `
-  [data-slidedeck-slide] { background: #eef; }
-  [data-slidedeck-slide]:nth-child(even) { background: #fee; }
+  [data-carouseldeck-slide] { background: #eef; }
+  [data-carouseldeck-slide]:nth-child(even) { background: #fee; }
 `;
 
 /** A deck of six slides with the recipe's CSS, classed `products`. */
@@ -85,7 +85,7 @@ export const CurveSize: Story = {
           border-radius: 12px;
           background: #eef;
         }
-        .showcase [data-slidedeck-slide]:nth-child(even) .card {
+        .showcase [data-carouseldeck-slide]:nth-child(even) .card {
           background: #fee;
         }
         ${curveSize}

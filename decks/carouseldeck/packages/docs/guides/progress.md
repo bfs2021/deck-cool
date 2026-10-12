@@ -1,9 +1,9 @@
 ---
 title: Progress and data attributes
-description: 'The continuous state slidedeck writes to the DOM for CSS to read as the deck scrolls: --deck-slide-progress, data-focal, data-in-view and the other attributes.'
+description: 'The continuous state carouseldeck writes to the DOM for CSS to read as the deck scrolls: --deck-slide-progress, data-focal, data-in-view and the other attributes.'
 ---
 
-Slidedeck writes continuous state to the DOM, not to React state, so CSS can
+Carouseldeck writes continuous state to the DOM, not to React state, so CSS can
 read it while the deck scrolls:
 
 | Where                 | Attribute or property        | Meaning                                                                                                                      |
@@ -20,15 +20,15 @@ read it while the deck scrolls:
 | `Deck.Dots`           | `data-index`, `data-count`   | The current page and the page count; each dot has `data-index`.                                                              |
 | `Deck.Counter`        | `data-index`, `data-count`   | The same.                                                                                                                    |
 | `Deck.AutoplayToggle` | `data-playing`               | Autoplay is on.                                                                                                              |
-| `Deck.Viewport`       | `data-slidedeck-effect`      | The effect's name, `fade`, `curve` or `stack`, when it has one.                                                              |
-| Loop copies           | `data-slidedeck-copy`        | `before` or `after` the slides. Copies are `inert` and `aria-hidden`.                                                        |
-| Snap targets          | `data-slidedeck-snap-target` | The empty elements fade and stack lay out to snap to. Not slides.                                                            |
+| `Deck.Viewport`       | `data-carouseldeck-effect`      | The effect's name, `fade`, `curve` or `stack`, when it has one.                                                              |
+| Loop copies           | `data-carouseldeck-copy`        | `before` or `after` the slides. Copies are `inert` and `aria-hidden`.                                                        |
+| Snap targets          | `data-carouseldeck-snap-target` | The empty elements fade and stack lay out to snap to. Not slides.                                                            |
 
 Every primitive also carries a marker attribute to select it by, whatever
-your class names: `data-slidedeck-viewport`, `data-slidedeck-slide` (copies
-included), `data-slidedeck-prev`, `data-slidedeck-next`,
-`data-slidedeck-dots`, `data-slidedeck-counter` and
-`data-slidedeck-autoplay-toggle`. The live region is `data-slidedeck-live`.
+your class names: `data-carouseldeck-viewport`, `data-carouseldeck-slide` (copies
+included), `data-carouseldeck-prev`, `data-carouseldeck-next`,
+`data-carouseldeck-dots`, `data-carouseldeck-counter` and
+`data-carouseldeck-autoplay-toggle`. The live region is `data-carouseldeck-live`.
 
 Each slide's `--deck-slide-progress` is in the server HTML too, counted from
 the slide the deck starts at, so CSS on it paints before any script runs (see
@@ -42,7 +42,7 @@ measures progress from:
 <!-- demo:example-progress -->
 
 ```css
-.products [data-slidedeck-slide] {
+.products [data-carouseldeck-slide] {
   /* abs() spelled with max() for older browsers. */
   scale: calc(
     1 -

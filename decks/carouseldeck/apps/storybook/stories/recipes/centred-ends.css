@@ -2,12 +2,12 @@
 .products {
   --slide-width: 280px;
 }
-.products [data-slidedeck-viewport] {
+.products [data-carouseldeck-viewport] {
   gap: 16px;
   /* Half the viewport less half a slide, at each end. */
   padding-inline: calc(50% - var(--slide-width) / 2);
 }
-.products [data-slidedeck-slide] {
+.products [data-carouseldeck-slide] {
   width: var(--slide-width);
   scroll-snap-align: center;
 }

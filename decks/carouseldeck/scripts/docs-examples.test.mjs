@@ -36,7 +36,7 @@ test('extractExamples skips blocks in other languages', () => {
 
 test('an example marker names the file a block must match', () => {
   const markdown = [
-    '[example: recipe.tsx]: https://github.com/pedrosousa13/slidedeck/blob/main/apps/storybook/stories/recipe.tsx',
+    '[example: recipe.tsx]: https://github.com/pedrosousa13/deck-cool/blob/main/decks/carouseldeck/apps/storybook/stories/recipe.tsx',
     '',
     '```tsx',
     'export {};',
@@ -54,7 +54,7 @@ test('an example marker names the file a block must match', () => {
 
 test('a marker holds a css block to its file too', () => {
   const markdown = [
-    '[example: recipe.css]: https://github.com/pedrosousa13/slidedeck/blob/main/apps/storybook/stories/recipe.css',
+    '[example: recipe.css]: https://github.com/pedrosousa13/deck-cool/blob/main/decks/carouseldeck/apps/storybook/stories/recipe.css',
     '```css',
     'a {}',
     '```'
@@ -71,7 +71,7 @@ test('a marker holds a css block to its file too', () => {
 
 test('a marker applies to the next block only', () => {
   const markdown = [
-    '[example: a.tsx]: https://github.com/pedrosousa13/slidedeck/blob/main/a.tsx',
+    '[example: a.tsx]: https://github.com/pedrosousa13/deck-cool/blob/main/decks/carouseldeck/a.tsx',
     '```tsx',
     'export {};',
     '```',

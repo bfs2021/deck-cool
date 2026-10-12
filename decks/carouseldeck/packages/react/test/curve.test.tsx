@@ -3,8 +3,8 @@ import { render, screen } from '@testing-library/react';
 import { renderToString } from 'react-dom/server';
 import { describe, expect, test } from 'vitest';
 import { userEvent } from 'vitest/browser';
-import * as Deck from '@slidedeck/react';
-import { curve } from '@slidedeck/react/curve';
+import * as Deck from '@carouseldeck/react';
+import { curve } from '@carouseldeck/react/curve';
 import {
   addStyle,
   expectSettledTo,
@@ -74,7 +74,7 @@ function CurveDeck({
 
 // Centred, so the focal slide is in the middle of the arc: alignment is the
 // consumer's.
-const SLIDE_CSS = `.curved > [data-slidedeck-slide] {
+const SLIDE_CSS = `.curved > [data-carouseldeck-slide] {
   width: ${SIZE}px;
   height: ${SIZE}px;
   box-sizing: border-box;
@@ -87,7 +87,7 @@ const round = (value: number) => Math.round(value * 10) / 10 || 0;
 const readDeck = (root: HTMLElement) => {
   const viewport = viewportOf(root);
   const slides = () => [
-    ...viewport.querySelectorAll<HTMLElement>('[data-slidedeck-slide]')
+    ...viewport.querySelectorAll<HTMLElement>('[data-carouseldeck-slide]')
   ];
   // The curve draws each slide's content, the card that fills it.
   const matrices = () =>
@@ -128,7 +128,7 @@ const renderDeck = (props: CurveDeckProps = {}, css = '') => {
   };
 };
 
-const TALL = '.curved > [data-slidedeck-slide] { height: 240px; }';
+const TALL = '.curved > [data-carouseldeck-slide] { height: 240px; }';
 
 // With the default radius, four slides: a slide one slide from the focal
 // position turns asin(1/4), two slides asin(2/4), three asin(3/4), and drops
@@ -258,7 +258,7 @@ describe('curve', () => {
     const { viewport, slides } = renderDeck();
 
     expect(slides().map((slide) => slide.inert)).toEqual(Array(6).fill(false));
-    expect(viewport.querySelector('[data-slidedeck-snap-target]')).toBeNull();
+    expect(viewport.querySelector('[data-carouseldeck-snap-target]')).toBeNull();
   });
 
   test('fans across the other axis in a vertical deck', async () => {
@@ -369,7 +369,7 @@ describe('curve', () => {
   test('snaps where the consumer aligns the slides, at their start', async () => {
     const { viewport, next, progress, angles, root } = renderDeck(
       { viewportStyle: { paddingInline: 0 } },
-      '.curved > [data-slidedeck-slide] { scroll-snap-align: start; }'
+      '.curved > [data-carouseldeck-slide] { scroll-snap-align: start; }'
     );
 
     await userEvent.click(next);
@@ -426,7 +426,7 @@ describe('curve in server HTML', () => {
     template.innerHTML = html;
     return [
       ...template.content.querySelectorAll<HTMLElement>(
-        '[data-slidedeck-slide]'
+        '[data-carouseldeck-slide]'
       )
     ].map((slide) => slide.style.getPropertyValue('--deck-slide-progress'));
   };
@@ -477,7 +477,7 @@ describe('curve in server HTML', () => {
   const painted = (viewport: HTMLElement) =>
     [
       ...viewport.querySelectorAll<HTMLElement>(
-        ':scope > [data-slidedeck-slide]'
+        ':scope > [data-carouseldeck-slide]'
       )
     ].map((slide) => [
       getComputedStyle(slide).opacity,

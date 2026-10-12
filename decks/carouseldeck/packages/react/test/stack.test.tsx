@@ -2,8 +2,8 @@ import type { ComponentProps } from 'react';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, test } from 'vitest';
 import { userEvent } from 'vitest/browser';
-import * as Deck from '@slidedeck/react';
-import { stack } from '@slidedeck/react/stack';
+import * as Deck from '@carouseldeck/react';
+import { stack } from '@carouseldeck/react/stack';
 import {
   expectSettledTo,
   expectSnaps,
@@ -40,7 +40,7 @@ const renderDeck = (props: StackDeckProps = {}) => {
     screen.getByRole('region', { name: 'Test deck' })
   );
   const slides = () => [
-    ...viewport.querySelectorAll<HTMLElement>('[data-slidedeck-slide]')
+    ...viewport.querySelectorAll<HTMLElement>('[data-carouseldeck-slide]')
   ];
   return {
     viewport,
@@ -84,7 +84,7 @@ describe('stack', () => {
     const { viewport, next, offsets } = renderDeck();
     expect(offsets()).toEqual(STACKED);
     expect(
-      viewport.querySelectorAll('[data-slidedeck-snap-target]')
+      viewport.querySelectorAll('[data-carouseldeck-snap-target]')
     ).toHaveLength(4);
 
     await userEvent.click(next);

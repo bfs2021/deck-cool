@@ -9,7 +9,7 @@ name: Release
 # - no changesets, and a version not yet on npm (the version PR just merged):
 #   `publish` publishes the tarballs `verify` packed, with provenance, then
 #   `tag` tags them and creates their GitHub releases, and `tell-deck-cool`
-#   tells deck.cool the version, so it builds slidedeck's docs from it.
+#   tells deck.cool the version, so it builds carouseldeck's docs from it.
 # - neither: nothing runs after `verify`.
 #
 # Nothing after `verify` runs until the maintainer sets the `RELEASE_ENABLED`
@@ -58,7 +58,7 @@ jobs:
   verify:
     # A fork gets its own copy of this file. Refuse outright rather than build
     # and pack under this repo's package names (playdeck does the same).
-    if: github.repository == 'pedrosousa13/slidedeck'
+    if: github.repository == 'pedrosousa13/deck-cool'
     runs-on: ubuntu-latest
     timeout-minutes: 40
     permissions:
@@ -256,9 +256,9 @@ jobs:
           PUBLISHED_PACKAGES: ${{ needs.publish.outputs.published-packages }}
         run: node scripts/tag-releases.mjs
 
-  # deck.cool builds slidedeck's docs site from @slidedeck/docs (#133). Its
+  # deck.cool builds carouseldeck's docs site from @carouseldeck/docs (#133). Its
   # `bump-deck` workflow takes a `deck-released` dispatch, sets every
-  # `@slidedeck/*` dependency there to the version, and merges the bump: see
+  # `@carouseldeck/*` dependency there to the version, and merges the bump: see
   # deck-cool's AGENTS.md, "Releasing a deck". Only when `publish` published
   # a version, and only after `tag`, which ends once npm shows every version
   # `publish` published, so deck.cool's install finds it.
@@ -297,5 +297,5 @@ jobs:
         run: |
           gh api repos/pedrosousa13/deck-cool/dispatches \
             -f event_type=deck-released \
-            -f "client_payload[deck]=slidedeck" \
+            -f "client_payload[deck]=carouseldeck" \
             -f "client_payload[version]=${VERSION}"

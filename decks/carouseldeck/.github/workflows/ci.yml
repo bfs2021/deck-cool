@@ -157,7 +157,7 @@ jobs:
         run: pnpm verify --job unit --shard="$SHARD" ${CHANGED:+"$CHANGED"}
 
   # The React package's tests again, on React 18, against
-  # @slidedeck/react-18's build: `unit`, with its image and shards, beside it
+  # @carouseldeck/react-18's build: `unit`, with its image and shards, beside it
   # rather than after it in the same job, so CI takes no longer.
   unit-react-18:
     needs: changes

@@ -1,7 +1,7 @@
 ---
 title: 'Effects: fade and curve'
 label: Effects
-description: "slidedeck's effects: fade crossfades slides in one place, curve fans them along an arc, and stack orders them as a stack of cards. Each is its own import, so a deck without one ships none of it."
+description: "carouseldeck's effects: fade crossfades slides in one place, curve fans them along an arc, and stack orders them as a stack of cards. Each is its own import, so a deck without one ships none of it."
 ---
 
 An effect is a value you pass to `Deck.Viewport`'s `effect`, imported from
@@ -13,9 +13,9 @@ viewport keeps scrolling, snapping and dragging natively under each.
 <!-- demo:example-curve -->
 
 ```tsx
-import * as Deck from '@slidedeck/react';
-import { curve } from '@slidedeck/react/curve';
-import { fade } from '@slidedeck/react/fade';
+import * as Deck from '@carouseldeck/react';
+import { curve } from '@carouseldeck/react/curve';
+import { fade } from '@carouseldeck/react/fade';
 
 export function Effects() {
   return (

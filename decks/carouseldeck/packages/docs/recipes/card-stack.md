@@ -4,7 +4,7 @@ label: Card stack
 description: 'Draw a stack of cards on the stack effect: the effect orders the cards, and your CSS on --deck-slide-progress throws the top card out and brings it back in at the back.'
 ---
 
-`stack`, from `@slidedeck/react/stack`, gives the cards their order and
+`stack`, from `@carouseldeck/react/stack`, gives the cards their order and
 nothing else. The focal card is on top, the cards after it are behind it in
 order, and a card leaving drops behind every card halfway through, so it can
 come back in at the back. It sets no transform, colour or opacity. The look
@@ -16,8 +16,8 @@ dimmer by depth and peek out above it. Next, in the card, throws the top card
 out to the side, clear of the stack, and brings it back in at the back.
 
 ```tsx
-import * as Deck from '@slidedeck/react';
-import { stack } from '@slidedeck/react/stack';
+import * as Deck from '@carouseldeck/react';
+import { stack } from '@carouseldeck/react/stack';
 
 const cards = [
   { title: 'Draft', text: 'Write it down before it slips away.' },
@@ -114,14 +114,14 @@ room is on each side: about three cards' width in all, 872px for these
 280px cards. Overflow toward the inline start never scrolls, so a narrower
 viewport clips the throw.
 
-[example: card-stack.css]: https://github.com/pedrosousa13/slidedeck/blob/main/apps/storybook/stories/recipes/card-stack.css
+[example: card-stack.css]: https://github.com/pedrosousa13/deck-cool/blob/main/decks/carouseldeck/apps/storybook/stories/recipes/card-stack.css
 
 ```css
 /* Each slide fills the viewport, as stack lays them out: centre its card. */
-.cards [data-slidedeck-viewport] {
+.cards [data-carouseldeck-viewport] {
   height: 320px;
 }
-.cards [data-slidedeck-slide] {
+.cards [data-carouseldeck-slide] {
   display: grid;
   place-items: center;
 }
@@ -188,7 +188,7 @@ viewport clips the throw.
 Change `--behind` for another look. A fanned pile, after the cards above,
 turns and shifts each card behind the top one by its depth:
 
-[example: card-stack-fanned.css]: https://github.com/pedrosousa13/slidedeck/blob/main/apps/storybook/stories/recipes/card-stack-fanned.css
+[example: card-stack-fanned.css]: https://github.com/pedrosousa13/deck-cool/blob/main/decks/carouseldeck/apps/storybook/stories/recipes/card-stack-fanned.css
 
 ```css
 /* A fanned pile: behind the top card, each card shifts and turns by its
@@ -212,10 +212,10 @@ its own height, the 16px gap and the cards peeking above it, so here the
 cards sit at the bottom of a taller viewport:
 
 ```css
-.cards [data-slidedeck-viewport] {
+.cards [data-carouseldeck-viewport] {
   height: 420px;
 }
-.cards [data-slidedeck-slide] {
+.cards [data-carouseldeck-slide] {
   place-items: end center;
 }
 .cards .card {

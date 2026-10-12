@@ -1,9 +1,9 @@
 import { createRef, type ComponentProps } from 'react';
 import { expectTypeOf, test } from 'vitest';
-import * as Deck from '@slidedeck/react';
-import { curve } from '@slidedeck/react/curve';
-import { fade } from '@slidedeck/react/fade';
-import { stack } from '@slidedeck/react/stack';
+import * as Deck from '@carouseldeck/react';
+import { curve } from '@carouseldeck/react/curve';
+import { fade } from '@carouseldeck/react/fade';
+import { stack } from '@carouseldeck/react/stack';
 
 // Compile-time checks: `pnpm typecheck` fails if a line expected to error
 // compiles, or an unmarked one does not.

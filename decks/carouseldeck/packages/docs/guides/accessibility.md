@@ -1,6 +1,6 @@
 ---
 title: Accessibility
-description: 'What a slidedeck carousel does for accessibility with no extra work: a labelled region, slides labelled n of m, native buttons, a live region, reduced motion.'
+description: 'What a carouseldeck carousel does for accessibility with no extra work: a labelled region, slides labelled n of m, native buttons, a live region, reduced motion.'
 ---
 
 What a deck does with no extra work:
@@ -21,7 +21,7 @@ What a deck does with no extra work:
   End scroll it.
 - Loop copies are `inert` and `aria-hidden`, so they are never focused or
   announced.
-- Under reduced motion, a move slidedeck starts (Prev, Next, a dot,
+- Under reduced motion, a move carouseldeck starts (Prev, Next, a dot,
   `scrollTo`, a new `index`, a drag's release) jumps to its snap point instead
   of scrolling smoothly. Autoplay starts stopped, fade cuts, and curve stays
   flat.

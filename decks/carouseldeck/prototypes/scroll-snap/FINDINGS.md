@@ -47,7 +47,7 @@ the end is provisional until that check is done.
     it was moving. You see this as a dead stop, or as a rubber band on iOS.
   - _Off snap_: the scroller came to rest more than 2 px from a snap point.
 - The raw data is in `measure-results/<browser>.jsonl`, which is not
-  committed. Run `pnpm --filter @slidedeck/proto-scroll-snap measure` to
+  committed. Run `pnpm --filter @carouseldeck/proto-scroll-snap measure` to
   get it again. There are 200 scenario runs in Chromium and 175 each in
   Firefox and WebKit, plus a Tab walk and an accessibility check for every
   configuration.
@@ -191,7 +191,7 @@ must be as long as the scroll range.
 ## On-device checklist for the maintainer (#4)
 
 1. From the repo root, run
-   `pnpm --filter @slidedeck/proto-scroll-snap serve`. With the iPhone on
+   `pnpm --filter @carouseldeck/proto-scroll-snap serve`. With the iPhone on
    the same Wi-Fi, open `http://<machine LAN IP>:4317/`. Find the LAN IP
    with `hostname -I` on Linux, or `ipconfig getifaddr en0` on macOS.
 2. On the index page, write down the iOS version and the "This browser"

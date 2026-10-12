@@ -5,10 +5,10 @@ import { stackedLayout } from './stacked.js';
 // `--deck-slide-progress`, which Deck.Slide gives each slide from the first
 // render, server HTML included, or where it is unset, 0 for the focal slide
 // and 1 for the rest.
-const slide = '[data-slidedeck-effect=stack]>[data-slidedeck-slide]';
+const slide = '[data-carouseldeck-effect=stack]>[data-carouseldeck-slide]';
 const progress = (fallback: number) =>
-  `--slidedeck-stack-progress:var(--deck-slide-progress,${fallback})`;
-const p = 'var(--slidedeck-stack-progress)';
+  `--carouseldeck-stack-progress:var(--deck-slide-progress,${fallback})`;
+const p = 'var(--carouseldeck-stack-progress)';
 
 // The top card, at progress 0, is highest, and the cards behind it, at 1, 2,
 // …, are lower in that order. A card leaving, from 0 to -1, stays on top until
@@ -25,7 +25,7 @@ const css =
  * and drags natively (ADR-0006). Pass it to `Deck.Viewport`'s `effect`:
  *
  * ```tsx
- * import { stack } from '@slidedeck/react/stack';
+ * import { stack } from '@carouseldeck/react/stack';
  *
  * <Deck.Viewport effect={stack}>…</Deck.Viewport>
  * ```

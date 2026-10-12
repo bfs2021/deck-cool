@@ -1,4 +1,4 @@
-// `react/jsx-runtime` for @slidedeck/react's source, built for React 18:
+// `react/jsx-runtime` for @carouseldeck/react's source, built for React 18:
 // the host elements React 19 renders differently, rendered as it does.
 import {
   Fragment,
@@ -29,7 +29,7 @@ function adapt(create: Jsx): Jsx {
     // React 18 does not hoist a style into the head, nor know `precedence`:
     // the style renders in place, one per deck. Its server renderer escapes
     // a style's text, which turns the `>` of a selector into `&gt;`: the CSS,
-    // slidedeck's own or an effect's, is set as HTML instead, with any
+    // carouseldeck's own or an effect's, is set as HTML instead, with any
     // `</style` escaped as CSS, so it cannot end the element.
     if (type === 'style' && 'precedence' in props) {
       const { children, ...rest } = props;
@@ -42,7 +42,7 @@ function adapt(create: Jsx): Jsx {
     // renders just before the viewport instead. Each child keeps its slot,
     // style or not, so a style that comes or goes, as an effect's does, never
     // moves the viewport, which would remount it and lose its scroll.
-    if ('data-slidedeck-viewport' in props && Array.isArray(props.children)) {
+    if ('data-carouseldeck-viewport' in props && Array.isArray(props.children)) {
       const children: unknown[] = props.children;
       const styles = children.map((child) => (isStyle(child) ? child : null));
       const rest = children.map((child) => (isStyle(child) ? null : child));

@@ -1,8 +1,8 @@
 import { render, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, onTestFinished, test } from 'vitest';
 import { userEvent } from 'vitest/browser';
-import * as Deck from '@slidedeck/react';
-import theme from '@slidedeck/react/theme.css?inline';
+import * as Deck from '@carouseldeck/react';
+import theme from '@carouseldeck/react/theme.css?inline';
 import {
   addStyle,
   parkMouse,
@@ -59,8 +59,8 @@ const renderDeck = (props: Parameters<typeof TestDeck>[0] = {}) => {
     prev: within(root).getByRole('button', { name: 'Previous' }),
     next: within(root).getByRole('button', { name: 'Next' }),
     dots: within(group).getAllByRole('button'),
-    counter: root.querySelector<HTMLElement>('[data-slidedeck-counter]')!,
-    toggle: root.querySelector<HTMLElement>('[data-slidedeck-autoplay-toggle]')!
+    counter: root.querySelector<HTMLElement>('[data-carouseldeck-counter]')!,
+    toggle: root.querySelector<HTMLElement>('[data-carouseldeck-autoplay-toggle]')!
   };
 };
 
@@ -69,8 +69,8 @@ const style = (el: Element) => getComputedStyle(el);
 test('Prev and Next are marked for CSS to select', () => {
   const { prev, next } = renderDeck();
 
-  expect(prev.hasAttribute('data-slidedeck-prev')).toBe(true);
-  expect(next.hasAttribute('data-slidedeck-next')).toBe(true);
+  expect(prev.hasAttribute('data-carouseldeck-prev')).toBe(true);
+  expect(next.hasAttribute('data-carouseldeck-next')).toBe(true);
 });
 
 describe('theme.css', () => {

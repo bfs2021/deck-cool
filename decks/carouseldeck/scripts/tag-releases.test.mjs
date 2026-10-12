@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import { backoff, changelogSection, tagReleases } from './tag-releases.mjs';
 
 const CHANGELOG = [
-  '# @slidedeck/core',
+  '# @carouseldeck/core',
   '',
   '## 0.2.0',
   '',
@@ -15,11 +15,11 @@ const CHANGELOG = [
 ].join('\n');
 
 const core = {
-  name: '@slidedeck/core',
+  name: '@carouseldeck/core',
   version: '0.2.0',
   changelog: CHANGELOG
 };
-const react = { name: '@slidedeck/react', version: '0.2.0', changelog: '' };
+const react = { name: '@carouseldeck/react', version: '0.2.0', changelog: '' };
 
 /**
  * A registry, a GitHub and a clock that live in memory. `appearsAfter` maps a
@@ -68,7 +68,7 @@ const fakes = (appearsAfter, released = []) => {
 };
 
 test('a version published in this run is tagged once npm shows it', async () => {
-  const f = fakes({ '@slidedeck/core@0.2.0': 3, '@slidedeck/react@0.2.0': 1 });
+  const f = fakes({ '@carouseldeck/core@0.2.0': 3, '@carouseldeck/react@0.2.0': 1 });
   await tagReleases({
     releases: [core, react],
     published: [core, react],
@@ -77,18 +77,18 @@ test('a version published in this run is tagged once npm shows it', async () => 
   });
   assert.deepEqual(
     f.created.map((c) => c.tag),
-    ['@slidedeck/react@0.2.0', '@slidedeck/core@0.2.0']
+    ['@carouseldeck/react@0.2.0', '@carouseldeck/core@0.2.0']
   );
   assert.deepEqual(f.checks, {
-    '@slidedeck/core@0.2.0': 4,
-    '@slidedeck/react@0.2.0': 2
+    '@carouseldeck/core@0.2.0': 4,
+    '@carouseldeck/react@0.2.0': 2
   });
   // Three waits: the first check and three more for core.
   assert.deepEqual(f.slept, [10, 20, 40]);
 });
 
 test('a version npm never shows fails the run, by name, once the wait runs out', async () => {
-  const f = fakes({ '@slidedeck/core@0.2.0': 0 });
+  const f = fakes({ '@carouseldeck/core@0.2.0': 0 });
   await assert.rejects(
     tagReleases({
       releases: [core, react],
@@ -98,22 +98,22 @@ test('a version npm never shows fails the run, by name, once the wait runs out',
     }),
     (error) => {
       assert.ok(error instanceof Error);
-      assert.match(error.message, /@slidedeck\/react@0\.2\.0/);
-      assert.doesNotMatch(error.message, /@slidedeck\/core/);
+      assert.match(error.message, /@carouseldeck\/react@0\.2\.0/);
+      assert.doesNotMatch(error.message, /@carouseldeck\/core/);
       return true;
     }
   );
   // Core, on npm at once, is still tagged.
   assert.deepEqual(
     f.created.map((c) => c.tag),
-    ['@slidedeck/core@0.2.0']
+    ['@carouseldeck/core@0.2.0']
   );
   assert.deepEqual(f.slept, [10, 20, 40]);
-  assert.equal(f.checks['@slidedeck/react@0.2.0'], 4);
+  assert.equal(f.checks['@carouseldeck/react@0.2.0'], 4);
 });
 
 test('with nothing published in this run, npm is checked once and nothing waits', async () => {
-  const f = fakes({ '@slidedeck/core@0.2.0': 0 });
+  const f = fakes({ '@carouseldeck/core@0.2.0': 0 });
   await tagReleases({
     releases: [core, react],
     published: [],
@@ -122,20 +122,20 @@ test('with nothing published in this run, npm is checked once and nothing waits'
   });
   assert.deepEqual(
     f.created.map((c) => c.tag),
-    ['@slidedeck/core@0.2.0']
+    ['@carouseldeck/core@0.2.0']
   );
   assert.deepEqual(f.checks, {
-    '@slidedeck/core@0.2.0': 1,
-    '@slidedeck/react@0.2.0': 1
+    '@carouseldeck/core@0.2.0': 1,
+    '@carouseldeck/react@0.2.0': 1
   });
   assert.deepEqual(f.slept, []);
   assert.ok(
-    f.logged.includes('@slidedeck/react@0.2.0 is not on npm; not tagged.')
+    f.logged.includes('@carouseldeck/react@0.2.0 is not on npm; not tagged.')
   );
 });
 
 test('only the versions published in this run are waited for', async () => {
-  const f = fakes({ '@slidedeck/react@0.2.0': 2 });
+  const f = fakes({ '@carouseldeck/react@0.2.0': 2 });
   await tagReleases({
     releases: [core, react],
     published: [react],
@@ -144,13 +144,13 @@ test('only the versions published in this run are waited for', async () => {
   });
   assert.deepEqual(
     f.created.map((c) => c.tag),
-    ['@slidedeck/react@0.2.0']
+    ['@carouseldeck/react@0.2.0']
   );
-  assert.equal(f.checks['@slidedeck/core@0.2.0'], 1);
+  assert.equal(f.checks['@carouseldeck/core@0.2.0'], 1);
 });
 
 test('a version that already has a release is not released again', async () => {
-  const f = fakes({ '@slidedeck/core@0.2.0': 0 }, ['@slidedeck/core@0.2.0']);
+  const f = fakes({ '@carouseldeck/core@0.2.0': 0 }, ['@carouseldeck/core@0.2.0']);
   await tagReleases({
     releases: [core],
     published: [],
@@ -158,14 +158,14 @@ test('a version that already has a release is not released again', async () => {
     ...f
   });
   assert.deepEqual(f.created, []);
-  assert.ok(f.logged.includes('@slidedeck/core@0.2.0 already has a release.'));
+  assert.ok(f.logged.includes('@carouseldeck/core@0.2.0 already has a release.'));
 });
 
 test("a release's notes are its version's changelog section", async () => {
-  const f = fakes({ '@slidedeck/core@0.2.0': 0 });
+  const f = fakes({ '@carouseldeck/core@0.2.0': 0 });
   await tagReleases({ releases: [core], published: [], delays: [], ...f });
   assert.deepEqual(f.created, [
-    { tag: '@slidedeck/core@0.2.0', notes: '- Newer.' }
+    { tag: '@carouseldeck/core@0.2.0', notes: '- Newer.' }
   ]);
 });
 
@@ -190,8 +190,8 @@ test('during the wait, an npm error counts as "not yet", and the last one is nam
   // Core: a 503, a timeout, then found. React: a 429 every time.
   /** @type {Record<string, (string | boolean)[]>} */
   const answers = {
-    '@slidedeck/core@0.2.0': ['HTTP 503', 'no answer: timed out', true],
-    '@slidedeck/react@0.2.0': ['HTTP 429', 'HTTP 429', 'HTTP 429', 'HTTP 429']
+    '@carouseldeck/core@0.2.0': ['HTTP 503', 'no answer: timed out', true],
+    '@carouseldeck/react@0.2.0': ['HTTP 429', 'HTTP 429', 'HTTP 429', 'HTTP 429']
   };
   const f = fakes({});
   await assert.rejects(
@@ -210,15 +210,15 @@ test('during the wait, an npm error counts as "not yet", and the last one is nam
       assert.ok(error instanceof Error);
       assert.match(
         error.message,
-        /@slidedeck\/react@0\.2\.0 \(npm's last answer: HTTP 429\)/
+        /@carouseldeck\/react@0\.2\.0 \(npm's last answer: HTTP 429\)/
       );
-      assert.doesNotMatch(error.message, /@slidedeck\/core/);
+      assert.doesNotMatch(error.message, /@carouseldeck\/core/);
       return true;
     }
   );
   assert.deepEqual(
     f.created.map((c) => c.tag),
-    ['@slidedeck/core@0.2.0']
+    ['@carouseldeck/core@0.2.0']
   );
   assert.deepEqual(f.slept, [10, 20, 40]);
 });

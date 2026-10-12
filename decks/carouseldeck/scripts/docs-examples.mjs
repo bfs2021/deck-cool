@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 // Keeps the docs' code honest: the package README's and every page of the
-// docs, @slidedeck/docs under packages/docs. Every `ts` and `tsx` block in
+// docs, @carouseldeck/docs under packages/docs. Every `ts` and `tsx` block in
 // them is type-checked against the built packages, as a consumer's code is: a
 // block that no longer compiles fails. A block after an example line, a link
 // definition to the file on GitHub that the page never shows,
-// `[example: <name>]: https://github.com/pedrosousa13/slidedeck/blob/main/<path>`,
+// `[example: <name>]: https://github.com/pedrosousa13/deck-cool/blob/main/decks/carouseldeck/<path>`,
 // must instead match that file in the repo byte for byte; the file is
 // type-checked where it lives, as the playdeck recipe's story is. A `css`
 // block after such a line is held to its file too, as a recipe's story
@@ -26,7 +26,7 @@ const repoRoot = fileURLToPath(new URL('..', import.meta.url));
 const README = 'packages/react/README.md';
 const DOCS = 'packages/docs';
 // Inside the storybook app's node_modules, so the blocks resolve
-// `@slidedeck/react` and `react` through installed packages, as a consumer's
+// `@carouseldeck/react` and `react` through installed packages, as a consumer's
 // code does.
 const OUT = 'apps/storybook/node_modules/.cache/docs-examples';
 
@@ -37,7 +37,7 @@ const CLOSE = /^ *(`{3,}|~{3,})\s*$/;
 // A link definition, not an HTML comment: a docs page holds no HTML but a demo
 // marker (deck.cool's docs contract).
 const MARKER =
-  /^\[example: [^\]]+\]: https:\/\/github\.com\/pedrosousa13\/slidedeck\/blob\/main\/(\S+)$/;
+  /^\[example: [^\]]+\]: https:\/\/github\.com\/pedrosousa13\/deck-cool\/blob\/main\/decks\/carouseldeck\/(\S+)$/;
 const LANGUAGES = new Set(['ts', 'tsx']);
 
 /**

@@ -1,5 +1,5 @@
 {
-  "name": "@slidedeck/storybook",
+  "name": "@carouseldeck/storybook",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -8,7 +8,7 @@
     "build": "storybook build"
   },
   "dependencies": {
-    "@slidedeck/react": "workspace:*",
+    "@carouseldeck/react": "workspace:*",
     "react": "19.3.0",
     "react-dom": "19.3.0"
   },

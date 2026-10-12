@@ -1,7 +1,7 @@
 ---
 title: Change effect, loop or autoplay per breakpoint
 label: Per breakpoint
-description: "Switch a slidedeck deck's effect, loop or autoplay at a breakpoint: read the media query in your component and pass the props it picks, with CSS in step."
+description: "Switch a carouseldeck deck's effect, loop or autoplay at a breakpoint: read the media query in your component and pass the props it picks, with CSS in step."
 ---
 
 A prop cannot read a media query, so read it in your component and pass the
@@ -15,12 +15,12 @@ three slides and loops:
 
 <!-- demo:example-per-breakpoint -->
 
-[example: responsive-deck.tsx]: https://github.com/pedrosousa13/slidedeck/blob/main/apps/storybook/stories/recipes/responsive-deck.tsx
+[example: responsive-deck.tsx]: https://github.com/pedrosousa13/deck-cool/blob/main/decks/carouseldeck/apps/storybook/stories/recipes/responsive-deck.tsx
 
 ```tsx
 import { useCallback, useSyncExternalStore, type ReactNode } from 'react';
-import * as Deck from '@slidedeck/react';
-import { fade } from '@slidedeck/react/fade';
+import * as Deck from '@carouseldeck/react';
+import { fade } from '@carouseldeck/react/fade';
 
 /** Whether `query` matches. Server HTML, and hydrating it, use `initial`;
  * the browser's answer follows once mounted, and every change after. */
@@ -56,16 +56,16 @@ export function ResponsiveDeck({ children }: { children: ReactNode }) {
 
 Slides per view stays in CSS, at the same breakpoint:
 
-[example: responsive-deck.css]: https://github.com/pedrosousa13/slidedeck/blob/main/apps/storybook/stories/recipes/responsive-deck.css
+[example: responsive-deck.css]: https://github.com/pedrosousa13/deck-cool/blob/main/decks/carouseldeck/apps/storybook/stories/recipes/responsive-deck.css
 
 ```css
 /* From 768px, the breakpoint the hook reads, three slides in view, 16px
    apart. Below it, fade shows one slide at a time and ignores slide width. */
 @media (min-width: 768px) {
-  .products [data-slidedeck-viewport] {
+  .products [data-carouseldeck-viewport] {
     gap: 16px;
   }
-  .products [data-slidedeck-slide] {
+  .products [data-carouseldeck-slide] {
     width: calc((100% - 2 * 16px) / 3);
   }
 }

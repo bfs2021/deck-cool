@@ -17,8 +17,8 @@
 /** @type {Library[]} */
 export const libraries = [
   {
-    package: '@slidedeck/react',
-    entry: 'entries/slidedeck.tsx',
+    package: '@carouseldeck/react',
+    entry: 'entries/carouseldeck.tsx',
     nativeScroll: 'Yes: CSS scroll snap in a real scroll container',
     accessibility:
       'Labelled carousel region, slides labelled "n of m", button controls, dots with `aria-current`, a polite live region, loop copies inert',

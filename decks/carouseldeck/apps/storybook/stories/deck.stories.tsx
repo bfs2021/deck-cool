@@ -1,9 +1,9 @@
 import { useRef, useState } from 'react';
-import * as Deck from '@slidedeck/react';
-import { curve } from '@slidedeck/react/curve';
-import { fade } from '@slidedeck/react/fade';
-import { stack } from '@slidedeck/react/stack';
-import theme from '@slidedeck/react/theme.css?inline';
+import * as Deck from '@carouseldeck/react';
+import { curve } from '@carouseldeck/react/curve';
+import { fade } from '@carouseldeck/react/fade';
+import { stack } from '@carouseldeck/react/stack';
+import theme from '@carouseldeck/react/theme.css?inline';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import clip from './assets/clip.webm';
 import { eventLog } from './event-log';
@@ -103,7 +103,7 @@ function ThumbnailDecks() {
   const goTo = (i: number) => {
     setIndex(i);
     const thumb = thumbs.current[i];
-    const strip = thumb?.closest<HTMLElement>('[data-slidedeck-viewport]');
+    const strip = thumb?.closest<HTMLElement>('[data-carouseldeck-viewport]');
     if (thumb && strip) {
       const t = thumb.getBoundingClientRect();
       const s = strip.getBoundingClientRect();
@@ -168,7 +168,7 @@ function ThumbnailDecks() {
  * const goTo = (i: number) => {
  *   setIndex(i);
  *   const thumb = thumbs.current[i];
- *   const strip = thumb?.closest<HTMLElement>('[data-slidedeck-viewport]');
+ *   const strip = thumb?.closest<HTMLElement>('[data-carouseldeck-viewport]');
  *   if (thumb && strip) {
  *     const t = thumb.getBoundingClientRect();
  *     const s = strip.getBoundingClientRect();
@@ -235,7 +235,7 @@ export const Thumbnails: Story = { render: () => <ThumbnailDecks /> };
  * Here one slide per page on narrow screens, and three in view, three to a
  * page, from 640px. Give both rules of a page size the same specificity, as
  * below, so the one in a later media query overrides every slide's alignment.
- * Slidedeck re-reads the pages when the window resizes. The server cannot
+ * Carouseldeck re-reads the pages when the window resizes. The server cannot
  * measure, so it renders a page per slide, and a paged deck corrects its
  * Dots and Counter at hydration.
  */
@@ -490,7 +490,7 @@ export const Progress: Story = {
 
 /**
  * A hero that crossfades. `effect={fade}`, imported from
- * `@slidedeck/react/fade`, stacks the slides in place: the viewport still
+ * `@carouseldeck/react/fade`, stacks the slides in place: the viewport still
  * scrolls, snaps and drags natively, and each slide's opacity follows its
  * progress, so a swipe or a drag crossfades as far as it goes. Only the slide
  * shown can be reached; the others are inert. Each slide fills the viewport,
@@ -530,7 +530,7 @@ export const Fade: Story = {
 };
 
 /**
- * A stack of cards. `effect={stack}`, imported from `@slidedeck/react/stack`,
+ * A stack of cards. `effect={stack}`, imported from `@carouseldeck/react/stack`,
  * stacks the slides in place as fade does, and orders them by progress: the
  * focal slide on top, the slides after it behind it, and a slide leaving
  * drops to the back halfway. It ships no appearance, so the slides here show
@@ -582,7 +582,7 @@ const cards = Array.from({ length: 6 }, (_, i) => (
 
 /**
  * A showcase that fans out. `effect={curve}`, imported from
- * `@slidedeck/react/curve`, turns each slide's content about its centre and
+ * `@carouseldeck/react/curve`, turns each slide's content about its centre and
  * drops it onto a circle under the focal slide, fading the slide with
  * distance, as the viewport scrolls, snaps and drags natively. The slides
  * stay in place: here they snap at their centre, set in CSS. Each slide
@@ -660,7 +660,7 @@ export const Autoplay: Story = {
 };
 
 /**
- * The optional theme, `import '@slidedeck/react/theme.css'`, styles the
+ * The optional theme, `import '@carouseldeck/react/theme.css'`, styles the
  * controls; the slides stay the consumer's CSS. Each value it sets is a
  * `--deck-*` custom property, such as `--deck-accent`, to override from any
  * ancestor.
@@ -698,8 +698,8 @@ export const PlaydeckVideo: Story = {
   render: () => (
     <div className="video-deck">
       <style>{`
-        .video-deck [data-slidedeck-viewport] { gap: 16px; }
-        .video-deck [data-slidedeck-slide] { width: 80%; }
+        .video-deck [data-carouseldeck-viewport] { gap: 16px; }
+        .video-deck [data-carouseldeck-slide] { width: 80%; }
       `}</style>
       <VideoDeck sources={[clip, clip, clip, clip]} />
     </div>
@@ -718,8 +718,8 @@ export const PlaydeckVideoLoop: Story = {
   render: () => (
     <div className="video-deck">
       <style>{`
-        .video-deck [data-slidedeck-viewport] { gap: 16px; }
-        .video-deck [data-slidedeck-slide] { width: 80%; }
+        .video-deck [data-carouseldeck-viewport] { gap: 16px; }
+        .video-deck [data-carouseldeck-slide] { width: 80%; }
       `}</style>
       <VideoDeck
         sources={[clip, clip, clip, clip]}

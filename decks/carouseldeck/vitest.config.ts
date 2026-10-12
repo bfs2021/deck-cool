@@ -35,38 +35,38 @@ export default defineConfig({
     // is not swallowed by the bare specifier's alias.
     alias: [
       {
-        find: /^@slidedeck\/core$/,
+        find: /^@carouseldeck\/core$/,
         replacement: fileURLToPath(
           new URL('./packages/core/src/index.ts', import.meta.url)
         )
       },
       {
-        find: /^@slidedeck\/react\/fade$/,
+        find: /^@carouseldeck\/react\/fade$/,
         replacement: fileURLToPath(
           new URL('./packages/react/src/fade.ts', import.meta.url)
         )
       },
       {
-        find: /^@slidedeck\/react\/stack$/,
+        find: /^@carouseldeck\/react\/stack$/,
         replacement: fileURLToPath(
           new URL('./packages/react/src/stack.ts', import.meta.url)
         )
       },
       {
-        find: /^@slidedeck\/react\/curve$/,
+        find: /^@carouseldeck\/react\/curve$/,
         replacement: fileURLToPath(
           new URL('./packages/react/src/curve.ts', import.meta.url)
         )
       },
       {
         // Unanchored at the end: a test imports it with `?inline`.
-        find: /^@slidedeck\/react\/theme\.css/,
+        find: /^@carouseldeck\/react\/theme\.css/,
         replacement: fileURLToPath(
           new URL('./packages/react/src/theme.css', import.meta.url)
         )
       },
       {
-        find: /^@slidedeck\/react$/,
+        find: /^@carouseldeck\/react$/,
         replacement: fileURLToPath(
           new URL('./packages/react/src/index.tsx', import.meta.url)
         )

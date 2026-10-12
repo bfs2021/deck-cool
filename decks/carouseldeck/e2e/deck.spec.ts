@@ -9,7 +9,7 @@ import { expect, test, type Page } from '@playwright/test';
  * that scrolls nothing fails rather than hangs.
  */
 async function watchScroll(page: Page): Promise<() => Promise<number>> {
-  const viewport = page.locator('[data-slidedeck-viewport]').first();
+  const viewport = page.locator('[data-carouseldeck-viewport]').first();
   await viewport.evaluate((el) => {
     const at = () => Math.abs(el.scrollLeft) + el.scrollTop;
     const start = at();
@@ -53,12 +53,12 @@ async function openStory(page: Page, id: string, args?: string, query = '') {
   );
   await page.waitForFunction(() => {
     const viewports = [
-      ...document.querySelectorAll('[data-slidedeck-viewport]')
+      ...document.querySelectorAll('[data-carouseldeck-viewport]')
     ];
     return (
       viewports.length > 0 &&
       viewports.every((viewport) =>
-        viewport.querySelector('[data-slidedeck-slide][data-in-view]')
+        viewport.querySelector('[data-carouseldeck-slide][data-in-view]')
       )
     );
   });
@@ -133,7 +133,7 @@ for (const id of stories) {
       (
         await axe()
           .withRules(['color-contrast'])
-          .exclude('[data-slidedeck-slide]:not([data-focal])')
+          .exclude('[data-carouseldeck-slide]:not([data-focal])')
           .analyze()
       ).violations
     ).toEqual([]);
@@ -141,7 +141,7 @@ for (const id of stories) {
 }
 
 /** A loop's copies, as opposed to its slides. */
-const COPIES = '[data-slidedeck-copy]';
+const COPIES = '[data-carouseldeck-copy]';
 
 /**
  * Per slide of the playdeck recipe, whether its video is playing; a slide
@@ -150,7 +150,7 @@ const COPIES = '[data-slidedeck-copy]';
  */
 const videosPlaying = (
   page: Page,
-  slides = '[data-slidedeck-slide]:not([data-slidedeck-copy])'
+  slides = '[data-carouseldeck-slide]:not([data-carouseldeck-copy])'
 ) =>
   page
     .getByRole('region', { name: 'Featured slides' })
@@ -195,7 +195,7 @@ const focalVideoLoaded = (page: Page) =>
   expect
     .poll(() =>
       page
-        .locator('[data-slidedeck-slide][data-focal] video')
+        .locator('[data-carouseldeck-slide][data-focal] video')
         .evaluateAll((videos: HTMLVideoElement[]) =>
           videos.some(
             (video) => video.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA
@@ -258,12 +258,12 @@ test("the looping playdeck recipe plays the focal slide's video across the seam 
   // The copies either side of the seam show a still frame, not a blank.
   await expect
     .poll(() =>
-      copyHasFrame(page, '[data-slidedeck-copy=before][aria-label="4 of 4"]')
+      copyHasFrame(page, '[data-carouseldeck-copy=before][aria-label="4 of 4"]')
     )
     .toBe(true);
   await expect
     .poll(() =>
-      copyHasFrame(page, '[data-slidedeck-copy=after][aria-label="1 of 4"]')
+      copyHasFrame(page, '[data-carouseldeck-copy=after][aria-label="1 of 4"]')
     )
     .toBe(true);
   // On across the seam, and one more.
@@ -332,7 +332,7 @@ test('tabbing into the next slide as Next moves the deck rests it on that slide'
 }) => {
   await openStory(page, 'deck--default');
   const deck = page.getByRole('region', { name: 'Featured slides' });
-  const viewport = deck.locator('[data-slidedeck-viewport]');
+  const viewport = deck.locator('[data-carouseldeck-viewport]');
   // How far slide 2 is from the viewport's start edge.
   const offset = async () =>
     Math.round(
@@ -363,7 +363,7 @@ test('Shift+Tab out of a slide onto the viewport as Next moves the deck rests it
 }) => {
   await openStory(page, 'deck--default');
   const deck = page.getByRole('region', { name: 'Featured slides' });
-  const viewport = deck.locator('[data-slidedeck-viewport]');
+  const viewport = deck.locator('[data-carouseldeck-viewport]');
   // How far slide 2 is from the viewport's start edge.
   const offset = async () =>
     Math.round(
@@ -463,7 +463,7 @@ test('following the main deck scrolls the strip, never the page', async ({
     strip.getByRole('button', { name: `Slide ${n}` }).evaluate((thumb) => {
       const t = thumb.getBoundingClientRect();
       const s = thumb
-        .closest('[data-slidedeck-viewport]')!
+        .closest('[data-carouseldeck-viewport]')!
         .getBoundingClientRect();
       return t.left >= s.left - 1 && t.right <= s.right + 1;
     });
@@ -599,7 +599,7 @@ test('a vertical deck steps down with Next and comes to rest on a snap point aft
 }) => {
   await openStory(page, 'deck--vertical');
   const deck = page.getByRole('region', { name: 'Featured slides' });
-  const viewport = deck.locator('[data-slidedeck-viewport]');
+  const viewport = deck.locator('[data-carouseldeck-viewport]');
   const top = async (n: number) =>
     (await deck.getByRole('group', { name: `${n} of 6` }).boundingBox())!.y -
     (await viewport.boundingBox())!.y;
@@ -635,7 +635,7 @@ test('in a right-to-left document, Next moves toward the inline end', async ({
   await openStory(page, 'deck--right-to-left');
   const deck = page.getByRole('region', { name: 'Featured slides' });
   const viewport = (await deck
-    .locator('[data-slidedeck-viewport]')
+    .locator('[data-carouseldeck-viewport]')
     .boundingBox())!;
   const slide = (n: number) => deck.getByRole('group', { name: `${n} of 6` });
   // The first slide sits at the right, the inline start.
@@ -788,8 +788,8 @@ test('a fade deck crossfades in place on Next, settles with one slide shown, and
 }) => {
   await openStory(page, 'deck--fade');
   const deck = page.getByRole('region', { name: 'Featured slides' });
-  const viewport = deck.locator('[data-slidedeck-viewport]');
-  const slides = deck.locator('[data-slidedeck-slide]');
+  const viewport = deck.locator('[data-carouseldeck-viewport]');
+  const slides = deck.locator('[data-carouseldeck-slide]');
   const opacities = () =>
     slides.evaluateAll((all) =>
       all.map((slide) => Number(getComputedStyle(slide).opacity))
@@ -805,7 +805,7 @@ test('a fade deck crossfades in place on Next, settles with one slide shown, and
   // under load, WebKit can scroll from one slide to the next with one frame
   // between them.
   await viewport.evaluate((el) => {
-    const all = [...el.querySelectorAll('[data-slidedeck-slide]')];
+    const all = [...el.querySelectorAll('[data-carouseldeck-slide]')];
     const frames: number[][] = [];
     let moved = false;
     let frame = 0;
@@ -869,9 +869,9 @@ for (const story of ['recipes--card-stack', 'recipes--card-stack-fanned']) {
   }) => {
     await openStory(page, story);
     const deck = page.getByRole('region', { name: 'Featured slides' });
-    const viewport = deck.locator('[data-slidedeck-viewport]');
+    const viewport = deck.locator('[data-carouseldeck-viewport]');
     const count = await deck
-      .locator('[data-slidedeck-slide]:not([data-slidedeck-copy])')
+      .locator('[data-carouseldeck-slide]:not([data-carouseldeck-copy])')
       .count();
 
     // Record, in the page, how many cards each frame the viewport scrolls in
@@ -937,8 +937,8 @@ test('a curve deck fans its cards on an arc, settles upright on Next, and drags 
 }) => {
   await openStory(page, 'deck--curve');
   const deck = page.getByRole('region', { name: 'Featured slides' });
-  const viewport = deck.locator('[data-slidedeck-viewport]');
-  const slides = deck.locator('[data-slidedeck-slide]');
+  const viewport = deck.locator('[data-carouseldeck-viewport]');
+  const slides = deck.locator('[data-carouseldeck-slide]');
   /** Each slide's card's rotation in whole degrees, clockwise. */
   const angles = () =>
     slides.evaluateAll((all) =>
@@ -1075,7 +1075,7 @@ async function flick(
   axis: 'x' | 'y' = 'x',
   speed = FLICK_SPEED
 ) {
-  const viewport = page.locator('[data-slidedeck-viewport]').first();
+  const viewport = page.locator('[data-carouseldeck-viewport]').first();
   const box = (await viewport.boundingBox())!;
   const duration = Math.abs(distance) / speed;
   /** Where the pointer is `ms` into the flick. */
@@ -1222,7 +1222,7 @@ for (const { id, slides, last, back, axis } of [
     await openStory(page, id);
     const deck = page.getByRole('region', { name: 'Featured slides' });
     await expect(deck).toHaveAttribute('data-index', '0');
-    const viewport = deck.locator('[data-slidedeck-viewport]');
+    const viewport = deck.locator('[data-carouseldeck-viewport]');
     const rest = await viewport.evaluate((el) => [el.scrollLeft, el.scrollTop]);
     /** How far the deck is scrolled from where it rested at the start. */
     const moved = () =>
@@ -1259,7 +1259,7 @@ for (const { id, slides, last, axis } of [
       await openStory(page, id, `defaultIndex:${from}`);
       const deck = page.getByRole('region', { name: 'Featured slides' });
       await expect(deck).toHaveAttribute('data-index', String(from));
-      const viewport = deck.locator('[data-slidedeck-viewport]');
+      const viewport = deck.locator('[data-carouseldeck-viewport]');
       const box = (await viewport.boundingBox())!;
       // One snap point: a slide's width, or the viewport's height.
       const step = await deck
@@ -1294,7 +1294,7 @@ test('a loop deck steps across the seam with Prev and Next, and no copy is reach
   const prev = deck.getByRole('button', { name: 'Previous' });
   const next = deck.getByRole('button', { name: 'Next' });
   // Three sets of slides in the document, one in the accessibility tree.
-  await expect(deck.locator('[data-slidedeck-slide]')).toHaveCount(18);
+  await expect(deck.locator('[data-carouseldeck-slide]')).toHaveCount(18);
   await expect(deck.getByRole('group', { name: / of 6$/ })).toHaveCount(6);
 
   await expect(prev).toBeEnabled();
@@ -1316,7 +1316,7 @@ test('a loop deck steps across the seam with Prev and Next, and no copy is reach
     ).toBeFocused();
     expect(
       await page.evaluate(() =>
-        Boolean(document.activeElement?.closest('[data-slidedeck-copy]'))
+        Boolean(document.activeElement?.closest('[data-carouseldeck-copy]'))
       )
     ).toBe(false);
   }
@@ -1364,7 +1364,7 @@ test('deck--loop: with log=1, a key scroll back across the seam logs the rest on
   await openStory(page, 'deck--loop', undefined, '&log=1');
   const deck = page.getByRole('region', { name: 'Featured slides' });
   const log = page.getByRole('log', { name: 'Event log' });
-  await deck.locator('[data-slidedeck-viewport]').focus();
+  await deck.locator('[data-carouseldeck-viewport]').focus();
 
   await page.keyboard.press('ArrowLeft');
 
@@ -1422,7 +1422,7 @@ const offCentre = (page: Page, name: string) =>
     .evaluate((slide) => {
       const s = slide.getBoundingClientRect();
       const v = slide
-        .closest('[data-slidedeck-viewport]')!
+        .closest('[data-carouseldeck-viewport]')!
         .getBoundingClientRect();
       return Math.abs(s.left + s.width / 2 - (v.left + v.width / 2));
     });
@@ -1455,10 +1455,10 @@ test('the centred-ends recipe rests with the first slide, and the last, centred'
 const middleAndHighlighted = (page: Page) =>
   page
     .getByRole('region', { name: 'Featured slides' })
-    .locator('[data-slidedeck-slide][data-in-view]')
+    .locator('[data-carouseldeck-slide][data-in-view]')
     .evaluateAll((slides) => {
       const v = slides[0]
-        .closest('[data-slidedeck-viewport]')!
+        .closest('[data-carouseldeck-viewport]')!
         .getBoundingClientRect();
       const off = (slide: Element) => {
         const s = slide.getBoundingClientRect();
@@ -1520,9 +1520,9 @@ test('the curve-size recipe leaves the arc room: no slide that is not faded out 
   /** Per slide not faded out, how far its card reaches past the viewport's
    * top or bottom edge, to the nearest px. */
   const clipped = () =>
-    deck.locator('[data-slidedeck-slide]').evaluateAll((slides) => {
+    deck.locator('[data-carouseldeck-slide]').evaluateAll((slides) => {
       const v = slides[0]
-        .closest('[data-slidedeck-viewport]')!
+        .closest('[data-carouseldeck-viewport]')!
         .getBoundingClientRect();
       return slides
         .filter((slide) => Number(getComputedStyle(slide).opacity) > 0)
@@ -1554,9 +1554,9 @@ test('the curve-size recipe leaves the arc room: no slide that is not faded out 
   // 0.4 of a 176px snap step (160px slides, 16px apart).
   await page.mouse.move(x - 70, y, { steps: 12 });
   const midMove = () =>
-    deck.locator('[data-slidedeck-viewport]').evaluate((viewport) => {
+    deck.locator('[data-carouseldeck-viewport]').evaluate((viewport) => {
       const slides = [
-        ...viewport.querySelectorAll<HTMLElement>('[data-slidedeck-slide]')
+        ...viewport.querySelectorAll<HTMLElement>('[data-carouseldeck-slide]')
       ];
       const v = viewport.getBoundingClientRect();
       const rest = slides[0].getBoundingClientRect().bottom;
@@ -1606,10 +1606,10 @@ test('the per-breakpoint recipe crossfades below 768px and loops from it, keepin
 }) => {
   await openStory(page, 'recipes--per-breakpoint');
   const deck = page.getByRole('region', { name: 'Featured slides' });
-  const viewport = deck.locator('[data-slidedeck-viewport]');
-  const copies = deck.locator('[data-slidedeck-copy]');
+  const viewport = deck.locator('[data-carouseldeck-viewport]');
+  const copies = deck.locator('[data-carouseldeck-copy]');
   const slide = (n: number) => deck.getByRole('group', { name: `${n} of 6` });
-  const live = deck.locator('[data-slidedeck-live]');
+  const live = deck.locator('[data-carouseldeck-live]');
   /** How far slide `n`'s left edge sits from the viewport's, to the pixel. */
   const fromStart = (n: number) =>
     slide(n).evaluate((el) =>
@@ -1659,7 +1659,7 @@ test('the per-breakpoint recipe crossfades below 768px and loops from it, keepin
   };
 
   // Wide: no effect, and a loop: Previous crosses the seam.
-  await expect(viewport).not.toHaveAttribute('data-slidedeck-effect');
+  await expect(viewport).not.toHaveAttribute('data-carouseldeck-effect');
   await expect(copies).toHaveCount(12);
   await deck.getByRole('button', { name: 'Previous' }).click();
   await expect(deck).toHaveAttribute('data-index', '5');
@@ -1672,7 +1672,7 @@ test('the per-breakpoint recipe crossfades below 768px and loops from it, keepin
   // Narrow: a crossfade, one slide at a time, that does not loop, on the
   // same slide, with nothing announced.
   expect(await resize(600)).toEqual([]);
-  await expect(viewport).toHaveAttribute('data-slidedeck-effect', 'fade');
+  await expect(viewport).toHaveAttribute('data-carouseldeck-effect', 'fade');
   await expect(copies).toHaveCount(0);
   await expect(deck).toHaveAttribute('data-index', '1');
   await expect(slide(2)).toHaveAttribute('data-focal');
@@ -1685,7 +1685,7 @@ test('the per-breakpoint recipe crossfades below 768px and loops from it, keepin
 
   // Wide again: the loop is back, on the same slide.
   expect(await resize(1280)).toEqual([]);
-  await expect(viewport).not.toHaveAttribute('data-slidedeck-effect');
+  await expect(viewport).not.toHaveAttribute('data-carouseldeck-effect');
   await expect(copies).toHaveCount(12);
   await expect(deck).toHaveAttribute('data-index', '2');
   expect(await fromStart(3)).toBe(0);

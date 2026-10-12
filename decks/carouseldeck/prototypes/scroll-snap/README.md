@@ -26,9 +26,9 @@ jump detector, explained in `FINDINGS.md`.
 From the repo root:
 
 ```sh
-pnpm --filter @slidedeck/proto-scroll-snap dev      # dev server
-pnpm --filter @slidedeck/proto-scroll-snap build    # static dist/
-pnpm --filter @slidedeck/proto-scroll-snap preview  # serve dist/ on :4173
+pnpm --filter @carouseldeck/proto-scroll-snap dev      # dev server
+pnpm --filter @carouseldeck/proto-scroll-snap build    # static dist/
+pnpm --filter @carouseldeck/proto-scroll-snap preview  # serve dist/ on :4173
 ```
 
 `dist/` is plain HTML, JS and CSS with relative asset paths: it works served
@@ -40,7 +40,7 @@ The prototype is not deployed anywhere. To open it on an iPhone, run this from
 the repo root:
 
 ```sh
-pnpm --filter @slidedeck/proto-scroll-snap serve
+pnpm --filter @carouseldeck/proto-scroll-snap serve
 ```
 
 It builds `dist/` and serves it on port 4317 on all interfaces. On the
@@ -51,8 +51,8 @@ LAN IP with `hostname -I` (Linux) or `ipconfig getifaddr en0` (macOS).
 
 ```sh
 pnpm exec playwright install chromium firefox webkit
-pnpm --filter @slidedeck/proto-scroll-snap build
-pnpm --filter @slidedeck/proto-scroll-snap measure
+pnpm --filter @carouseldeck/proto-scroll-snap build
+pnpm --filter @carouseldeck/proto-scroll-snap measure
 ```
 
 The suite in `measure/` drives each page in Playwright's chromium, firefox

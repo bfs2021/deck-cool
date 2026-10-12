@@ -4,10 +4,10 @@
   "commit": false,
   "fixed": [
     [
-      "@slidedeck/core",
-      "@slidedeck/react",
-      "@slidedeck/react-18",
-      "@slidedeck/docs"
+      "@carouseldeck/core",
+      "@carouseldeck/react",
+      "@carouseldeck/react-18",
+      "@carouseldeck/docs"
     ]
   ],
   "linked": [],

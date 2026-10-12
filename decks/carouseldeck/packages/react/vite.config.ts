@@ -10,7 +10,7 @@ export default defineConfig({
       // dist is not emptied, as it holds tsc's declarations: each build
       // removes the last one's modules, so a renamed or dropped chunk never
       // gets into a tarball.
-      name: 'slidedeck-clean-modules',
+      name: 'carouseldeck-clean-modules',
       apply: 'build',
       buildStart() {
         const dist = fileURLToPath(new URL('dist/', import.meta.url));
@@ -25,7 +25,7 @@ export default defineConfig({
     {
       // The optional theme ships as written, comments and all: no entry
       // imports it, so a deck that does not import it ships none of it.
-      name: 'slidedeck-theme',
+      name: 'carouseldeck-theme',
       generateBundle() {
         const theme = fileURLToPath(new URL('src/theme.css', import.meta.url));
         // No entry imports it, so `vite build --watch` would miss its edits.
@@ -54,7 +54,7 @@ export default defineConfig({
       fileName: (_format, name) => `${name}.js`
     },
     rollupOptions: {
-      external: ['@slidedeck/core', 'react', 'react/jsx-runtime', 'react-dom'],
+      external: ['@carouseldeck/core', 'react', 'react/jsx-runtime', 'react-dom'],
       // Every module is client code, effects included: a server component
       // passes `fade` to `Deck.Viewport` as a client reference. The bundler
       // drops a directive written in the source, so the banner writes it as

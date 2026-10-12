@@ -1,8 +1,8 @@
 // A consumer of the React 18 build, type-checked with React 18's own types by
 // tsconfig.test.json: every primitive takes a ref to its element.
 import { createRef } from 'react';
-import * as Deck from '@slidedeck/react';
-import { fade } from '@slidedeck/react/fade';
+import * as Deck from '@carouseldeck/react';
+import { fade } from '@carouseldeck/react/fade';
 
 const region = createRef<HTMLDivElement>();
 const slide = createRef<HTMLDivElement>();

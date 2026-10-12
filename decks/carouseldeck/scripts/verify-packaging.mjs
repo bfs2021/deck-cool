@@ -16,12 +16,12 @@ const repoRoot = fileURLToPath(new URL('..', import.meta.url));
 
 // Packages whose every module a React Server Components bundler must treat as
 // client code: the directive lets a server component render the deck. Not
-// @slidedeck/core, which is framework-free. Each names its server component
+// @carouseldeck/core, which is framework-free. Each names its server component
 // code, by file: the `react-server` entry and the modules it runs in the
 // server component (ADR-0011). Named, not found by following imports, so a
 // client chunk that loses its directive never passes as server code.
 const CLIENT_PACKAGES = new Map([
-  ['@slidedeck/react', new Set(['server.js', 'slides-in.js'])]
+  ['@carouseldeck/react', new Set(['server.js', 'slides-in.js'])]
 ]);
 const USE_CLIENT = /^(['"])use client\1;?\n/;
 // Every file a docs package may ship, by its path in the tarball.
@@ -69,7 +69,7 @@ for (const { manifest, path } of packages) {
   const { name } = manifest;
 
   if (manifest.exports === undefined) {
-    const destination = mkdtempSync(join(tmpdir(), 'slidedeck-pack-'));
+    const destination = mkdtempSync(join(tmpdir(), 'carouseldeck-pack-'));
     try {
       pnpm(['--filter', name, 'pack', '--pack-destination', destination]);
       const tarball = join(destination, readdirSync(destination)[0] ?? '');
@@ -99,7 +99,7 @@ for (const { manifest, path } of packages) {
     }
   }
 
-  const destination = mkdtempSync(join(tmpdir(), 'slidedeck-pack-'));
+  const destination = mkdtempSync(join(tmpdir(), 'carouseldeck-pack-'));
   try {
     pnpm(['--filter', name, 'pack', '--pack-destination', destination]);
     const tarball = join(destination, readdirSync(destination)[0]);

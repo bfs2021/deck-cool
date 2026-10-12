@@ -1,5 +1,5 @@
 /*
- * @slidedeck/react/theme.css: an optional appearance for a deck's controls,
+ * @carouseldeck/react/theme.css: an optional appearance for a deck's controls,
  * Prev, Next, Dots, Counter and AutoplayToggle. Slides and their geometry
  * stay your CSS (ADR-0003), and a deck works without this file.
  *
@@ -55,9 +55,9 @@
  */
 
 :where(
-  [data-slidedeck-prev],
-  [data-slidedeck-next],
-  [data-slidedeck-autoplay-toggle]
+  [data-carouseldeck-prev],
+  [data-carouseldeck-next],
+  [data-carouseldeck-autoplay-toggle]
 ) {
   padding: var(--deck-control-padding, 0.375rem 0.75rem);
   border: var(--deck-control-border, 1px solid #767676);
@@ -69,14 +69,14 @@
 }
 
 :where(
-  [data-slidedeck-prev],
-  [data-slidedeck-next],
-  [data-slidedeck-autoplay-toggle]
+  [data-carouseldeck-prev],
+  [data-carouseldeck-next],
+  [data-carouseldeck-autoplay-toggle]
 ):where(:hover:not(:disabled)) {
   background-color: var(--deck-control-hover-background, #f0f0f0);
 }
 
-:where([data-slidedeck-autoplay-toggle][data-playing]) {
+:where([data-carouseldeck-autoplay-toggle][data-playing]) {
   background-color: var(
     --deck-control-active-background,
     var(--deck-accent, #0b5cd5)
@@ -84,16 +84,16 @@
   color: var(--deck-control-active-color, #ffffff);
 }
 
-:where([data-slidedeck-prev], [data-slidedeck-next]):where(:disabled) {
+:where([data-carouseldeck-prev], [data-carouseldeck-next]):where(:disabled) {
   opacity: var(--deck-control-disabled-opacity, 0.4);
 }
 
-:where([data-slidedeck-dots]) {
+:where([data-carouseldeck-dots]) {
   display: flex;
   gap: var(--deck-dot-gap, 0.25rem);
 }
 
-:where([data-slidedeck-dots] > button) {
+:where([data-carouseldeck-dots] > button) {
   box-sizing: border-box;
   inline-size: var(--deck-dot-target-size, 1.5rem);
   block-size: var(--deck-dot-target-size, 1.5rem);
@@ -106,7 +106,7 @@
   background-clip: content-box;
 }
 
-:where([data-slidedeck-dots] > button[aria-current='true']) {
+:where([data-carouseldeck-dots] > button[aria-current='true']) {
   inline-size: calc(
     var(--deck-dot-target-size, 1.5rem) - var(--deck-dot-size, 0.625rem) +
       var(--deck-dot-current-width, 1.25rem)
@@ -114,7 +114,7 @@
   background-color: var(--deck-accent, #0b5cd5);
 }
 
-:where([data-slidedeck-dots] > button:not([aria-current='true']):hover) {
+:where([data-carouseldeck-dots] > button:not([aria-current='true']):hover) {
   background-color: var(--deck-dot-hover-color, #1a1a1a);
 }
 
@@ -123,20 +123,20 @@
  * highlighted. The playing toggle is highlighted too, so it still differs
  * from the stopped one. */
 @media (forced-colors: active) {
-  :where([data-slidedeck-dots] > button) {
+  :where([data-carouseldeck-dots] > button) {
     forced-color-adjust: none;
     background-color: CanvasText;
     outline-color: CanvasText;
   }
 
   :where(
-    [data-slidedeck-dots] > button[aria-current='true'],
-    [data-slidedeck-dots] > button:hover
+    [data-carouseldeck-dots] > button[aria-current='true'],
+    [data-carouseldeck-dots] > button:hover
   ) {
     background-color: Highlight;
   }
 
-  :where([data-slidedeck-autoplay-toggle][data-playing]) {
+  :where([data-carouseldeck-autoplay-toggle][data-playing]) {
     forced-color-adjust: none;
     border-color: ButtonText;
     background-color: Highlight;
@@ -145,16 +145,16 @@
   }
 }
 
-:where([data-slidedeck-counter]) {
+:where([data-carouseldeck-counter]) {
   color: var(--deck-control-color, #1a1a1a);
   font-size: var(--deck-control-font-size, 0.875rem);
 }
 
 :where(
-  [data-slidedeck-prev],
-  [data-slidedeck-next],
-  [data-slidedeck-autoplay-toggle],
-  [data-slidedeck-dots] > button
+  [data-carouseldeck-prev],
+  [data-carouseldeck-next],
+  [data-carouseldeck-autoplay-toggle],
+  [data-carouseldeck-dots] > button
 ) {
   transition:
     background-color var(--deck-transition-duration, 150ms),
@@ -163,10 +163,10 @@
 }
 
 :where(
-  [data-slidedeck-prev],
-  [data-slidedeck-next],
-  [data-slidedeck-autoplay-toggle],
-  [data-slidedeck-dots] > button
+  [data-carouseldeck-prev],
+  [data-carouseldeck-next],
+  [data-carouseldeck-autoplay-toggle],
+  [data-carouseldeck-dots] > button
 ):where(:focus-visible) {
   outline: var(--deck-focus-width, 2px) solid var(--deck-accent, #0b5cd5);
   outline-offset: var(--deck-focus-offset, 2px);
@@ -174,10 +174,10 @@
 
 @media (prefers-reduced-motion: reduce) {
   :where(
-    [data-slidedeck-prev],
-    [data-slidedeck-next],
-    [data-slidedeck-autoplay-toggle],
-    [data-slidedeck-dots] > button
+    [data-carouseldeck-prev],
+    [data-carouseldeck-next],
+    [data-carouseldeck-autoplay-toggle],
+    [data-carouseldeck-dots] > button
   ) {
     transition: none;
   }

@@ -1,6 +1,6 @@
 ---
 title: Centre the first and last slide
-description: 'Let the first and last slides of a centred slidedeck deck reach the middle of the viewport by padding each end by half its width less half a slide.'
+description: 'Let the first and last slides of a centred carouseldeck deck reach the middle of the viewport by padding each end by half its width less half a slide.'
 ---
 
 With `scroll-snap-align: center`, the first slide cannot reach the centre of
@@ -12,19 +12,19 @@ enough:
 
 <!-- demo:example-centred-ends -->
 
-[example: centred-ends.css]: https://github.com/pedrosousa13/slidedeck/blob/main/apps/storybook/stories/recipes/centred-ends.css
+[example: centred-ends.css]: https://github.com/pedrosousa13/deck-cool/blob/main/decks/carouseldeck/apps/storybook/stories/recipes/centred-ends.css
 
 ```css
 /* Slides 280px wide, 16px apart, each centred, the first and last too. */
 .products {
   --slide-width: 280px;
 }
-.products [data-slidedeck-viewport] {
+.products [data-carouseldeck-viewport] {
   gap: 16px;
   /* Half the viewport less half a slide, at each end. */
   padding-inline: calc(50% - var(--slide-width) / 2);
 }
-.products [data-slidedeck-slide] {
+.products [data-carouseldeck-slide] {
   width: var(--slide-width);
   scroll-snap-align: center;
 }

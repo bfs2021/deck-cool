@@ -1,5 +1,5 @@
 {
-  "name": "slidedeck",
+  "name": "carouseldeck",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@10.34.5+sha512.a4ee05f2f73658255bd6a89859c065a45c28a57daefae2c893a168ee2b73168c37b91e83e57ea67654ad03f03031746430e8bce38e362e042605fb8abc80192e",
@@ -12,7 +12,7 @@
     "lint": "eslint .",
     "typecheck": "tsc -b",
     "test": "vitest run",
-    "test:react-18": "turbo run build --filter=@slidedeck/react-18 && tsc -p packages/react-18/tsconfig.test.json && vitest run -c vitest.react-18.config.ts",
+    "test:react-18": "turbo run build --filter=@carouseldeck/react-18 && tsc -p packages/react-18/tsconfig.test.json && vitest run -c vitest.react-18.config.ts",
     "test:scripts": "node --test scripts/*.test.mjs",
     "build": "turbo run build",
     "test:e2e": "playwright test",

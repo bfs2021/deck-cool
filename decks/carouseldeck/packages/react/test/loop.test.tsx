@@ -2,9 +2,9 @@ import { useState } from 'react';
 import { render, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, onTestFinished, test, vi } from 'vitest';
 import { userEvent } from 'vitest/browser';
-import * as Deck from '@slidedeck/react';
-import { curve } from '@slidedeck/react/curve';
-import { fade } from '@slidedeck/react/fade';
+import * as Deck from '@carouseldeck/react';
+import { curve } from '@carouseldeck/react/curve';
+import { fade } from '@carouseldeck/react/fade';
 import {
   addStyle,
   CENTRED,
@@ -57,7 +57,7 @@ const renderLoop = (props: Parameters<typeof TestDeck>[0] = {}) => {
       within(root)
         .getByRole('group', { name: 'Choose page' })
         .querySelectorAll('button'),
-    counter: () => root.querySelector('[data-slidedeck-counter]')?.textContent,
+    counter: () => root.querySelector('[data-carouseldeck-counter]')?.textContent,
     /** Where a slide (copies are out of the accessibility tree, so never a
      * copy) starts, from the viewport's start edge. */
     offsetOf: (label: string) =>
@@ -69,7 +69,7 @@ const renderLoop = (props: Parameters<typeof TestDeck>[0] = {}) => {
 };
 
 const copiesIn = (viewport: HTMLElement) => [
-  ...viewport.querySelectorAll('[data-slidedeck-copy]')
+  ...viewport.querySelectorAll('[data-carouseldeck-copy]')
 ];
 
 describe('loop', () => {
@@ -180,7 +180,7 @@ describe('loop', () => {
     await sleep(100);
     const box = viewport.getBoundingClientRect();
     const run = [
-      ...viewport.querySelectorAll<HTMLElement>('[data-slidedeck-slide]')
+      ...viewport.querySelectorAll<HTMLElement>('[data-carouseldeck-slide]')
     ];
     // At each scroll: where the viewport is, and how far the slide or copy
     // nearest the centre is from it.
@@ -254,7 +254,7 @@ describe('loop', () => {
     // Measured in WebKit: a copy can rest a pixel or two off its slide's
     // rest plus a set's length. A scroll margin on the copies alone moves
     // their rests 2px here, in every browser.
-    addStyle('.margined > [data-slidedeck-copy] { scroll-margin-left: 2px; }');
+    addStyle('.margined > [data-carouseldeck-copy] { scroll-margin-left: 2px; }');
     const { root, viewport, next, onIndexChange } = renderLoop({
       defaultIndex: 4,
       viewportClassName: 'margined'
@@ -314,7 +314,7 @@ describe('loop', () => {
       <TestDeck loop slides={3} defaultIndex={2} controls={<Deck.Counter />} />
     );
     const counter = () =>
-      document.querySelector('[data-slidedeck-counter]')?.textContent;
+      document.querySelector('[data-carouseldeck-counter]')?.textContent;
     await userEvent.click(screen.getByRole('button', { name: 'Next' }));
     await expectSettledTo(counter, '1 / 3');
 
@@ -339,7 +339,7 @@ describe('loop', () => {
       />
     );
     const counter = () =>
-      document.querySelector('[data-slidedeck-counter]')?.textContent;
+      document.querySelector('[data-carouseldeck-counter]')?.textContent;
     await userEvent.click(screen.getByRole('button', { name: 'Next' }));
     await sleep(100);
 
@@ -369,7 +369,7 @@ describe('loop', () => {
       />
     );
     const counter = () =>
-      document.querySelector('[data-slidedeck-counter]')?.textContent;
+      document.querySelector('[data-carouseldeck-counter]')?.textContent;
     await userEvent.click(screen.getByRole('button', { name: 'Next' }));
     await sleep(100);
 
@@ -443,18 +443,18 @@ describe('loop copies', () => {
       [...viewport.querySelectorAll(selector)].map((slide) =>
         slide.getAttribute('aria-label')
       );
-    expect(labels('[data-slidedeck-copy=before]')).toEqual(
-      labels('[data-slidedeck-slide]:not([data-slidedeck-copy])')
+    expect(labels('[data-carouseldeck-copy=before]')).toEqual(
+      labels('[data-carouseldeck-slide]:not([data-carouseldeck-copy])')
     );
-    expect(labels('[data-slidedeck-copy=after]')).toHaveLength(5);
+    expect(labels('[data-carouseldeck-copy=after]')).toHaveLength(5);
     // Laid out before the slides, and after them.
     const left = (selector: string) =>
       viewport.querySelector(selector)!.getBoundingClientRect().left;
-    expect(left('[data-slidedeck-copy=before]')).toBeLessThan(
-      left('[aria-label="1 of 5"]:not([data-slidedeck-copy])')
+    expect(left('[data-carouseldeck-copy=before]')).toBeLessThan(
+      left('[aria-label="1 of 5"]:not([data-carouseldeck-copy])')
     );
-    expect(left('[data-slidedeck-copy=after]')).toBeGreaterThan(
-      left('[aria-label="5 of 5"]:not([data-slidedeck-copy])')
+    expect(left('[data-carouseldeck-copy=after]')).toBeGreaterThan(
+      left('[aria-label="5 of 5"]:not([data-carouseldeck-copy])')
     );
   });
 
@@ -493,7 +493,7 @@ describe('loop copies', () => {
       if (document.activeElement) visited.push(document.activeElement);
     }
 
-    expect(visited.some((el) => el.closest('[data-slidedeck-copy]'))).toBe(
+    expect(visited.some((el) => el.closest('[data-carouseldeck-copy]'))).toBe(
       false
     );
     expect(visited.map((el) => el.textContent)).toContain('Button 5');
@@ -508,7 +508,7 @@ describe('loop copies', () => {
     for (const marker of ['data-current', 'data-focal']) {
       const marked = viewport.querySelectorAll(`[${marker}]`);
       expect(marked).toHaveLength(1);
-      expect(marked[0].hasAttribute('data-slidedeck-copy')).toBe(false);
+      expect(marked[0].hasAttribute('data-carouseldeck-copy')).toBe(false);
       expect(marked[0].getAttribute('aria-label')).toBe('1 of 5');
     }
   });
@@ -781,7 +781,7 @@ describe('loop along each axis and writing direction', () => {
   /** How far a slide's start edge is from the viewport's, the way the deck
    * runs. */
   const startOf = (label: string, vertical: boolean, rtl: boolean) => {
-    const viewport = document.querySelector('[data-slidedeck-viewport]')!;
+    const viewport = document.querySelector('[data-carouseldeck-viewport]')!;
     const box = screen.getByRole('group', { name: label });
     const [a, b] = [
       box.getBoundingClientRect(),
@@ -821,7 +821,7 @@ describe('loop along each axis and writing direction', () => {
       render(
         <AxisDeck vertical={vertical} rtl={rtl} onIndexChange={onIndexChange} />
       );
-      const viewport = document.querySelector('[data-slidedeck-viewport]')!;
+      const viewport = document.querySelector('[data-carouseldeck-viewport]')!;
 
       // Toward the deck's end: down, or in right-to-left, to the left.
       // Most of a slide, held still before letting go: no flick.
@@ -854,7 +854,7 @@ describe("loop and the deck's other features", () => {
   test('every slide and copy in view has its progress through a seam crossing', async () => {
     const { viewport, next } = renderLoop({ defaultIndex: 4 });
     const run = [
-      ...viewport.querySelectorAll<HTMLElement>('[data-slidedeck-slide]')
+      ...viewport.querySelectorAll<HTMLElement>('[data-carouseldeck-slide]')
     ];
     const box = viewport.getBoundingClientRect();
     // Each frame: every slide or copy in view, as its distance from the
@@ -871,7 +871,7 @@ describe("loop and the deck's other features", () => {
           at,
           Number(slide.style.getPropertyValue('--deck-slide-progress'))
         ]);
-        if (Math.abs(at) < 0.01 && slide.hasAttribute('data-slidedeck-copy')) {
+        if (Math.abs(at) < 0.01 && slide.hasAttribute('data-carouseldeck-copy')) {
           copyAtStart = true;
         }
       }
@@ -918,7 +918,7 @@ describe("loop and the deck's other features", () => {
     };
     expect(centre(focal)).toBe(centre(viewport));
     const before = viewport.querySelector(
-      '[data-slidedeck-copy=before][aria-label="5 of 5"]'
+      '[data-carouseldeck-copy=before][aria-label="5 of 5"]'
     )!;
     expect(before.hasAttribute('data-in-view')).toBe(true);
     expect(
@@ -950,7 +950,7 @@ describe("loop and the deck's other features", () => {
       { once: true }
     );
     const copy = viewport
-      .querySelector('[data-slidedeck-copy=before][aria-label="5 of 5"]')!
+      .querySelector('[data-carouseldeck-copy=before][aria-label="5 of 5"]')!
       .getBoundingClientRect();
     const x = copy.right - 10;
     const y = (copy.top + copy.bottom) / 2;
@@ -993,7 +993,7 @@ describe('loop with an effect', () => {
   }
 
   const runOf = (viewport: HTMLElement) => [
-    ...viewport.querySelectorAll<HTMLElement>('[data-slidedeck-slide]')
+    ...viewport.querySelectorAll<HTMLElement>('[data-carouseldeck-slide]')
   ];
   const opacityOf = (el: Element) => Number(getComputedStyle(el).opacity);
 
@@ -1010,7 +1010,7 @@ describe('loop with an effect', () => {
       screen.getByRole('region', { name: 'Test deck' })
     );
     const run = runOf(viewport);
-    const slides = run.filter((el) => !el.hasAttribute('data-slidedeck-copy'));
+    const slides = run.filter((el) => !el.hasAttribute('data-carouseldeck-copy'));
     expect(run).toHaveLength(12);
     // A copy is stacked with the slides, as every slide of a fade is.
     const box = viewport.getBoundingClientRect();
@@ -1039,7 +1039,7 @@ describe('loop with an effect', () => {
   });
 
   test('curve draws a copy in view on the arc, as its place in the run puts it', async () => {
-    addStyle(`.effect > [data-slidedeck-slide] {
+    addStyle(`.effect > [data-carouseldeck-slide] {
       width: 100px;
       scroll-snap-align: center;
     }
@@ -1059,7 +1059,7 @@ describe('loop with an effect', () => {
     };
     const copyOfLast = () =>
       viewport.querySelector(
-        '[data-slidedeck-copy=before][aria-label="6 of 6"]'
+        '[data-carouseldeck-copy=before][aria-label="6 of 6"]'
       )!;
     const slide = (n: number) =>
       screen.getByRole('group', { name: `${n} of 6` });

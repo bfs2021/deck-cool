@@ -1,16 +1,16 @@
-# Slidedeck
+# Carouseldeck
 
 A headless carousel for React 19 built on native scroll snap: the browser
-scrolls, and slidedeck tracks where it landed and asks it to go elsewhere. A
+scrolls, and carouseldeck tracks where it landed and asks it to go elsewhere. A
 framework-neutral core holds the engine; the React package holds the
 primitives a consumer composes. The project's language separates what a
 consumer composes (primitives), where the scroller can rest (snap points,
-pages), which slide the deck is about (current, focal), and what slidedeck
+pages), which slide the deck is about (current, focal), and what carouseldeck
 publishes for CSS to read (progress).
 
 **Security sweeps: declined by the maintainer.**
 
-Slidedeck is a client-only UI library: it accepts no untrusted input beyond
+Carouseldeck is a client-only UI library: it accepts no untrusted input beyond
 the React children its consumer passes, serves nothing, authenticates no one,
 stores nothing and calls no third-party service. Decided 2026-10-03 when the
 repo was created; revisit if the project gains a hosted service.
@@ -21,7 +21,7 @@ repo was created; revisit if the project gains a hosted service.
 
 **Deck**:
 One carousel instance: a scroller, its slides and the controls bound to it.
-Consumers import the primitives as `import * as Deck from '@slidedeck/react'`.
+Consumers import the primitives as `import * as Deck from '@carouseldeck/react'`.
 _Avoid_: carousel instance, slider
 
 **Primitive**:
@@ -48,7 +48,7 @@ Next moves toward the inline end.
 _Avoid_: left/right for start/end
 
 **Theme**:
-The optional stylesheet `@slidedeck/react/theme.css` that styles a deck's
+The optional stylesheet `@carouseldeck/react/theme.css` that styles a deck's
 controls: every rule in `:where()`, every value a `--deck-*` token the
 consumer sets.
 _Avoid_: skin, default styles
@@ -120,7 +120,7 @@ _Avoid_: autoscroll, slideshow
 ### Movement
 
 **Move**:
-A scroll slidedeck starts toward a snap point: Prev, Next, a dot, `scrollTo`,
+A scroll carouseldeck starts toward a snap point: Prev, Next, a dot, `scrollTo`,
 a new controlled `index`, a drag's release. A new move replaces the one in
 flight; the user's own scroll ends it, and focus entering a slide replaces
 it (ADR-0006).
@@ -140,7 +140,7 @@ only time `onIndexChange` and `onFocalChange` fire.
 _Avoid_: snap, finish
 
 **Quiet**:
-No scroll event for 100ms: how slidedeck tells a scroll has ended where the
+No scroll event for 100ms: how carouseldeck tells a scroll has ended where the
 browser sends no end event, and how a move ends when its end event never
 comes. Where it would find a scroll stopped, a move short of its target or
 a deck waiting to re-snap, quiet also waits for a frame to render with no
@@ -150,7 +150,7 @@ _Avoid_: debounce, idle
 
 ### Outputs
 
-slidedeck writes only `--deck-slide-*`; the consumer sets every other `--deck-*`; the private `--slidedeck-*` variables are never public (ADR-0010).
+carouseldeck writes only `--deck-slide-*`; the consumer sets every other `--deck-*`; the private `--carouseldeck-*` variables are never public (ADR-0010).
 
 **Progress**:
 How far a slide is from the focal position, in slides, signed the way the deck

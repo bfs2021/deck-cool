@@ -5,18 +5,18 @@ import type { Effect } from './index.js';
 // render, server HTML included, and the engine writes once it measures; where
 // it is unset, 0: flat. The curve is drawn on a slide's content, its
 // children: the slide box stays in place.
-const slide = '[data-slidedeck-effect=curve]>[data-slidedeck-slide]';
+const slide = '[data-carouseldeck-effect=curve]>[data-carouseldeck-slide]';
 const content = `${slide}>*`;
-const p = 'var(--slidedeck-curve-progress)';
-const r = 'var(--slidedeck-curve-radius)';
+const p = 'var(--carouseldeck-curve-progress)';
+const r = 'var(--carouseldeck-curve-radius)';
 // Where the slide is on the circle, as the sine of its turn: -1 and 1 are a
 // quarter turn either way, where a slide as far as the radius or further
 // stands.
-const x = 'var(--slidedeck-curve-x)';
-const turn = 'var(--slidedeck-curve-turn)';
+const x = 'var(--carouseldeck-curve-x)';
+const turn = 'var(--carouseldeck-curve-turn)';
 // How far the slide drops from the focal slide's line, in slides.
-const drop = 'var(--slidedeck-curve-drop)';
-const sign = 'var(--slidedeck-curve-sign)';
+const drop = 'var(--carouseldeck-curve-drop)';
+const sign = 'var(--carouseldeck-curve-sign)';
 
 // The circle's radius, in slides, where `--deck-curve-radius` is not set.
 const RADIUS = 4;
@@ -27,15 +27,15 @@ const MIN_RADIUS = 0.001;
 
 const css =
   `:where(${slide}){` +
-  '--slidedeck-curve-progress:var(--deck-slide-progress,0);' +
-  `--slidedeck-curve-radius:max(var(--deck-curve-radius,${RADIUS}),${MIN_RADIUS});` +
-  `--slidedeck-curve-x:clamp(-1,${p}/${r},1);` +
-  `--slidedeck-curve-turn:asin(${x});` +
-  `--slidedeck-curve-drop:calc(${r}*(1 - sqrt(1 - ${x}*${x})));` +
-  '--slidedeck-curve-sign:1;' +
+  '--carouseldeck-curve-progress:var(--deck-slide-progress,0);' +
+  `--carouseldeck-curve-radius:max(var(--deck-curve-radius,${RADIUS}),${MIN_RADIUS});` +
+  `--carouseldeck-curve-x:clamp(-1,${p}/${r},1);` +
+  `--carouseldeck-curve-turn:asin(${x});` +
+  `--carouseldeck-curve-drop:calc(${r}*(1 - sqrt(1 - ${x}*${x})));` +
+  '--carouseldeck-curve-sign:1;' +
   // abs() spelled with max() for older browsers.
   `opacity:calc(1 - max(${x},-1*${x}))}` +
-  `:where(${slide}:dir(rtl)){--slidedeck-curve-sign:-1}` +
+  `:where(${slide}:dir(rtl)){--carouseldeck-curve-sign:-1}` +
   // Rotation is about the content's centre, and the drop is across the axis.
   // A drop in slides is a percentage of the content's width, a slide's where
   // the content fills it; turned a quarter, a translateX moves it down by
@@ -53,7 +53,7 @@ const css =
  * `effect`:
  *
  * ```tsx
- * import { curve } from '@slidedeck/react/curve';
+ * import { curve } from '@carouseldeck/react/curve';
  *
  * <Deck.Viewport effect={curve}>…</Deck.Viewport>
  * ```

@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, onTestFinished, test, vi } from 'vitest';
-import * as Deck from '@slidedeck/react';
+import * as Deck from '@carouseldeck/react';
 import {
   addStyle,
   CENTRED,
@@ -135,8 +135,8 @@ function renderLoop({
     /** A set's length along the axis: from slide 1 to its copy after the
      * slides. */
     length: () =>
-      startOf(viewport.querySelector('[data-slidedeck-copy=after]')!) -
-      startOf(viewport.querySelector('[data-slidedeck-slide]')!),
+      startOf(viewport.querySelector('[data-carouseldeck-copy=after]')!) -
+      startOf(viewport.querySelector('[data-carouseldeck-slide]')!),
     startOf,
     slides: () => (pages ? 10 : 5)
   };
@@ -173,7 +173,7 @@ async function expectRest(deck: ReturnType<typeof renderLoop>) {
     );
   };
   await expectSettledTo(offset, 0);
-  expect(current().hasAttribute('data-slidedeck-copy')).toBe(false);
+  expect(current().hasAttribute('data-carouseldeck-copy')).toBe(false);
   if (deck.onIndexChange.mock.calls.length > 0) {
     expect(deck.onIndexChange.mock.calls.at(-1)).toEqual([
       Number(deck.root.dataset.index)
@@ -386,7 +386,7 @@ describe('loop, wheel or trackpad flicks chained faster than the deck comes to r
     // and copy's place among the viewport's children.
     const all = () => [
       ...viewport.querySelectorAll<HTMLElement>(
-        ':scope > [data-slidedeck-slide]'
+        ':scope > [data-carouseldeck-slide]'
       )
     ];
     const frames: {
@@ -961,12 +961,12 @@ describe('loop, a press on the copies', () => {
     await sleep(200);
     // Every slide and copy 20px wider, as a font load widens auto-width
     // slides: the viewport keeps its size, and nothing settles.
-    addStyle('[data-slidedeck-slide] { min-width: 320px; }');
+    addStyle('[data-carouseldeck-slide] { min-width: 320px; }');
     await nextFrame();
     await nextFrame();
     // What shows, from layout: the in-view marks wait for a scroll.
     const picture = () =>
-      [...viewport.querySelectorAll('[data-slidedeck-slide]')]
+      [...viewport.querySelectorAll('[data-carouseldeck-slide]')]
         .map((el) => [
           el.getAttribute('aria-label'),
           Math.round(deck.startOf(el))

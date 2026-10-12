@@ -1,6 +1,6 @@
 ---
 title: Vertical and right-to-left
-description: 'Scroll a slidedeck deck along the block axis with orientation="vertical", and how a deck follows a right-to-left writing direction, a change of dir included.'
+description: 'Scroll a carouseldeck deck along the block axis with orientation="vertical", and how a deck follows a right-to-left writing direction, a change of dir included.'
 ---
 
 `orientation="vertical"` scrolls along the block axis. A vertical deck needs a

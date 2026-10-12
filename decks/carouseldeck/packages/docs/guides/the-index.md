@@ -1,7 +1,7 @@
 ---
 title: 'The index: controlled, uncontrolled and the handle'
 label: The index
-description: 'Read and set which snap point a slidedeck deck rests at: uncontrolled with defaultIndex, controlled with index and onIndexChange, or moved with its handle.'
+description: 'Read and set which snap point a carouseldeck deck rests at: uncontrolled with defaultIndex, controlled with index and onIndexChange, or moved with its handle.'
 ---
 
 The current index is the snap point the viewport rests at. Uncontrolled, pass
@@ -12,7 +12,7 @@ The current index is the snap point the viewport rests at. Uncontrolled, pass
 
 ```tsx
 import { useState } from 'react';
-import * as Deck from '@slidedeck/react';
+import * as Deck from '@carouseldeck/react';
 
 export function Controlled() {
   const [index, setIndex] = useState(0);
@@ -47,7 +47,7 @@ through state:
 
 ```tsx
 import { useRef } from 'react';
-import * as Deck from '@slidedeck/react';
+import * as Deck from '@carouseldeck/react';
 
 export function WithHandle() {
   const deck = useRef<Deck.RootHandle>(null);

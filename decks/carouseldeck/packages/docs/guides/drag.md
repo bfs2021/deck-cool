@@ -1,6 +1,6 @@
 ---
 title: Drag
-description: 'A mouse can drag a slidedeck deck; on release it projects the flick to a snap point. Touch, pen and trackpad scroll natively. Turn it off with drag={false}.'
+description: 'A mouse can drag a carouseldeck deck; on release it projects the flick to a snap point. Touch, pen and trackpad scroll natively. Turn it off with drag={false}.'
 ---
 
 A mouse can drag the deck by default. Snapping is off while it drags. On

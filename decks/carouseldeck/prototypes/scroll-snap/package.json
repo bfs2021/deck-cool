@@ -1,5 +1,5 @@
 {
-  "name": "@slidedeck/proto-scroll-snap",
+  "name": "@carouseldeck/proto-scroll-snap",
   "version": "0.0.0",
   "private": true,
   "description": "THROWAWAY prototype for ADR-0001's engine gate (#3). Delete after the go/no-go.",

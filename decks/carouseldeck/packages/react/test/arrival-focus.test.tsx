@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, onTestFinished, test, vi } from 'vitest';
 import { userEvent } from 'vitest/browser';
-import * as Deck from '@slidedeck/react';
+import * as Deck from '@carouseldeck/react';
 import {
   addStyle,
   expectRestOnASlide,
@@ -97,7 +97,7 @@ describe('input that does not scroll, during a move', () => {
     expect(index).toBe('3');
     // Focus goes back to the viewport, outside every slide.
     expect(document.activeElement).toHaveProperty(
-      'dataset.slidedeckViewport',
+      'dataset.carouseldeckViewport',
       ''
     );
   });
@@ -170,7 +170,7 @@ describe('focus entering a slide during a move', () => {
       const element = screen.getByRole('button', { name: focused });
       const box = element.getBoundingClientRect();
       const view = viewport.getBoundingClientRect();
-      const counter = root.querySelector('[data-slidedeck-counter]')!;
+      const counter = root.querySelector('[data-carouseldeck-counter]')!;
       const count = counter.getAttribute('data-count');
       expect({
         delay,
@@ -178,7 +178,7 @@ describe('focus entering a slide during a move', () => {
         focused: document.activeElement === element,
         inView: box.left >= view.left - 0.5 && box.right <= view.right + 0.5,
         dot: root
-          .querySelector('[data-slidedeck-dots] [aria-current]')
+          .querySelector('[data-carouseldeck-dots] [aria-current]')
           ?.getAttribute('data-index'),
         counter: counter.textContent,
         announced: root.querySelector('[aria-live]')?.textContent
@@ -293,10 +293,10 @@ describe('focus entering a slide during a move', () => {
     // slide is in no page.
     addStyle(`
       .offset > * { width: calc(100% / 3); }
-      .offset > [data-slidedeck-slide]:nth-child(3n + 2) {
+      .offset > [data-carouseldeck-slide]:nth-child(3n + 2) {
         scroll-snap-align: start;
       }
-      .offset > [data-slidedeck-slide]:not(:nth-child(3n + 2)) {
+      .offset > [data-carouseldeck-slide]:not(:nth-child(3n + 2)) {
         scroll-snap-align: none;
       }
     `);
@@ -422,9 +422,9 @@ describe('focus within a slide or onto the viewport during a move', () => {
         index: root.dataset.index,
         calls: onIndexChange.mock.calls,
         dot: root
-          .querySelector('[data-slidedeck-dots] [aria-current]')
+          .querySelector('[data-carouseldeck-dots] [aria-current]')
           ?.getAttribute('data-index'),
-        counter: root.querySelector('[data-slidedeck-counter]')?.textContent,
+        counter: root.querySelector('[data-carouseldeck-counter]')?.textContent,
         announced: root.querySelector('[aria-live]')?.textContent
       }).toEqual({
         delay,
@@ -693,7 +693,7 @@ describe('a pointer whose release the deck does not hear', () => {
     // The press focused the deck, which stopped autoplay: start it again.
     (document.activeElement as HTMLElement).blur();
     document
-      .querySelector<HTMLButtonElement>('[data-slidedeck-autoplay-toggle]')!
+      .querySelector<HTMLButtonElement>('[data-carouseldeck-autoplay-toggle]')!
       .click();
     await sleep(1000);
     window.dispatchEvent(new FocusEvent('blur'));

@@ -1,8 +1,8 @@
-# @slidedeck/docs
+# @carouseldeck/docs
 
-The [slidedeck](https://github.com/pedrosousa13/slidedeck) docs, as markdown.
-Each version holds the docs for the same version of `@slidedeck/react` and
-`@slidedeck/core`. The package has no code, and deck.cool builds slidedeck's
+The [carouseldeck](https://github.com/pedrosousa13/deck-cool) docs, as markdown.
+Each version holds the docs for the same version of `@carouseldeck/react` and
+`@carouseldeck/core`. The package has no code, and deck.cool builds carouseldeck's
 docs site from it.
 
 It follows deck.cool's docs contract: every page has a `title` and a

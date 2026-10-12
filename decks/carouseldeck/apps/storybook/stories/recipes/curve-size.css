@@ -1,6 +1,6 @@
 /* An arc of radius 528px under slides 160px wide and 16px apart:
    528 / (160 + 16) = 3 slides. */
-.showcase [data-slidedeck-viewport] {
+.showcase [data-carouseldeck-viewport] {
   --deck-curve-radius: 3;
   gap: 16px;
   /* The first and last slides centred too. */
@@ -10,7 +10,7 @@
      3 × 160 + (160 − 200) / 2 = 460px. */
   padding-block: 7px 460px;
 }
-.showcase [data-slidedeck-slide] {
+.showcase [data-carouseldeck-slide] {
   width: 160px;
   scroll-snap-align: center;
 }

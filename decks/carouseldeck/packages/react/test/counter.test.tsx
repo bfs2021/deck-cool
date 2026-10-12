@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { expect, test, vi } from 'vitest';
 import { userEvent } from 'vitest/browser';
-import * as Deck from '@slidedeck/react';
+import * as Deck from '@carouseldeck/react';
 import { expectSettledTo, TestDeck, viewportOf, WIDTH } from './fixtures';
 
 const renderDeck = (props: { defaultIndex?: number } = {}) => {
@@ -9,7 +9,7 @@ const renderDeck = (props: { defaultIndex?: number } = {}) => {
   const root = screen.getByRole('region', { name: 'Test deck' });
   return {
     viewport: viewportOf(root),
-    counter: root.querySelector<HTMLElement>('[data-slidedeck-counter]')!
+    counter: root.querySelector<HTMLElement>('[data-carouseldeck-counter]')!
   };
 };
 
@@ -47,7 +47,7 @@ test("a consumer's data attributes cannot overwrite the counter's state", () => 
           {...{
             'data-index': 'x',
             'data-count': 'y',
-            'data-slidedeck-counter': 'z'
+            'data-carouseldeck-counter': 'z'
           }}
         />
       }
@@ -57,7 +57,7 @@ test("a consumer's data attributes cannot overwrite the counter's state", () => 
 
   expect(counter.getAttribute('data-index')).toBe('0');
   expect(counter.getAttribute('data-count')).toBe('5');
-  expect(counter.getAttribute('data-slidedeck-counter')).toBe('');
+  expect(counter.getAttribute('data-carouseldeck-counter')).toBe('');
 });
 
 // As Prev, Next and Dots are: "1 / 1" and "1 / 0" say nothing.
@@ -66,13 +66,13 @@ test.each([1, 0])(
   (slides) => {
     render(<TestDeck slides={slides} controls={<Deck.Counter />} />);
 
-    expect(document.querySelector('[data-slidedeck-counter]')).toBeNull();
+    expect(document.querySelector('[data-carouseldeck-counter]')).toBeNull();
   }
 );
 
 test('the counter follows a change in the slide count', async () => {
   const { rerender } = render(<TestDeck controls={<Deck.Counter />} />);
-  const counter = () => document.querySelector('[data-slidedeck-counter]');
+  const counter = () => document.querySelector('[data-carouseldeck-counter]');
   expect(counter()?.textContent).toBe('1 / 5');
 
   rerender(<TestDeck slides={3} controls={<Deck.Counter />} />);

@@ -1,13 +1,13 @@
 {
-  "name": "@slidedeck/core",
+  "name": "@carouseldeck/core",
   "version": "1.1.0",
-  "description": "Framework-neutral engine for slidedeck, a headless carousel built on native scroll snap.",
+  "description": "Framework-neutral engine for carouseldeck, a headless carousel built on native scroll snap.",
   "license": "MIT",
   "homepage": "https://slide.deck.cool",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/pedrosousa13/slidedeck.git",
-    "directory": "packages/core"
+    "url": "git+https://github.com/pedrosousa13/deck-cool.git",
+    "directory": "decks/carouseldeck/packages/core"
   },
   "type": "module",
   "sideEffects": false,

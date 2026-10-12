@@ -1,9 +1,9 @@
 // A server component: no 'use client' here. It renders decks as the package
 // README documents them, with each effect and the theme.
-import * as Deck from '@slidedeck/react';
-import { curve } from '@slidedeck/react/curve';
-import { fade } from '@slidedeck/react/fade';
-import '@slidedeck/react/theme.css';
+import * as Deck from '@carouseldeck/react';
+import { curve } from '@carouseldeck/react/curve';
+import { fade } from '@carouseldeck/react/fade';
+import '@carouseldeck/react/theme.css';
 
 export default function Page() {
   return (

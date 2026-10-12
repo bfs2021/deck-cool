@@ -1,4 +1,4 @@
-import * as Deck from '@slidedeck/react';
+import * as Deck from '@carouseldeck/react';
 // Your design system's button.
 import { Button } from './design-system';
 

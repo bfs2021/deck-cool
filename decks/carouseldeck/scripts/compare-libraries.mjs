@@ -1,10 +1,10 @@
 #!/usr/bin/env node
-// Writes the comparison of @slidedeck/react with Embla and Keen into the
+// Writes the comparison of @carouseldeck/react with Embla and Keen into the
 // package README, between its `comparison:start` and `comparison:end`
 // markers, and into the docs' Compare page, which ends with it. `--check`
 // writes nothing and fails if either file's table differs from a fresh run,
 // so CI catches a stale one. Run `pnpm build` first: the
-// slidedeck row bundles the built package, as a consumer gets it.
+// carouseldeck row bundles the built package, as a consumer gets it.
 //
 // Size is measured, never typed: each entry in tests/compare/entries is the
 // smallest carousel a React user writes with that library, bundled in memory
@@ -149,13 +149,13 @@ const measure = async (entry) => {
 
 /**
  * The Version cell: the pinned install's version for a competitor, and none
- * for slidedeck's own package, which is measured from this repo's build. A
+ * for carouseldeck's own package, which is measured from this repo's build. A
  * release bumps that package's version, and must not stale the table.
  * @param {string} name
  * @param {(name: string) => string} installed
  */
 export const versionCell = (name, installed) =>
-  name.startsWith('@slidedeck/') ? 'this repo' : installed(name);
+  name.startsWith('@carouseldeck/') ? 'this repo' : installed(name);
 
 /** @param {string} name */
 const installedVersion = (name) =>
@@ -189,7 +189,7 @@ const generate = async () => {
   return [
     renderTable(rows),
     '',
-    `Min+gzip: each entry in \`tests/compare/entries\` is the same basic deck for all three, three slides with Previous and Next and no dots, bundled by Vite ${vite} with React external, minified, then gzipped, with the stylesheet the library needs. Each imports what its library documents: Keen's \`keen-slider/react\` has no exports map and resolves to its CommonJS build. Slidedeck's row is measured from this repo's build, so it has no version. The other columns, and where each was read:`,
+    `Min+gzip: each entry in \`tests/compare/entries\` is the same basic deck for all three, three slides with Previous and Next and no dots, bundled by Vite ${vite} with React external, minified, then gzipped, with the stylesheet the library needs. Each imports what its library documents: Keen's \`keen-slider/react\` has no exports map and resolves to its CommonJS build. Carouseldeck's row is measured from this repo's build, so it has no version. The other columns, and where each was read:`,
     '',
     ...sources
   ].join('\n');

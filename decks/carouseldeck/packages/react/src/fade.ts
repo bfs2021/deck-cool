@@ -5,12 +5,12 @@ import { stackedLayout } from './stacked.js';
 // `--deck-slide-progress`, which Deck.Slide gives each slide from the first
 // render, server HTML included, or where it is unset, 0 for the focal slide
 // and 1 for the rest, and its distance from the focal position, at most 1.
-const slide = '[data-slidedeck-effect=fade]>[data-slidedeck-slide]';
+const slide = '[data-carouseldeck-effect=fade]>[data-carouseldeck-slide]';
 const progress = (fallback: number) =>
-  `--slidedeck-fade-progress:var(--deck-slide-progress,${fallback})`;
-const p = 'var(--slidedeck-fade-progress)';
+  `--carouseldeck-fade-progress:var(--deck-slide-progress,${fallback})`;
+const p = 'var(--carouseldeck-fade-progress)';
 // abs() spelled with max() for older browsers.
-const distance = `--slidedeck-fade-distance:min(max(${p},-1*${p}),1)`;
+const distance = `--carouseldeck-fade-distance:min(max(${p},-1*${p}),1)`;
 
 // Under reduced motion, opacity is a step: this steep a ramp goes from 0 to 1
 // within a thousandth of a slide, the precision the engine writes progress
@@ -20,7 +20,7 @@ const STEP = 1000;
 
 const css =
   `:where(${slide}){${progress(1)};${distance};` +
-  'opacity:calc(1 - var(--slidedeck-fade-distance))}' +
+  'opacity:calc(1 - var(--carouseldeck-fade-distance))}' +
   `:where(${slide}[data-focal]){${progress(0)}}` +
   // No animated crossfade: the slide shown cuts to the next halfway there.
   '@media (prefers-reduced-motion:reduce){' +
@@ -31,7 +31,7 @@ const css =
  * natively (ADR-0006). Pass it to `Deck.Viewport`'s `effect`:
  *
  * ```tsx
- * import { fade } from '@slidedeck/react/fade';
+ * import { fade } from '@carouseldeck/react/fade';
  *
  * <Deck.Viewport effect={fade}>…</Deck.Viewport>
  * ```

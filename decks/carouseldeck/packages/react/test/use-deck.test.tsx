@@ -3,7 +3,7 @@ import { renderToString } from 'react-dom/server';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, test, vi } from 'vitest';
 import { userEvent } from 'vitest/browser';
-import * as Deck from '@slidedeck/react';
+import * as Deck from '@carouseldeck/react';
 import {
   addStyle,
   expectSettledTo,
@@ -49,13 +49,13 @@ const probed = () => {
 /** What the built-in controls show of the same state. */
 const builtIns = () => {
   const prev = document.querySelector<HTMLButtonElement>(
-    '[data-slidedeck-prev]'
+    '[data-carouseldeck-prev]'
   );
   const next = document.querySelector<HTMLButtonElement>(
-    '[data-slidedeck-next]'
+    '[data-carouseldeck-next]'
   );
   const counter = document.querySelector<HTMLElement>(
-    '[data-slidedeck-counter]'
+    '[data-carouseldeck-counter]'
   );
   return {
     fits: prev === null && next === null && counter === null,
@@ -382,7 +382,7 @@ test('before the viewport is measured, useDeck clamps index as Counter does', ()
   const probe = container.querySelector<HTMLElement>('[data-probe]')!.dataset;
   expect(probe.index).toBe('4');
   expect(probe.count).toBe('null');
-  expect(container.querySelector('[data-slidedeck-counter]')!.textContent).toBe(
+  expect(container.querySelector('[data-carouseldeck-counter]')!.textContent).toBe(
     '5 / 5'
   );
 });

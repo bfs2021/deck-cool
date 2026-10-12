@@ -1,10 +1,10 @@
-# @slidedeck/react-18
+# @carouseldeck/react-18
 
-`@slidedeck/react` built for React 18. It has the same components, props and
+`@carouseldeck/react` built for React 18. It has the same components, props and
 types, from the same source.
 
 **Not published yet.** The package is private. It is first published as
-`@carouseldeck/react-18`, when slidedeck moves into deck-cool as carouseldeck
+`@carouseldeck/react-18` in a later release
 (pedrosousa13/deck-cool#105).
 
 ## How it is built

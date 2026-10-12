@@ -1,6 +1,6 @@
 ---
 title: Primitives
-description: "Reference for slidedeck's primitives, Deck.Root, Viewport, Slide, Prev, Next, Dots, Counter and AutoplayToggle: the element each renders and its props."
+description: "Reference for carouseldeck's primitives, Deck.Root, Viewport, Slide, Prev, Next, Dots, Counter and AutoplayToggle: the element each renders and its props."
 ---
 
 Each primitive passes its other props, `ref`, `className` and `style`
@@ -16,7 +16,7 @@ target per slide, and `Deck.Dots` its buttons.
 | `Deck.Slide`          | `<div>`    | One slide, a group labelled "n of m". Its size and alignment are your CSS.                                                                                                   |
 | `Deck.Prev`           | `<button>` | Moves one snap point back. Disabled at the first unless the deck loops. Its text is "Previous" unless you pass children.                                                     |
 | `Deck.Next`           | `<button>` | Moves one snap point on. Disabled at the last unless the deck loops. Its text is "Next" unless you pass children.                                                            |
-| `Deck.Dots`           | `<div>`    | A group labelled "Choose page" with one button per page, "Go to page n"; the current one has `aria-current="true"`. Style the buttons with `[data-slidedeck-dots] > button`. |
+| `Deck.Dots`           | `<div>`    | A group labelled "Choose page" with one button per page, "Go to page n"; the current one has `aria-current="true"`. Style the buttons with `[data-carouseldeck-dots] > button`. |
 | `Deck.Counter`        | `<span>`   | The current page and the total, as "3 / 10".                                                                                                                                 |
 | `Deck.AutoplayToggle` | `<button>` | Stops and starts autoplay: "Stop slide rotation" or "Start slide rotation". Renders only on a deck with `autoplay`.                                                          |
 

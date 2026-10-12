@@ -2,7 +2,7 @@ import { createRef, useState, type Ref } from 'react';
 import { act, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import { userEvent } from 'vitest/browser';
-import type * as Deck from '@slidedeck/react';
+import type * as Deck from '@carouseldeck/react';
 import {
   expectSettledTo,
   setReducedMotion,

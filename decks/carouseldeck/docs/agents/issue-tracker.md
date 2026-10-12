@@ -2,35 +2,35 @@
 
 <!-- factory:tracker kind=github -->
 
-Issues and PRDs for this repo live as GitHub issues on **pedrosousa13/slidedeck**.
+Issues and PRDs for this repo live as GitHub issues on **pedrosousa13/deck-cool**.
 
-Use the `gh` CLI for all operations. Pass `-R pedrosousa13/slidedeck` explicitly on every
+Use the `gh` CLI for all operations. Pass `-R pedrosousa13/deck-cool` explicitly on every
 call rather than relying on the current directory's remote — a session that
 runs from a worktree, a subdirectory, or another clone stays correct.
 
 ## Conventions
 
-- **Create an issue**: `gh issue create -R pedrosousa13/slidedeck --title "..." --body
+- **Create an issue**: `gh issue create -R pedrosousa13/deck-cool --title "..." --body
   "..."`. Title in imperative mood; use a heredoc for multi-line bodies.
-- **Read an issue**: `gh issue view <n> -R pedrosousa13/slidedeck --json
+- **Read an issue**: `gh issue view <n> -R pedrosousa13/deck-cool --json
   title,body,labels,milestone,state,stateReason,comments` — `comments` is a
   `--json` field, so one call returns the body and the discussion together.
-- **List issues**: `gh issue list -R pedrosousa13/slidedeck --state open --limit 500 --json
+- **List issues**: `gh issue list -R pedrosousa13/deck-cool --state open --limit 500 --json
   number,title,labels,milestone,createdAt`, plus `--label` / `--milestone`
   filters as needed. `--limit` defaults to 30; pass it on every listing.
-- **Comment**: `gh issue comment <n> -R pedrosousa13/slidedeck --body "..."`.
-- **Apply / remove labels**: `gh issue edit <n> -R pedrosousa13/slidedeck --add-label
+- **Comment**: `gh issue comment <n> -R pedrosousa13/deck-cool --body "..."`.
+- **Apply / remove labels**: `gh issue edit <n> -R pedrosousa13/deck-cool --add-label
   "..."` / `--remove-label "..."`.
-- **Close**: `gh issue close <n> -R pedrosousa13/slidedeck --reason completed` (resolved)
+- **Close**: `gh issue close <n> -R pedrosousa13/deck-cool --reason completed` (resolved)
   or `--reason "not planned"` (wontfix).
 
 ## When a skill says "publish to the issue tracker"
 
-Create a GitHub issue on pedrosousa13/slidedeck.
+Create a GitHub issue on pedrosousa13/deck-cool.
 
 ## When a skill says "fetch the relevant ticket"
 
-Run `gh issue view <n> -R pedrosousa13/slidedeck --json
+Run `gh issue view <n> -R pedrosousa13/deck-cool --json
 title,body,labels,milestone,state,stateReason,comments`.
 
 ## Factory loop operations
@@ -41,9 +41,9 @@ installed can find it, and one without it has no use for this section — one
 bullet per row. A `/factory` Loop Session needs every one of them.
 
 - **Reachability**: `gh auth status` resolves the `gh` CLI and confirms it
-  is authenticated; `gh repo view pedrosousa13/slidedeck --json name` confirms the
-  **pedrosousa13/slidedeck** repo exists and is visible to this account.
-- **Queue listing**: `gh issue list -R pedrosousa13/slidedeck --state open --label
+  is authenticated; `gh repo view pedrosousa13/deck-cool --json name` confirms the
+  **pedrosousa13/deck-cool** repo exists and is visible to this account.
+- **Queue listing**: `gh issue list -R pedrosousa13/deck-cool --state open --label
   ready-for-agent --milestone <n-or-title> --limit 500 --json
   number,title,labels,milestone,createdAt`. `--milestone` accepts either a
   milestone number or its title; drop the flag entirely for an unscoped
@@ -60,27 +60,27 @@ bullet per row. A `/factory` Loop Session needs every one of them.
   `P1` (High) > `P2` (Medium) > `P3` (Low) > no priority label** — ties
   broken by the oldest `createdAt`. Both the labels and `createdAt` come
   back on the same listing call, so ordering costs no extra call.
-- **State: started**: `gh issue edit <n> -R pedrosousa13/slidedeck --add-label
+- **State: started**: `gh issue edit <n> -R pedrosousa13/deck-cool --add-label
   in-progress --add-assignee @me` — one call, which is what makes pickup
   atomic. GitHub issues have only `OPEN` and `CLOSED`, so `in-progress` is
   the started state.
-- **State: completed / canceled**: `gh issue close <n> -R pedrosousa13/slidedeck --reason
+- **State: completed / canceled**: `gh issue close <n> -R pedrosousa13/deck-cool --reason
   completed` for landed work, which reads back as `state=CLOSED`,
   `stateReason=COMPLETED`. Wontfix is two calls, because `gh issue close`
-  has no label flag: `gh issue edit <n> -R pedrosousa13/slidedeck --add-label wontfix`,
-  then `gh issue close <n> -R pedrosousa13/slidedeck --reason "not planned"`, which reads
+  has no label flag: `gh issue edit <n> -R pedrosousa13/deck-cool --add-label wontfix`,
+  then `gh issue close <n> -R pedrosousa13/deck-cool --reason "not planned"`, which reads
   back as `state=CLOSED`, `stateReason=NOT_PLANNED`. The reason is what
   distinguishes the two — a closed issue with no reason is
   indistinguishable from either.
-- **Park**: `gh issue edit <n> -R pedrosousa13/slidedeck --remove-label ready-for-agent
+- **Park**: `gh issue edit <n> -R pedrosousa13/deck-cool --remove-label ready-for-agent
   --remove-label in-progress --add-label needs-info`. The issue stays
   **open**: Park returns work to an unstarted state, it does not close it.
   Removing `in-progress` is the unstarted half of the Park and is not
   optional — an issue left carrying it never re-enters the Queue even once
   it is re-labeled `ready-for-agent`.
 - **Blocking**: GitHub's native **sub-issues**. Link one with `gh issue
-  edit <parent> -R pedrosousa13/slidedeck --add-sub-issue <child>`; read them back with
-  `gh issue view <n> -R pedrosousa13/slidedeck --json subIssues,subIssuesSummary`:
+  edit <parent> -R pedrosousa13/deck-cool --add-sub-issue <child>`; read them back with
+  `gh issue view <n> -R pedrosousa13/deck-cool --json subIssues,subIssuesSummary`:
 
   ```json
   {"subIssues":{"nodes":[{"number":2,"state":"OPEN","title":"...",
@@ -99,19 +99,19 @@ bullet per row. A `/factory` Loop Session needs every one of them.
   issue view` — check them one at a time, in Queue order, and stop at the
   first unblocked one.
 - **Milestone**: a GitHub **milestone** on the issue, not a label. Create
-  one with `gh api repos/pedrosousa13/slidedeck/milestones -f title=... -f
+  one with `gh api repos/pedrosousa13/deck-cool/milestones -f title=... -f
   description=...`; list a repo's milestones with `gh api --paginate
-  "repos/pedrosousa13/slidedeck/milestones?state=all&per_page=100"`, which returns them
+  "repos/pedrosousa13/deck-cool/milestones?state=all&per_page=100"`, which returns them
   in GitHub's own order, stable between runs. Both halves of that query
   are load-bearing: the endpoint returns only open milestones by default
   and pages at 30, and the milestone menu is supposed to show *every*
   milestone in the Project — a stable menu shape matters more than hiding
   the closed or the empty ones. Set one with `gh issue create --milestone
-  <n-or-title>` at creation, or `gh issue edit <n> -R pedrosousa13/slidedeck --milestone
+  <n-or-title>` at creation, or `gh issue edit <n> -R pedrosousa13/deck-cool --milestone
   <n-or-title>` afterwards. Read a milestone's completion with `gh api
-  repos/pedrosousa13/slidedeck/milestones/<n>` and its `open_issues` / `closed_issues`
+  repos/pedrosousa13/deck-cool/milestones/<n>` and its `open_issues` / `closed_issues`
   counts — GitHub reports no percentage, so compute one from the pair.
-- **Milestone issue counts**: `gh issue list -R pedrosousa13/slidedeck --state all
+- **Milestone issue counts**: `gh issue list -R pedrosousa13/deck-cool --state all
   --milestone <n> --limit 500 --json number,labels,state,stateReason`,
   bucketed by state: **done** is `state=CLOSED` with
   `stateReason=COMPLETED`; **canceled** is `state=CLOSED` with
@@ -123,7 +123,7 @@ bullet per row. A `/factory` Loop Session needs every one of them.
   empty-Queue report states a wrong number without any sign that it did.
   This is deliberately not a re-count of the Queue, which sees only
   `ready-for-agent`.
-- **Open issues**: `gh issue list -R pedrosousa13/slidedeck --state open --milestone
+- **Open issues**: `gh issue list -R pedrosousa13/deck-cool --state open --milestone
   <n-or-title> --limit 500 --json
   number,title,labels,milestone,createdAt,assignees,subIssuesSummary`.
   Drop `--milestone` entirely for an unscoped call. Every open issue,
@@ -131,14 +131,14 @@ bullet per row. A `/factory` Loop Session needs every one of them.
   issue: `state` derived as under **Milestone issue counts** above,
   `blockedBy` from the same sub-issue and body check as **Blocking**
   above, `claimedBy` from `assignees`.
-- **Read an issue**: `gh issue view <n> -R pedrosousa13/slidedeck --json
+- **Read an issue**: `gh issue view <n> -R pedrosousa13/deck-cool --json
   title,body,labels,milestone,state,stateReason,comments` — one call.
   `comments` is a valid `--json` field and returns each comment's author,
   body and timestamp, so the body and the whole discussion come back
-  together. `gh issue view <n> -R pedrosousa13/slidedeck --comments` renders the same
+  together. `gh issue view <n> -R pedrosousa13/deck-cool --comments` renders the same
   discussion for a human to read, but a session working from the issue
   needs only the `--json` call.
-- **Comment**: `gh issue comment <n> -R pedrosousa13/slidedeck --body "..."`. Body as
+- **Comment**: `gh issue comment <n> -R pedrosousa13/deck-cool --body "..."`. Body as
   Markdown; use a heredoc so newlines stay literal.
 - **Branch name**: GitHub supplies none, so it is a convention this repo
   derives: `<user>/issue-<number>-<slug>`, where `<user>` is the
@@ -148,7 +148,7 @@ bullet per row. A `/factory` Loop Session needs every one of them.
   so every session that touches the issue must derive it the same way from
   the same title, and a session resuming an issue looks for that branch
   rather than inventing a new one.
-- **State verification**: `gh issue view <n> -R pedrosousa13/slidedeck --json
+- **State verification**: `gh issue view <n> -R pedrosousa13/deck-cool --json
   state,stateReason,labels,milestone` returns the issue's current state.
   Fetch it fresh when verifying a Pause note's claim — never compare
   against a value read earlier in the session.
@@ -163,16 +163,16 @@ never enter a Loop Session's Queue ("Wayfinder maps" in `PROTOCOL.md`, the
 Factory plugin's own protocol document — not a file in this repo;
 "Wayfinder labels" in `docs/agents/triage-labels.md`).
 
-- **The map**: an ordinary issue on **pedrosousa13/slidedeck** labeled `wayfinder:map`.
-  Find a Project's maps with `gh issue list -R pedrosousa13/slidedeck --state open
+- **The map**: an ordinary issue on **pedrosousa13/deck-cool** labeled `wayfinder:map`.
+  Find a Project's maps with `gh issue list -R pedrosousa13/deck-cool --state open
   --label wayfinder:map --limit 500 --json number,title`.
 - **Labels**: `wayfinder:map`, `wayfinder:research`, `wayfinder:prototype`,
-  `wayfinder:grilling`, `wayfinder:task` — repo labels on **pedrosousa13/slidedeck**,
-  created lazily by the first charting session: `gh label list -R pedrosousa13/slidedeck`
-  first, then `gh label create <label> -R pedrosousa13/slidedeck` only for the names that
+  `wayfinder:grilling`, `wayfinder:task` — repo labels on **pedrosousa13/deck-cool**,
+  created lazily by the first charting session: `gh label list -R pedrosousa13/deck-cool`
+  first, then `gh label create <label> -R pedrosousa13/deck-cool` only for the names that
   are missing. Never create a label you haven't first confirmed is missing.
 - **Child tickets**: GitHub's native sub-issues — `gh issue edit <map> -R
-  pedrosousa13/slidedeck --add-sub-issue <ticket>`, the same relation the loop's
+  pedrosousa13/deck-cool --add-sub-issue <ticket>`, the same relation the loop's
   **Blocking** bullet reads. No conflict: under that bullet an open child
   blocks its parent, and a map with open tickets *is* a map that isn't
   finished — the map never carries `ready-for-agent`, so nothing ever
@@ -183,24 +183,24 @@ Factory plugin's own protocol document — not a file in this repo;
   body, added in a second pass once every ticket has a number. A ticket is
   blocked while any issue such a line names is still open.
 - **Frontier**: read the map's children from `gh issue view <map> -R
-  pedrosousa13/slidedeck --json subIssues`, keep the `OPEN` ones, then confirm each
-  candidate with its own `gh issue view <n> -R pedrosousa13/slidedeck --json
+  pedrosousa13/deck-cool --json subIssues`, keep the `OPEN` ones, then confirm each
+  candidate with its own `gh issue view <n> -R pedrosousa13/deck-cool --json
   assignees,body,state` — unclaimed means no assignee; unblocked means no
   `Blocked by #N` line naming a still-open issue. The per-candidate view is
   the authority here for the same reason it is in Queue selection: the
   listing lags.
-- **Claim**: `gh issue edit <n> -R pedrosousa13/slidedeck --add-assignee @me` — the
+- **Claim**: `gh issue edit <n> -R pedrosousa13/deck-cool --add-assignee @me` — the
   assignee is the claim; an open, unassigned ticket is unclaimed.
 - **Resolve**: post the resolution with `gh issue comment`, then `gh issue
-  close <n> -R pedrosousa13/slidedeck --reason completed`. A ticket ruled out of scope
+  close <n> -R pedrosousa13/deck-cool --reason completed`. A ticket ruled out of scope
   closes with `--reason "not planned"` instead — resolved and ruled-out
   stay distinguishable, the same way landed and wontfix do.
 
 ## Reachability
 
 What the Factory's Preflight checks: `gh` resolves and is authenticated,
-and the **pedrosousa13/slidedeck** repo exists and is visible — `gh auth status`, then
-`gh repo view pedrosousa13/slidedeck --json name`.
+and the **pedrosousa13/deck-cool** repo exists and is visible — `gh auth status`, then
+`gh repo view pedrosousa13/deck-cool --json name`.
 
 ## If GitHub is unreachable
 

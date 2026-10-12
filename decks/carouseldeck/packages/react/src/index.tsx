@@ -20,7 +20,7 @@ import {
   SNAP_TARGET,
   type DeckEngine,
   type Orientation
-} from '@slidedeck/core';
+} from '@carouseldeck/core';
 import { ServerSlides } from './server-slides.js';
 import { slidesIn } from './slides-in.js';
 
@@ -407,7 +407,7 @@ export function Root({
   // when activated, as Safari does not focus a button on click.
   const userInput = ({ target }: { target: EventTarget }) => {
     const element = target as Element;
-    if (element.closest('[data-slidedeck-autoplay-toggle]')) return;
+    if (element.closest('[data-carouseldeck-autoplay-toggle]')) return;
     if (viewportRef.current?.contains(element)) userMove();
     else takeOver();
   };
@@ -490,7 +490,7 @@ export function Root({
             if (
               autoplaying &&
               !(event.target as Element).closest(
-                '[data-slidedeck-autoplay-toggle]'
+                '[data-carouseldeck-autoplay-toggle]'
               )
             ) {
               setPlaying(false);
@@ -527,7 +527,7 @@ export function Root({
           <div
             aria-live={rotating ? 'off' : 'polite'}
             aria-atomic="true"
-            data-slidedeck-live=""
+            data-carouseldeck-live=""
             style={visuallyHidden}
           >
             {announcement}
@@ -640,7 +640,7 @@ export function useSlide(): UseSlideResult {
 /**
  * A transition built on progress while the viewport keeps scrolling natively
  * (CONTEXT.md), passed to `Deck.Viewport`'s `effect`. Each effect is its own
- * entry point, such as `@slidedeck/react/fade`, so a deck that imports none
+ * entry point, such as `@carouseldeck/react/fade`, so a deck that imports none
  * ships none of their code.
  */
 export interface Effect {
@@ -668,7 +668,7 @@ export interface Effect {
 
 export interface ViewportProps extends ComponentProps<'div'> {
   /** An effect, imported from its own entry point, such as `fade` from
-   * `@slidedeck/react/fade`. */
+   * `@carouseldeck/react/fade`. */
   effect?: Effect;
 }
 
@@ -743,9 +743,9 @@ export function Viewport({ style, children, effect, ...props }: ViewportProps) {
     <div
       ref={viewportRef}
       tabIndex={0}
-      data-slidedeck-viewport=""
+      data-carouseldeck-viewport=""
       data-orientation={orientation}
-      data-slidedeck-effect={effect?.name}
+      data-carouseldeck-effect={effect?.name}
       style={{
         ...viewportStyles[orientation],
         ...layout?.viewport,
@@ -753,11 +753,11 @@ export function Viewport({ style, children, effect, ...props }: ViewportProps) {
       }}
       {...props}
     >
-      <style href="slidedeck-slide" precedence="slidedeck">
+      <style href="carouseldeck-slide" precedence="carouseldeck">
         {deckDefaults}
       </style>
       {effect && (
-        <style href={`slidedeck-${effect.name}`} precedence="slidedeck">
+        <style href={`carouseldeck-${effect.name}`} precedence="carouseldeck">
           {effect.css}
         </style>
       )}
@@ -769,7 +769,7 @@ export function Viewport({ style, children, effect, ...props }: ViewportProps) {
           <div
             key={`target-${index}`}
             aria-hidden="true"
-            data-slidedeck-snap-target=""
+            data-carouseldeck-snap-target=""
             style={target(index)}
           />
         ))}
@@ -786,13 +786,13 @@ export function Viewport({ style, children, effect, ...props }: ViewportProps) {
 // the pseudo-element while `scrollbar-width` is `auto`, and a consumer's
 // `scrollbar-width: auto` alone would not restore it. The pseudo-element
 // makes that rule (0,0,1), so a consumer's
-// `[data-slidedeck-viewport]::-webkit-scrollbar` still wins.
+// `[data-carouseldeck-viewport]::-webkit-scrollbar` still wins.
 const deckDefaults =
-  ':where([data-slidedeck-slide]){width:100%;scroll-snap-align:start}' +
-  ':where([data-orientation=vertical]>[data-slidedeck-slide]){height:100%}' +
-  ':where([data-slidedeck-viewport]){scrollbar-width:none}' +
+  ':where([data-carouseldeck-slide]){width:100%;scroll-snap-align:start}' +
+  ':where([data-orientation=vertical]>[data-carouseldeck-slide]){height:100%}' +
+  ':where([data-carouseldeck-viewport]){scrollbar-width:none}' +
   '@supports not (scrollbar-width:none){' +
-  ':where([data-slidedeck-viewport])::-webkit-scrollbar{display:none}}';
+  ':where([data-carouseldeck-viewport])::-webkit-scrollbar{display:none}}';
 
 // Not yet in React's CSSProperties.
 const initialTarget = { scrollInitialTarget: 'nearest' } as CSSProperties;
@@ -825,7 +825,7 @@ export function Slide({ style, ...props }: ComponentProps<'div'>) {
     if (!inert) return;
     const viewport = viewportRef.current;
     const focused = document.activeElement?.closest(
-      '[data-slidedeck-slide][inert]'
+      '[data-carouseldeck-slide][inert]'
     );
     if (viewport && focused?.parentElement === viewport) {
       viewport.focus({ preventScroll: true });
@@ -836,8 +836,8 @@ export function Slide({ style, ...props }: ComponentProps<'div'>) {
       role="group"
       aria-roledescription="slide"
       aria-label={`${index + 1} of ${count}`}
-      data-slidedeck-slide=""
-      data-slidedeck-copy={copy}
+      data-carouseldeck-slide=""
+      data-carouseldeck-copy={copy}
       aria-hidden={copy ? true : undefined}
       data-current={current ? '' : undefined}
       data-focal={focal ? '' : undefined}
@@ -976,7 +976,7 @@ function StepButton({
 }
 
 /** Moves the deck one snap point back. Disabled at the first unless the deck
- * loops; absent when every slide fits. Marked `data-slidedeck-prev` for CSS
+ * loops; absent when every slide fits. Marked `data-carouseldeck-prev` for CSS
  * to select. */
 export function Prev(props: ComponentProps<'button'>) {
   const { fits, canPrev, prev } = useDeckState('Prev');
@@ -984,7 +984,7 @@ export function Prev(props: ComponentProps<'button'>) {
   return (
     <StepButton
       {...props}
-      data-slidedeck-prev=""
+      data-carouseldeck-prev=""
       atEnd={!canPrev}
       step={prev}
       label="Previous"
@@ -993,7 +993,7 @@ export function Prev(props: ComponentProps<'button'>) {
 }
 
 /** Moves the deck one snap point on. Disabled at the last unless the deck
- * loops; absent when every slide fits. Marked `data-slidedeck-next` for CSS
+ * loops; absent when every slide fits. Marked `data-carouseldeck-next` for CSS
  * to select. */
 export function Next(props: ComponentProps<'button'>) {
   const { fits, canNext, next } = useDeckState('Next');
@@ -1001,7 +1001,7 @@ export function Next(props: ComponentProps<'button'>) {
   return (
     <StepButton
       {...props}
-      data-slidedeck-next=""
+      data-carouseldeck-next=""
       atEnd={!canNext}
       step={next}
       label="Next"
@@ -1033,7 +1033,7 @@ export function Dots(props: Omit<ComponentProps<'div'>, 'children'>) {
       role="group"
       aria-label="Choose page"
       {...props}
-      data-slidedeck-dots=""
+      data-carouseldeck-dots=""
       data-index={count === null ? undefined : index}
       data-count={count ?? undefined}
     >
@@ -1062,7 +1062,7 @@ export function Counter(props: Omit<ComponentProps<'span'>, 'children'>) {
   return (
     <span
       {...props}
-      data-slidedeck-counter=""
+      data-carouseldeck-counter=""
       data-index={known ? index : undefined}
       data-count={known ? count : undefined}
     >
@@ -1096,7 +1096,7 @@ export function AutoplayToggle({
     <button
       type="button"
       {...props}
-      data-slidedeck-autoplay-toggle=""
+      data-carouseldeck-autoplay-toggle=""
       data-playing={playing ? '' : undefined}
       onClick={(event) => {
         onClick?.(event);

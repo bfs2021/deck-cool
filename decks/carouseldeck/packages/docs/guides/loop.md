@@ -1,6 +1,6 @@
 ---
 title: Loop
-description: 'The loop prop runs a slidedeck deck past its last slide to the first with no visible jump, using inert copies of the slides on either side.'
+description: 'The loop prop runs a carouseldeck deck past its last slide to the first with no visible jump, using inert copies of the slides on either side.'
 ---
 
 `loop` makes the deck run on past the last snap point to the first, and back,

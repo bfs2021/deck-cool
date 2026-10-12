@@ -1,8 +1,8 @@
 /* Each slide fills the viewport, as stack lays them out: centre its card. */
-.cards [data-slidedeck-viewport] {
+.cards [data-carouseldeck-viewport] {
   height: 320px;
 }
-.cards [data-slidedeck-slide] {
+.cards [data-carouseldeck-slide] {
   display: grid;
   place-items: center;
 }

@@ -2,7 +2,7 @@ import { Profiler, type ComponentProps } from 'react';
 import { render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import { userEvent } from 'vitest/browser';
-import * as Deck from '@slidedeck/react';
+import * as Deck from '@carouseldeck/react';
 import {
   addStyle,
   expectSettledTo,
@@ -101,7 +101,7 @@ describe('the scrollbar', () => {
   });
 
   test('comes back with one consumer rule', () => {
-    addStyle('[data-slidedeck-viewport] { scrollbar-width: auto; }');
+    addStyle('[data-carouseldeck-viewport] { scrollbar-width: auto; }');
     const { viewport } = renderDeck();
     // The tests run with classic scrollbars, which take layout space.
     const classic = document.createElement('div');
@@ -344,7 +344,7 @@ describe('Prev and Next', () => {
         <TestDeck viewportClassName="fits" slides={4} />
       );
       const viewport = container.querySelector<HTMLElement>(
-        '[data-slidedeck-viewport]'
+        '[data-carouseldeck-viewport]'
       )!;
 
       expect(screen.queryByRole('button', { name: 'Next' })).toBeNull();

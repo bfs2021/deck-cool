@@ -1,6 +1,6 @@
 ---
 title: Theme
-description: "An optional stylesheet that gives slidedeck's Prev, Next, Dots, Counter and autoplay toggle a plain look, with every value a custom property you can set."
+description: "An optional stylesheet that gives carouseldeck's Prev, Next, Dots, Counter and autoplay toggle a plain look, with every value a custom property you can set."
 ---
 
 An optional stylesheet gives the controls (Prev, Next, Dots, Counter and
@@ -10,7 +10,7 @@ without it.
 <!-- demo:example-theme -->
 
 ```ts
-import '@slidedeck/react/theme.css';
+import '@carouseldeck/react/theme.css';
 ```
 
 Every rule is wrapped in `:where()`, so any selector of yours wins. Every value

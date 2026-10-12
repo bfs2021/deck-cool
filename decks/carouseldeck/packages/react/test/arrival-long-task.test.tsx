@@ -1,7 +1,7 @@
 import { createRef, useState } from 'react';
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import * as Deck from '@slidedeck/react';
+import * as Deck from '@carouseldeck/react';
 import {
   expectRestOnASlide,
   parkMouse,
@@ -64,7 +64,7 @@ describe("a long task just after the user's wheel, as a looping Next arrives", (
   // browser can carry the move's smooth scroll on afterwards. It either runs
   // on to the move's target, against the wheel, or stops part way, off any
   // snap point, and never snaps the deck back. The first is the browser's,
-  // and slidedeck cannot undo it. From the second, the deck re-snaps to the
+  // and carouseldeck cannot undo it. From the second, the deck re-snaps to the
   // nearest snap point the way the wheel went. Either way it comes to rest
   // exactly on a snap point.
   test(

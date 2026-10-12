@@ -4,8 +4,8 @@ import { createRef, version } from 'react';
 import { render, screen } from '@testing-library/react';
 import { renderToString } from 'react-dom/server';
 import { expect, test, vi } from 'vitest';
-import * as Deck from '@slidedeck/react';
-import { fade } from '@slidedeck/react/fade';
+import * as Deck from '@carouseldeck/react';
+import { fade } from '@carouseldeck/react/fade';
 
 test('runs on React 18', () => {
   expect(version).toMatch(/^18\./);
@@ -39,11 +39,11 @@ test('a ref reaches the element of every primitive but Viewport', () => {
 
   expect(refs.root.current).toBe(screen.getByRole('region'));
   expect(refs.slide.current).toHaveAccessibleName('1 of 2');
-  expect(refs.prev.current).toHaveAttribute('data-slidedeck-prev');
-  expect(refs.next.current).toHaveAttribute('data-slidedeck-next');
-  expect(refs.dots.current).toHaveAttribute('data-slidedeck-dots');
-  expect(refs.counter.current).toHaveAttribute('data-slidedeck-counter');
-  expect(refs.toggle.current).toHaveAttribute('data-slidedeck-autoplay-toggle');
+  expect(refs.prev.current).toHaveAttribute('data-carouseldeck-prev');
+  expect(refs.next.current).toHaveAttribute('data-carouseldeck-next');
+  expect(refs.dots.current).toHaveAttribute('data-carouseldeck-dots');
+  expect(refs.counter.current).toHaveAttribute('data-carouseldeck-counter');
+  expect(refs.toggle.current).toHaveAttribute('data-carouseldeck-autoplay-toggle');
 });
 
 test('server HTML holds the styles before the viewport, unescaped, and React 18 warns of nothing', () => {
@@ -58,7 +58,7 @@ test('server HTML holds the styles before the viewport, unescaped, and React 18 
   );
   const container = document.createElement('div');
   container.innerHTML = html;
-  const viewport = container.querySelector('[data-slidedeck-viewport]')!;
+  const viewport = container.querySelector('[data-carouseldeck-viewport]')!;
 
   expect(viewport.querySelector('style')).toBeNull();
   const styles = [...container.querySelectorAll('style')];
@@ -83,12 +83,12 @@ test('a loop copy is inert', () => {
       </Deck.Viewport>
     </Deck.Root>
   );
-  const copies = document.querySelectorAll('[data-slidedeck-copy]');
+  const copies = document.querySelectorAll('[data-carouseldeck-copy]');
 
   expect(copies.length).toBeGreaterThan(0);
   for (const copy of copies) expect(copy).toHaveAttribute('inert', '');
   for (const slide of document.querySelectorAll(
-    '[data-slidedeck-slide]:not([data-slidedeck-copy])'
+    '[data-carouseldeck-slide]:not([data-carouseldeck-copy])'
   )) {
     expect(slide).not.toHaveAttribute('inert');
   }

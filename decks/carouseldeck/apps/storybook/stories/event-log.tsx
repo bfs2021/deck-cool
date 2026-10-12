@@ -87,7 +87,7 @@ function Panel() {
 
   useEffect(() => {
     const viewport = document.querySelector<HTMLElement>(
-      '[data-slidedeck-viewport]'
+      '[data-carouseldeck-viewport]'
     );
     if (!viewport) return;
     const head = features();
@@ -305,7 +305,7 @@ function runOf(viewport: HTMLElement) {
   const before: Element[] = [];
   const after: Element[] = [];
   for (const child of viewport.children) {
-    const copy = child.getAttribute('data-slidedeck-copy');
+    const copy = child.getAttribute('data-carouseldeck-copy');
     if (copy === null) slides.push(child);
     else (copy === 'before' ? before : after).push(child);
   }

@@ -1,7 +1,7 @@
 // Checks a docs package against deck.cool's docs contract
 // (pedrosousa13/deck-cool, docs/docs-contract.md): the rules deck.cool's docs
 // loader (its packages/docs) applies when it builds a deck's site from
-// @slidedeck/docs. The checks are that loader's, copied, so a page that would
+// @carouseldeck/docs. The checks are that loader's, copied, so a page that would
 // fail deck.cool's build fails here first. It reads and reports; it rewrites
 // nothing.
 

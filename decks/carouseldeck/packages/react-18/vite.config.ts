@@ -1,4 +1,4 @@
-// @slidedeck/react's source, built for React 18. The source is written for
+// @carouseldeck/react's source, built for React 18. The source is written for
 // React 19 and is not changed for this build, so the React 19 package ships
 // none of it: here `react` and `react/jsx-runtime` resolve to the shims in
 // src, and each component the source exports takes `ref` through
@@ -18,7 +18,7 @@ const withRef = here('src/with-ref.ts');
 /** The source's imports of React resolve to the shims; the shims' own, and
  * withRef's, resolve to React. */
 const reactShims: Plugin = {
-  name: 'slidedeck-react-18-shims',
+  name: 'carouseldeck-react-18-shims',
   enforce: 'pre',
   resolveId(id, importer) {
     if (importer?.startsWith(source) && id in shims) return shims[id];
@@ -32,7 +32,7 @@ const reactShims: Plugin = {
  * component, as a consumer's do: Root recognises the Viewport a consumer
  * renders, and Prev passes its `ref` on to the button it renders. */
 const forwardRefs: Plugin = {
-  name: 'slidedeck-react-18-forward-refs',
+  name: 'carouseldeck-react-18-forward-refs',
   enforce: 'pre',
   transform(code, id) {
     if (id !== `${source}index.tsx`) return null;
@@ -65,7 +65,7 @@ export default defineConfig({
     {
       // The source's declarations: the API is the same. React 18's own types
       // check them in test/types.test.tsx.
-      name: 'slidedeck-react-18-files',
+      name: 'carouseldeck-react-18-files',
       apply: 'build',
       closeBundle() {
         mkdirSync(here('dist'), { recursive: true });
@@ -89,11 +89,11 @@ export default defineConfig({
     rollupOptions: {
       // React is external everywhere but in the source, which gets the shims.
       external: (id, importer) =>
-        id === '@slidedeck/core' ||
+        id === '@carouseldeck/core' ||
         id === 'react-dom' ||
         (id in shims && !importer?.startsWith(source)),
       output: {
-        // Every module is client code, as in @slidedeck/react.
+        // Every module is client code, as in @carouseldeck/react.
         banner: "'use client';",
         chunkFileNames: '[name].js'
       }

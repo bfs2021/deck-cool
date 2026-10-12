@@ -12,29 +12,29 @@ const config: StorybookConfig = {
       ...viteConfig.resolve,
       alias: {
         ...viteConfig.resolve?.alias,
-        '@slidedeck/core': fileURLToPath(
+        '@carouseldeck/core': fileURLToPath(
           new URL('../../../packages/core/src/index.ts', import.meta.url)
         ),
         // A story inlines the theme into a <style>, so it applies to that
         // story alone; a consumer imports it plain. A string key matches
         // only the exact specifier, query and all, so each form needs one.
-        '@slidedeck/react/theme.css?inline': `${fileURLToPath(
+        '@carouseldeck/react/theme.css?inline': `${fileURLToPath(
           new URL('../../../packages/react/src/theme.css', import.meta.url)
         )}?inline`,
-        '@slidedeck/react/theme.css': fileURLToPath(
+        '@carouseldeck/react/theme.css': fileURLToPath(
           new URL('../../../packages/react/src/theme.css', import.meta.url)
         ),
         // Before the bare specifier, which would otherwise swallow it.
-        '@slidedeck/react/fade': fileURLToPath(
+        '@carouseldeck/react/fade': fileURLToPath(
           new URL('../../../packages/react/src/fade.ts', import.meta.url)
         ),
-        '@slidedeck/react/curve': fileURLToPath(
+        '@carouseldeck/react/curve': fileURLToPath(
           new URL('../../../packages/react/src/curve.ts', import.meta.url)
         ),
-        '@slidedeck/react/stack': fileURLToPath(
+        '@carouseldeck/react/stack': fileURLToPath(
           new URL('../../../packages/react/src/stack.ts', import.meta.url)
         ),
-        '@slidedeck/react': fileURLToPath(
+        '@carouseldeck/react': fileURLToPath(
           new URL('../../../packages/react/src/index.tsx', import.meta.url)
         )
       }

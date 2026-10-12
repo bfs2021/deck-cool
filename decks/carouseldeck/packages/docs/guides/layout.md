@@ -1,6 +1,6 @@
 ---
 title: Layout is CSS
-description: 'Slides per view, gap, alignment and breakpoints are plain CSS in slidedeck, not props. The zero-specificity defaults, and how to bring the scrollbar back.'
+description: 'Slides per view, gap, alignment and breakpoints are plain CSS in carouseldeck, not props. The zero-specificity defaults, and how to bring the scrollbar back.'
 ---
 
 Slides per view, gap, alignment and their breakpoints are plain CSS, never
@@ -11,10 +11,10 @@ start. These defaults have zero specificity, so any rule of yours wins:
 
 ```css
 /* Two and a half slides in view, a 16px gap, centred. */
-.products [data-slidedeck-viewport] {
+.products [data-carouseldeck-viewport] {
   gap: 16px;
 }
-.products [data-slidedeck-slide] {
+.products [data-carouseldeck-slide] {
   width: calc((100% - 2 * 16px) / 2.5);
   scroll-snap-align: center;
 }
@@ -25,7 +25,7 @@ trackpad, mouse wheel, drag, keyboard and the controls. One rule brings the
 scrollbar back:
 
 ```css
-[data-slidedeck-viewport] {
+[data-carouseldeck-viewport] {
   scrollbar-width: auto;
 }
 ```
@@ -37,12 +37,12 @@ browsers without `scrollbar-width`, so other browsers keep theirs:
 
 ```css
 @supports not (scrollbar-width: auto) {
-  [data-slidedeck-viewport]::-webkit-scrollbar {
+  [data-carouseldeck-viewport]::-webkit-scrollbar {
     display: block;
     width: 8px;
     height: 8px;
   }
-  [data-slidedeck-viewport]::-webkit-scrollbar-thumb {
+  [data-carouseldeck-viewport]::-webkit-scrollbar-thumb {
     background: rgb(0 0 0 / 0.4);
     border-radius: 4px;
   }

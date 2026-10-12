@@ -1,7 +1,7 @@
 ---
 title: Recipes
 label: Overview
-description: 'Recipes for common slidedeck setups that take CSS or a little code of your own rather than an option: centred ends, custom controls, curves, video and more.'
+description: 'Recipes for common carouseldeck setups that take CSS or a little code of your own rather than an option: centred ends, custom controls, curves, video and more.'
 ---
 
 Common setups that are CSS or a little of your own code, not options. Each

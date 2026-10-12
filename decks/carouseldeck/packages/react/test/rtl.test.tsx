@@ -2,7 +2,7 @@ import type { ComponentProps } from 'react';
 import { render, screen, within } from '@testing-library/react';
 import { describe, expect, test, vi } from 'vitest';
 import { userEvent } from 'vitest/browser';
-import * as Deck from '@slidedeck/react';
+import * as Deck from '@carouseldeck/react';
 import {
   addStyle,
   expectRestOnASlide,
@@ -61,7 +61,7 @@ const renderDeck = (props: RtlDeckProps = {}) => {
       within(root)
         .getByRole('group', { name: 'Choose page' })
         .querySelectorAll('button'),
-    counter: () => root.querySelector('[data-slidedeck-counter]')?.textContent,
+    counter: () => root.querySelector('[data-carouseldeck-counter]')?.textContent,
     focal: () =>
       [...viewport.children].flatMap((slide, i) =>
         slide.hasAttribute('data-focal') ? [i] : []

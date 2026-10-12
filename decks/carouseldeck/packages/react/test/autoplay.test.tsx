@@ -2,7 +2,7 @@ import { createRef, useState } from 'react';
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, onTestFinished, test, vi } from 'vitest';
 import { userEvent } from 'vitest/browser';
-import * as Deck from '@slidedeck/react';
+import * as Deck from '@carouseldeck/react';
 import {
   gestureScroll,
   parkMouse,
@@ -35,7 +35,7 @@ const renderDeck = (props: Parameters<typeof TestDeck>[0] = {}) => {
 const indexOf = (root: HTMLElement) => () => root.dataset.index;
 const toggleOf = () =>
   document.querySelector<HTMLButtonElement>(
-    '[data-slidedeck-autoplay-toggle]'
+    '[data-carouseldeck-autoplay-toggle]'
   )!;
 const liveRegionOf = (root: HTMLElement) =>
   root.querySelector<HTMLElement>('[aria-live]')!;

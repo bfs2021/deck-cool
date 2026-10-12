@@ -1,6 +1,6 @@
 ---
 title: Focal slide
-description: 'The focal slide is the one at the snap alignment point. How slidedeck marks it with data-focal, reports it with onFocalChange, and moves it on click.'
+description: 'The focal slide is the one at the snap alignment point. How carouseldeck marks it with data-focal, reports it with onFocalChange, and moves it on click.'
 ---
 
 The focal slide is the slide at the snap alignment point, the one the deck is

@@ -31,12 +31,12 @@ and 28px of turn, 150px.
 
 <!-- demo:example-curve-size -->
 
-[example: curve-size.css]: https://github.com/pedrosousa13/slidedeck/blob/main/apps/storybook/stories/recipes/curve-size.css
+[example: curve-size.css]: https://github.com/pedrosousa13/deck-cool/blob/main/decks/carouseldeck/apps/storybook/stories/recipes/curve-size.css
 
 ```css
 /* An arc of radius 528px under slides 160px wide and 16px apart:
    528 / (160 + 16) = 3 slides. */
-.showcase [data-slidedeck-viewport] {
+.showcase [data-carouseldeck-viewport] {
   --deck-curve-radius: 3;
   gap: 16px;
   /* The first and last slides centred too. */
@@ -46,7 +46,7 @@ and 28px of turn, 150px.
      3 × 160 + (160 − 200) / 2 = 460px. */
   padding-block: 7px 460px;
 }
-.showcase [data-slidedeck-slide] {
+.showcase [data-carouseldeck-slide] {
   width: 160px;
   scroll-snap-align: center;
 }

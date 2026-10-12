@@ -1,6 +1,6 @@
 import { useCallback, useSyncExternalStore, type ReactNode } from 'react';
-import * as Deck from '@slidedeck/react';
-import { fade } from '@slidedeck/react/fade';
+import * as Deck from '@carouseldeck/react';
+import { fade } from '@carouseldeck/react/fade';
 
 /** Whether `query` matches. Server HTML, and hydrating it, use `initial`;
  * the browser's answer follows once mounted, and every change after. */
