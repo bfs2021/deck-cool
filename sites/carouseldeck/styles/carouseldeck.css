@@ -1,0 +1,1844 @@
+/*
+ * carousel.deck.cool: the home page, the Examples page and its decks, the docs
+ * layout and the search in the Family bar. slidedeck.pages.dev's look, on the
+ * brand kit: brand.css's dark palette, type and curve, family-bar.css's bar.
+ * Every motion is under prefers-reduced-motion: no-preference, and times
+ * itself with --ease.
+ *
+ * The decks are styled through carouseldeck's data attributes and each deck's
+ * own classes, never by a slide's position: a loop's copies are slides too.
+ */
+
+:root {
+  --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
+  --tile: var(--ground-tile);
+  /* A card on a tile or a frame. */
+  --card: #2c2c2e;
+  /* The deck controls: the dots pill, Prev and Next, the play button. */
+  --control: rgb(66 66 69 / .72);
+  --control-text: var(--text);
+  /* 3:1 or better against --control, for a dot that is not current. */
+  --dot: #86868b;
+  --dot-current: var(--text);
+  --radius-pill: 999px;
+  --section-padding: 112px;
+  --gutter: 22px;
+  --measure: 980px;
+}
+
+/* A link to a heading scrolls it clear of the sticky bar. */
+html {
+  scroll-padding-top: 68px;
+}
+
+/* A column, so the footer sits at the bottom of a short page. */
+body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100svh;
+  font-size: 17px;
+  line-height: 1.47;
+  /* A long word breaks rather than widening the page. */
+  overflow-wrap: break-word;
+  -webkit-font-smoothing: antialiased;
+}
+
+main {
+  flex: 1;
+}
+
+main h1,
+main h2,
+main h3 {
+  font-weight: 600;
+  line-height: 1.08;
+}
+
+main a {
+  color: var(--text-link);
+}
+
+code,
+pre {
+  font-family: var(--font-mono);
+}
+
+main :focus-visible,
+.site-footer :focus-visible {
+  outline: 2px solid var(--text-link);
+  outline-offset: 2px;
+}
+
+.site-page {
+  max-width: var(--measure);
+  margin: 0 auto;
+  padding: var(--section-padding) var(--gutter);
+}
+
+/* The footer. */
+
+.site-footer {
+  border-top: 1px solid var(--rule);
+}
+
+.site-footer > div {
+  box-sizing: border-box;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px;
+  max-width: var(--measure);
+  margin: 0 auto;
+  padding: var(--gutter);
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+@media (max-width: 400px) {
+  :root {
+    --gutter: 16px;
+  }
+}
+
+/* Search: the island at the end of the Family bar's row. */
+
+.family-bar .fw-search {
+  position: relative;
+  flex: none;
+  margin-left: 4px;
+}
+
+/* A magnifier in the field, drawn: a ring, and its handle. */
+.family-bar .fw-search::before,
+.family-bar .fw-search::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 10px;
+  z-index: 1;
+  box-sizing: border-box;
+  pointer-events: none;
+}
+
+.family-bar .fw-search::before {
+  width: 10px;
+  height: 10px;
+  margin-top: -6px;
+  border: 1.6px solid var(--text-secondary);
+  border-radius: 50%;
+}
+
+.family-bar .fw-search::after {
+  width: 1.6px;
+  height: 5px;
+  margin: 1px 0 0 9px;
+  border-radius: 1px;
+  background-color: var(--text-secondary);
+  rotate: -45deg;
+}
+
+/* The label, the input's accessible name, shows in the empty field as its
+   placeholder. While the field has focus or holds text, it is only visually
+   hidden, so the name stays. */
+.family-bar .fw-search__label {
+  position: absolute;
+  top: 50%;
+  left: 28px;
+  z-index: 1;
+  translate: 0 -50%;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.family-bar .fw-search:is(:focus-within, :has(.fw-search__input:not([value=""]))) .fw-search__label {
+  top: auto;
+  left: auto;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  translate: none;
+  clip-path: inset(50%);
+}
+
+.family-bar .fw-search__input {
+  box-sizing: border-box;
+  width: 160px;
+  height: 28px;
+  margin: 0;
+  padding: 0 12px 0 28px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background-color: var(--rule);
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+}
+
+.family-bar .fw-search__input:focus-visible {
+  outline: 2px solid var(--text-link);
+  outline-offset: 2px;
+}
+
+.family-bar .fw-search__results,
+.family-bar .fw-search__empty {
+  position: absolute;
+  top: calc(100% + 12px);
+  right: 0;
+  box-sizing: border-box;
+  width: 320px;
+  max-width: calc(100vw - 2 * var(--gutter));
+  margin: 0;
+  padding: 6px;
+  border: 1px solid var(--rule);
+  border-radius: 14px;
+  background-color: var(--ground-raised);
+  font-size: 14px;
+}
+
+.family-bar .fw-search__empty {
+  padding: 12px 14px;
+  color: var(--text-secondary);
+}
+
+.family-bar .fw-search__result {
+  display: flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 10px;
+  border-radius: 8px;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.family-bar .fw-search__result:hover,
+.family-bar .fw-search__result[aria-selected="true"] {
+  background-color: var(--rule);
+}
+
+/* A narrow bar has no room for the field: it is a round button with the
+   magnifier until it takes focus, then covers the row. */
+@media (max-width: 734px) {
+  /* Open, the field takes the bar's box as its own. */
+  .family-bar .fw-search:is(:focus-within, :has(.fw-search__input:not([value=""]))) {
+    position: static;
+  }
+
+  .family-bar .fw-search__input {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    color: transparent;
+    font-size: 16px;
+    cursor: pointer;
+  }
+
+  .family-bar .fw-search__label {
+    top: auto;
+    left: auto;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    translate: none;
+    clip-path: inset(50%);
+  }
+
+  .family-bar .fw-search:is(:focus-within, :has(.fw-search__input:not([value=""]))) .fw-search__input {
+    position: absolute;
+    top: 8px;
+    right: var(--gutter);
+    left: var(--gutter);
+    z-index: 1;
+    width: auto;
+    height: 36px;
+    padding: 0 12px 0 32px;
+    color: var(--text);
+    cursor: text;
+  }
+
+  .family-bar .fw-search:is(:focus-within, :has(.fw-search__input:not([value=""])))::before,
+  .family-bar .fw-search:is(:focus-within, :has(.fw-search__input:not([value=""])))::after {
+    top: 26px;
+    left: calc(var(--gutter) + 12px);
+    z-index: 2;
+  }
+
+  .family-bar .fw-search__results,
+  .family-bar .fw-search__empty {
+    top: 56px;
+    right: var(--gutter);
+    left: var(--gutter);
+    width: auto;
+    max-width: none;
+  }
+}
+
+/*
+ * The decks: a pill of dots whose current dot stretches, Prev and Next as
+ * pills, and a 44px round play button. Plain CSS on carouseldeck's data
+ * attributes, in place of its optional theme.css. None of it reaches the
+ * home page's skins, whose own sheets in styles/skins/ style their deck.
+ */
+
+/* The root holds the viewport and the controls; they wrap into one centred
+   row under the slides. */
+:where(:not(.home-skin__stage *)):has(> [data-carouseldeck-viewport]) {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+}
+
+[data-carouseldeck-viewport]:where(:not(.home-skin__stage *)) {
+  flex: 0 0 100%;
+}
+
+[data-carouseldeck-prev]:where(:not(.home-skin__stage *)),
+[data-carouseldeck-next]:where(:not(.home-skin__stage *)) {
+  min-height: 44px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background-color: var(--control);
+  color: var(--control-text);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+[data-carouseldeck-prev]:where(:not(.home-skin__stage *)):disabled,
+[data-carouseldeck-next]:where(:not(.home-skin__stage *)):disabled {
+  opacity: .4;
+  cursor: default;
+}
+
+[data-carouseldeck-dots]:where(:not(.home-skin__stage *)) {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 7px;
+  border-radius: var(--radius-pill);
+  background-color: var(--control);
+}
+
+[data-carouseldeck-dots]:where(:not(.home-skin__stage *)) [data-index] {
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  /* A 24px target at least (WCAG 2.5.8) around an 8px dot. */
+  width: 24px;
+  height: 44px;
+  padding: 0 8px;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+[data-carouseldeck-dots]:where(:not(.home-skin__stage *)) [data-index]::before {
+  content: "";
+  flex: 1;
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background-color: var(--dot);
+}
+
+[data-carouseldeck-dots]:where(:not(.home-skin__stage *)) [data-index][aria-current="true"] {
+  width: 64px;
+}
+
+[data-carouseldeck-dots]:where(:not(.home-skin__stage *)) [data-index][aria-current="true"]::before,
+[data-carouseldeck-dots]:where(:not(.home-skin__stage *)) [data-index]:hover::before {
+  background-color: var(--dot-current);
+}
+
+/* The button's text stays its accessible name; the icon is drawn. */
+[data-carouseldeck-autoplay-toggle]:where(:not(.home-skin__stage *)) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background-color: var(--control);
+  color: var(--control-text);
+  font-size: 0;
+  cursor: pointer;
+}
+
+/* Stopped: a play triangle. */
+[data-carouseldeck-autoplay-toggle]:where(:not(.home-skin__stage *))::before {
+  content: "";
+  width: 12px;
+  height: 14px;
+  margin-left: 2px;
+  background-color: currentColor;
+  clip-path: polygon(0 0, 100% 50%, 0 100%);
+}
+
+/* Playing: two pause bars. */
+[data-carouseldeck-autoplay-toggle]:where(:not(.home-skin__stage *))[data-playing]::before {
+  width: 11px;
+  margin-left: 0;
+  background: linear-gradient(to right, currentColor 0 32%, transparent 32% 68%, currentColor 68%);
+  clip-path: none;
+}
+
+:is([data-carouseldeck-prev], [data-carouseldeck-next], [data-carouseldeck-autoplay-toggle], [data-carouseldeck-dots] button):where(:not(.home-skin__stage *)):focus-visible {
+  outline: 2px solid var(--text-link);
+  outline-offset: 2px;
+}
+
+/* A phone: a deck's controls stay on one row down to 375px; narrower, they wrap. */
+@media (max-width: 400px) {
+  :where(:not(.home-skin__stage *)):has(> [data-carouseldeck-viewport]) {
+    gap: 8px;
+  }
+
+  [data-carouseldeck-prev]:where(:not(.home-skin__stage *)),
+  [data-carouseldeck-next]:where(:not(.home-skin__stage *)) {
+    padding: 0 14px;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  [data-carouseldeck-dots]:where(:not(.home-skin__stage *)) [data-index] {
+    transition: width .4s var(--ease);
+  }
+
+  [data-carouseldeck-dots]:where(:not(.home-skin__stage *)) [data-index]::before {
+    transition: background-color .3s var(--ease);
+  }
+}
+
+/* Forced colours drop backgrounds, so the drawn dots and icon take system
+   colours, the current dot highlighted. */
+@media (forced-colors: active) {
+  [data-carouseldeck-dots]:where(:not(.home-skin__stage *)) [data-index]::before,
+  [data-carouseldeck-autoplay-toggle]:where(:not(.home-skin__stage *))::before {
+    forced-color-adjust: none;
+    background-color: ButtonText;
+  }
+
+  [data-carouseldeck-dots]:where(:not(.home-skin__stage *)) [data-index][aria-current="true"]::before,
+  [data-carouseldeck-dots]:where(:not(.home-skin__stage *)) [data-index]:hover::before {
+    background-color: Highlight;
+  }
+
+  [data-carouseldeck-autoplay-toggle]:where(:not(.home-skin__stage *))[data-playing]::before {
+    background: linear-gradient(to right, ButtonText 0 32%, transparent 32% 68%, ButtonText 68%);
+  }
+}
+
+/*
+ * The home page, laid out as deck.cool's home page is (the brand kit's
+ * umbrella.css): a centred hero, a 28px card, and full-width bands of tiles.
+ */
+
+.home-intro {
+  max-width: var(--measure);
+  margin: 0 auto;
+  padding: var(--section-padding) var(--gutter) 96px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  text-align: center;
+}
+
+.home-intro > * {
+  margin: 0;
+}
+
+.home-intro img {
+  display: block;
+}
+
+.home-intro .home-intro__lead {
+  color: var(--carouseldeck-text);
+  font-size: 21px;
+  font-weight: 600;
+  letter-spacing: -.01em;
+}
+
+/* 80px as on deck.cool, narrowing so each line holds down to 360px. */
+.home-intro h1 {
+  font-size: clamp(32px, 9vw, 80px);
+  line-height: 1.05;
+  letter-spacing: -.025em;
+}
+
+.home-intro h1 span,
+.home-intro p {
+  color: var(--text-secondary);
+}
+
+.home-intro p {
+  max-width: 640px;
+  font-size: 21px;
+  line-height: 1.38;
+}
+
+.home-intro__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+/* No Copy button, which would need an island of its own: one click selects
+   the whole command instead. */
+.home-install {
+  box-sizing: border-box;
+  max-width: 100%;
+  padding: 11px 22px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-pill);
+  background: var(--ground-tile);
+}
+
+.home-install code {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-user-select: all;
+  user-select: all;
+}
+
+main .home-button {
+  display: inline-flex;
+  align-items: center;
+  min-height: 48px;
+  padding: 0 26px;
+  border-radius: var(--radius-pill);
+  background-color: var(--carouseldeck-fill);
+  color: var(--fill-text);
+  text-decoration: none;
+}
+
+main .home-more {
+  color: var(--carouseldeck-text);
+  font-size: 17px;
+  text-decoration: none;
+}
+
+main .home-more:hover {
+  color: var(--text);
+}
+
+/* The proof: how the deck leans on the browser, beside the one figure. */
+.home-proof {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 40px;
+  margin: 0 max(var(--gutter), calc((100% - var(--measure)) / 2)) var(--section-padding);
+  padding: 40px;
+  border-radius: 28px;
+  background: var(--ground-tile);
+}
+
+.home-proof h2,
+.home-proof h3,
+.home-proof p {
+  margin: 0;
+}
+
+.home-proof__text {
+  flex: 1 1 380px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.home-proof h2 {
+  font-size: 32px;
+  line-height: 1.12;
+  letter-spacing: -.02em;
+}
+
+.home-proof__points {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.home-proof__points li {
+  display: grid;
+  gap: 4px;
+  padding-top: 16px;
+  border-top: 1px solid var(--rule);
+}
+
+.home-proof h3 {
+  font-size: 19px;
+  letter-spacing: -.01em;
+}
+
+.home-proof__points p {
+  color: var(--text-secondary);
+  font-size: 17px;
+  line-height: 1.47;
+}
+
+.home-proof__figure {
+  flex: 1 1 280px;
+  min-width: 0;
+  align-self: center;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.home-proof__figure p:first-child {
+  color: var(--carouseldeck-text);
+  font-size: clamp(64px, 13vw, 112px);
+  line-height: .95;
+  font-weight: 600;
+  letter-spacing: -.04em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.home-proof__figure p:nth-child(2) {
+  font-size: 21px;
+  line-height: 1.3;
+  font-weight: 600;
+}
+
+.home-proof__figure p:nth-child(n + 3) {
+  color: var(--text-secondary);
+  font-size: 15px;
+}
+
+.home-proof__figure .home-more {
+  margin-top: 12px;
+}
+
+/* The four quality sections, each a band. */
+.home-band {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+  padding: 96px max(var(--gutter), calc((100% - var(--measure)) / 2));
+  background: #0b0b0c;
+  border-top: 1px solid #1d1d1f;
+}
+
+.home-band__text {
+  max-width: 680px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.home-band h2,
+.home-band__text p {
+  margin: 0;
+}
+
+.home-band h2 {
+  font-size: 48px;
+  line-height: 1.08;
+  letter-spacing: -.02em;
+}
+
+.home-band__text p {
+  color: var(--text-secondary);
+  font-size: 19px;
+  line-height: 1.42;
+}
+
+.home-band__text code {
+  color: var(--text);
+  font-size: .9em;
+}
+
+.home-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  gap: 20px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.home-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 32px;
+  border-radius: 28px;
+  background: var(--ground-tile);
+}
+
+.home-tile h3,
+.home-tile p {
+  margin: 0;
+}
+
+.home-tile h3 {
+  font-size: 24px;
+  line-height: 1.2;
+  letter-spacing: -.01em;
+}
+
+.home-tile__body {
+  color: var(--text-secondary);
+  font-size: 17px;
+  line-height: 1.47;
+}
+
+/* Two skins: one deck, the same markup twice, each sheet folded below it. */
+.home-skins {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 400px), 1fr));
+  /* Each tile as tall as its own sheet, open or closed. */
+  align-items: start;
+  gap: 20px;
+}
+
+.home-skin {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  border-radius: 28px;
+  background: var(--ground-tile);
+}
+
+.home-skin figcaption {
+  padding: 24px 32px 0;
+  color: var(--text-secondary);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+/* One height for both stages, so the two decks sit level and an open
+   sheet runs on below. */
+.home-skin__stage {
+  display: grid;
+  /* minmax(0, 1fr), or the deck widens to its row of slides. */
+  grid-template-columns: minmax(0, 1fr);
+  align-content: center;
+  min-width: 0;
+  min-height: 340px;
+  padding: 24px 32px 32px;
+}
+
+/* Every example, after the one deck shown twice. */
+.home-skins__more {
+  display: flex;
+}
+
+/* The README's quickstart. The highlighter gives the block its theme's
+   background inline; here it has the tile's. */
+.home-code {
+  min-width: 0;
+}
+
+.home-code pre {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 32px;
+  overflow-x: auto;
+  border-radius: 28px;
+  background-color: var(--tile) !important;
+  font-size: 15px;
+  line-height: 1.75;
+}
+
+/* One line back to deck.cool. */
+.home-family {
+  padding: 56px var(--gutter);
+  border-top: 1px solid #1d1d1f;
+  text-align: center;
+}
+
+.home-family p {
+  max-width: 640px;
+  margin: 0 auto;
+  color: var(--text-secondary);
+  font-size: 17px;
+  line-height: 1.47;
+}
+
+/* Underlined: it sits in a line of text. */
+main .home-family .home-more {
+  text-decoration: underline;
+}
+
+@media (max-width: 734px) {
+  .home-intro {
+    padding: 72px var(--gutter) 64px;
+  }
+
+  .home-intro p {
+    font-size: 19px;
+  }
+
+  .home-proof {
+    gap: 32px;
+    margin-bottom: 72px;
+    padding: 28px 24px;
+  }
+
+  .home-band {
+    padding-block: 64px;
+  }
+
+  .home-band h2 {
+    font-size: 40px;
+  }
+
+  .home-tile {
+    padding: 28px 24px;
+  }
+
+  .home-skin figcaption,
+  .home-skin__stage,
+  .home-skin summary,
+  .home-skin pre {
+    padding-inline: 20px;
+  }
+
+  .home-code pre {
+    padding: 24px 20px;
+    font-size: 13px;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  main .home-more,
+  main .home-button {
+    transition: color .2s var(--ease), background-color .2s var(--ease);
+  }
+}
+
+/* The Examples page. */
+
+/* Captions over a photo: white on a scrim dark enough for 4.5:1. */
+.hero-deck,
+.stories-deck {
+  --ex-scrim: linear-gradient(to top, rgb(0 0 0 / .8), rgb(0 0 0 / .45) 60%, transparent);
+}
+
+.examples-intro {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  padding: var(--section-padding) var(--gutter) 40px;
+  text-align: center;
+}
+
+.examples-intro h1 {
+  margin: 0;
+  font-size: clamp(48px, 7vw, 80px);
+  line-height: 1.04;
+}
+
+.examples-intro p {
+  max-width: 640px;
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: clamp(19px, 2vw, 24px);
+  line-height: 1.38;
+}
+
+.example,
+.examples-credits {
+  box-sizing: border-box;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 56px var(--gutter);
+}
+
+.example-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  max-width: 760px;
+  margin-bottom: 28px;
+}
+
+.example-text h2,
+.examples-credits h2 {
+  margin: 0;
+  font-size: clamp(28px, 3.4vw, 40px);
+  letter-spacing: -.015em;
+}
+
+.example-text p,
+.examples-credits p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 19px;
+  line-height: 1.42;
+}
+
+.example-text code {
+  color: var(--text);
+  font-size: .85em;
+}
+
+.example-text a {
+  text-decoration: none;
+}
+
+.example-text a:hover {
+  text-decoration: underline;
+}
+
+/* The large rounded frame each example sits in. */
+.example-frame {
+  box-sizing: border-box;
+  min-width: 0;
+  padding: clamp(16px, 4vw, 48px);
+  border-radius: 32px;
+  background-color: var(--tile);
+}
+
+/* An example that bleeds to the page's edges: its words stay in the column,
+   its deck spans the page. */
+.example-bleed {
+  max-width: none;
+  padding-inline: 0;
+}
+
+.example-bleed .example-text {
+  box-sizing: border-box;
+  max-width: 1200px;
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+
+.example-bleed .example-text > * {
+  max-width: 760px;
+}
+
+.example-bleed .example-frame {
+  padding: 0;
+  border-radius: 0;
+  background: none;
+}
+
+.examples-credits {
+  padding-bottom: var(--section-padding);
+}
+
+.examples-credits ul {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 8px 24px;
+  margin: 24px 0 0;
+  padding: 0;
+  color: var(--text-secondary);
+  font-size: 15px;
+  list-style: none;
+}
+
+/* Product gallery: one photo at a time, thumbnails under it. */
+
+.gallery-deck {
+  max-width: 960px;
+  margin-inline: auto;
+}
+
+.gallery-deck [data-carouseldeck-viewport] {
+  gap: 16px;
+}
+
+.gallery-slide {
+  margin: 0;
+}
+
+.gallery-slide img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 20px;
+  background-color: var(--card);
+}
+
+.gallery-slide figcaption {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding: 16px 4px 0;
+}
+
+.gallery-slide h3,
+.gallery-slide p {
+  margin: 0;
+  font-size: 21px;
+}
+
+.gallery-slide p {
+  color: var(--text-secondary);
+}
+
+/* The row is there before the thumbnails are, so they do not shift the page
+   when the deck is measured. */
+.gallery-thumbs {
+  flex: 0 0 100%;
+  min-height: 52px;
+}
+
+.gallery-thumbs [role="group"] {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.gallery-thumbs button {
+  display: block;
+  padding: 0;
+  overflow: hidden;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  background: none;
+  cursor: pointer;
+}
+
+.gallery-thumbs button:focus-visible {
+  outline: 2px solid var(--text-link);
+  outline-offset: 2px;
+}
+
+.gallery-thumbs img {
+  display: block;
+  width: 72px;
+  height: 48px;
+  border-radius: 9px;
+}
+
+.gallery-thumbs button[aria-current="true"] {
+  border-color: var(--text);
+}
+
+/* Hero banner: a wide photo, its words over a scrim at the foot. */
+
+.hero-slide {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  /* A height, not an aspect ratio with a minimum: that minimum would widen
+     the slide past a phone's viewport. */
+  height: clamp(420px, 45vw, 640px);
+  overflow: hidden;
+  background-color: var(--card);
+}
+
+.hero-slide img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.hero-copy {
+  position: relative;
+  box-sizing: border-box;
+  width: 100%;
+  /* The words line up with the page's column above. */
+  padding: 96px max(var(--gutter), calc((100% - 1200px) / 2 + var(--gutter))) clamp(24px, 5vw, 56px);
+  background: var(--ex-scrim);
+  color: #fff;
+}
+
+.hero-copy h3 {
+  max-width: 720px;
+  margin: 6px 0 10px;
+  font-size: clamp(32px, 5vw, 64px);
+  letter-spacing: -.02em;
+}
+
+.hero-copy p {
+  margin: 0;
+  font-size: clamp(17px, 1.8vw, 21px);
+}
+
+.hero-copy .hero-eyebrow {
+  font-size: 17px;
+  font-weight: 600;
+}
+
+/* Testimonials: centred cards, the first and last too, their neighbours in view. */
+
+.testimonials-deck {
+  --slide-width: min(420px, 78vw);
+}
+
+.testimonials-deck [data-carouseldeck-viewport] {
+  box-sizing: border-box;
+  gap: 16px;
+  padding-inline: calc(50% - var(--slide-width) / 2);
+}
+
+.testimonials-deck [data-carouseldeck-slide] {
+  width: var(--slide-width);
+  scroll-snap-align: center;
+}
+
+.testimonial {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 28px;
+  height: 100%;
+  margin: 0;
+  padding: 32px;
+  border-radius: 24px;
+  background-color: var(--card);
+}
+
+.testimonial blockquote {
+  margin: 0;
+}
+
+.testimonial blockquote p {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+.testimonial figcaption {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 15px;
+}
+
+.testimonial figcaption > span:last-child {
+  display: flex;
+  flex-direction: column;
+  color: var(--text-secondary);
+}
+
+.testimonial strong {
+  color: var(--text);
+}
+
+.testimonial-avatar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-pill);
+  color: #fff;
+  font-weight: 600;
+}
+
+/* 4.5:1 or better for the white initials. */
+.testimonial-avatar[data-tone="blue"] {
+  background-color: #0058b0;
+}
+.testimonial-avatar[data-tone="orange"] {
+  background-color: #b04a00;
+}
+.testimonial-avatar[data-tone="green"] {
+  background-color: #1d7a3e;
+}
+.testimonial-avatar[data-tone="purple"] {
+  background-color: #7a3fb5;
+}
+.testimonial-avatar[data-tone="teal"] {
+  background-color: #0f6e70;
+}
+
+/* Stories: a vertical deck in a phone-shaped frame. */
+
+.stories-deck {
+  max-width: 340px;
+  margin-inline: auto;
+}
+
+.stories-deck [data-carouseldeck-viewport] {
+  aspect-ratio: 9 / 16;
+  border-radius: 36px;
+  background-color: #000;
+}
+
+.stories-deck [data-carouseldeck-slide] {
+  min-height: 0;
+}
+
+.story {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  height: 100%;
+  margin: 0;
+}
+
+.story img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.story figcaption {
+  position: relative;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 72px 24px 28px;
+  background: var(--ex-scrim);
+  color: #fff;
+}
+
+.story h3 {
+  margin: 0 0 4px;
+  font-size: 21px;
+}
+
+.story p {
+  margin: 0;
+  font-size: 17px;
+}
+
+.stories-deck [data-carouseldeck-counter] {
+  min-width: 48px;
+  color: var(--text-secondary);
+  font-size: 14px;
+  text-align: center;
+}
+
+/* Right to left: cards that start at the right. */
+
+.rtl-deck [data-carouseldeck-viewport] {
+  gap: 16px;
+}
+
+.rtl-deck [data-carouseldeck-slide] {
+  width: min(280px, 72vw);
+}
+
+.place {
+  margin: 0;
+}
+
+.place img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 20px;
+  background-color: var(--card);
+}
+
+.place figcaption {
+  padding: 14px 4px 0;
+}
+
+.place h3 {
+  margin: 0 0 4px;
+  font-size: 21px;
+}
+
+.place p {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+/* Cover flow: album squares on an arc of radius 5 slides: wide and shallow.
+   Room below for the arc's drop and turn while it moves: the faint ends may clip. */
+
+.cover-flow-deck [data-carouseldeck-viewport] {
+  --deck-curve-radius: 5;
+  gap: 20px;
+  padding-block: 12px 150px;
+}
+
+.cover-flow-deck [data-carouseldeck-slide] {
+  width: 260px;
+  scroll-snap-align: center;
+}
+
+.album {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 2px;
+  height: 260px;
+  padding: 20px;
+  border-radius: 16px;
+  color: #fff;
+  text-align: start;
+}
+
+.album strong {
+  font-size: 22px;
+  letter-spacing: -.01em;
+}
+
+.album span {
+  font-size: 15px;
+}
+
+/* Each cover by its album: white text on a colour of 4.5:1 or better at its
+   foot, where the words are. */
+.album[data-album="tide"] {
+  background-image: linear-gradient(160deg, #3a86c8, #1e6091 45%, #0b2545);
+}
+.album[data-album="moons"] {
+  background-image: radial-gradient(circle at 70% 30%, #f4d35e 0 16%, transparent 17%), linear-gradient(160deg, #3d348b, #1b1340);
+}
+.album[data-album="north"] {
+  background-image: linear-gradient(#7fa7b8 0 42%, #24414e 42%);
+}
+.album[data-album="orbit"] {
+  background-image: radial-gradient(circle at 50% 38%, transparent 0 22%, #ff7b54 23% 26%, transparent 27%),
+    linear-gradient(135deg, #2b2d42, #11121c);
+}
+.album[data-album="glass"] {
+  background-image: linear-gradient(135deg, #1f7a70 0 33%, #165c55 33% 66%, #0e3f3a 66%);
+}
+.album[data-album="swim"] {
+  background-image: linear-gradient(#415a77, #1b263b 55%, #0d1b2a);
+}
+.album[data-album="field"] {
+  background-image: repeating-linear-gradient(90deg, #606c38 0 18px, #4a5429 18px 36px);
+}
+
+/* A phone: the testimonials' Previous, dots and Next stay on one row down to
+   375px, with a shorter current dot. */
+@media (max-width: 400px) {
+  .testimonials-deck {
+    gap: 6px;
+  }
+
+  .testimonials-deck [data-carouseldeck-prev],
+  .testimonials-deck [data-carouseldeck-next] {
+    padding: 0 10px;
+  }
+
+  .testimonials-deck [data-carouseldeck-dots] [data-index][aria-current="true"] {
+    width: 40px;
+  }
+}
+
+/* A phone: smaller covers and photos, the arc's room to match. */
+@media (max-width: 600px) {
+  .example {
+    padding-block: 40px;
+  }
+
+  .cover-flow-deck [data-carouseldeck-viewport] {
+    padding-block: 12px 116px;
+  }
+
+  .cover-flow-deck [data-carouseldeck-slide] {
+    width: 200px;
+  }
+
+  .album {
+    height: 200px;
+  }
+
+  .gallery-thumbs {
+    min-height: 40px;
+  }
+
+  .gallery-thumbs [role="group"] {
+    gap: 6px;
+  }
+
+  .gallery-thumbs img {
+    width: 54px;
+    height: 36px;
+  }
+
+  .testimonial {
+    padding: 24px;
+  }
+
+  .testimonial blockquote p {
+    font-size: 19px;
+  }
+}
+
+/* The docs layout (components/docs-page.tsx): a sidebar, then the article. */
+
+.docs {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 64px;
+  box-sizing: border-box;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 64px var(--gutter) var(--section-padding);
+}
+
+.docs-sidebar {
+  font-size: 14px;
+}
+
+.docs-sidebar section + section {
+  margin-top: 28px;
+}
+
+.docs-sidebar h2 {
+  margin: 0 0 8px;
+  padding: 0 10px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .02em;
+}
+
+.docs-sidebar ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+main .docs-sidebar a {
+  display: flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 10px;
+  border-radius: 8px;
+  color: var(--text);
+  line-height: 1.3;
+  text-decoration: none;
+}
+
+.docs-sidebar a:hover {
+  text-decoration: underline;
+}
+
+.docs-sidebar a[aria-current="page"] {
+  background-color: var(--tile);
+  font-weight: 600;
+}
+
+.docs-article {
+  min-width: 0;
+  max-width: 760px;
+}
+
+.docs-article h1 {
+  margin: 0 0 32px;
+  font-size: clamp(36px, 5vw, 48px);
+}
+
+/* The page's own text, from markdown, and its demos. */
+
+.docs-prose {
+  line-height: 1.6;
+}
+
+.docs-prose > :first-child {
+  margin-top: 0;
+}
+
+.docs-prose h2 {
+  margin: 64px 0 16px;
+  font-size: 28px;
+  letter-spacing: -.01em;
+}
+
+.docs-prose h3 {
+  margin: 40px 0 12px;
+  font-size: 21px;
+}
+
+.docs-prose p,
+.docs-prose ul,
+.docs-prose ol {
+  margin: 0 0 20px;
+}
+
+.docs-prose li + li {
+  margin-top: 6px;
+}
+
+.docs-prose :not(pre) > code {
+  padding: .1em .35em;
+  border-radius: 6px;
+  background-color: var(--tile);
+  font-size: .88em;
+}
+
+.docs-prose pre {
+  box-sizing: border-box;
+  margin: 0 0 24px;
+  padding: 24px 28px;
+  overflow-x: auto;
+  border-radius: 18px;
+  background-color: var(--tile) !important;
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.docs-prose table {
+  display: block;
+  margin: 0 0 24px;
+  overflow-x: auto;
+  border-collapse: collapse;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.docs-prose th,
+.docs-prose td {
+  padding: 10px 14px 10px 0;
+  border-bottom: 1px solid var(--rule);
+  text-align: left;
+  vertical-align: top;
+}
+
+.docs-pager {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 72px;
+  padding-top: 32px;
+  border-top: 1px solid var(--rule);
+}
+
+.docs-pager a {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 17px;
+  text-decoration: none;
+}
+
+.docs-pager a:hover {
+  text-decoration: underline;
+}
+
+.docs-pager a[rel="next"] {
+  margin-left: auto;
+  text-align: right;
+}
+
+.docs-pager span {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+/* A phone or a narrow window: the sidebar stacks above the article, two
+   columns of links, and scrolls away with the page. */
+@media (max-width: 900px) {
+  .docs {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 40px;
+    padding-top: 32px;
+  }
+
+  .docs-sidebar {
+    columns: 2;
+    column-gap: 16px;
+    padding: 16px 6px;
+    border-radius: 18px;
+    background-color: var(--tile);
+  }
+
+  .docs-sidebar section {
+    break-inside: avoid;
+    margin-bottom: 16px;
+  }
+
+  .docs-sidebar section + section {
+    margin-top: 0;
+  }
+
+  .docs-sidebar a[aria-current="page"] {
+    background-color: var(--ground-page);
+  }
+}
+
+@media (max-width: 400px) {
+  .docs-prose pre {
+    padding: 20px;
+  }
+}
+
+/* The docs' demos (components/demos/): each in a frame, its slides tiles. */
+
+.docs-demo {
+  margin: 8px 0 40px;
+  padding: 28px;
+  border: 1px solid var(--rule);
+  border-radius: 28px;
+}
+
+/* Border-box, so a recipe's padding stays inside the deck's width. */
+.docs-demo [data-carouseldeck-viewport] {
+  box-sizing: border-box;
+  border-radius: 20px;
+}
+
+.docs-demo [data-carouseldeck-slide] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-height: 200px;
+  border-radius: 20px;
+  background-color: var(--tile);
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: -.01em;
+}
+
+.docs-demo [data-carouseldeck-counter] {
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+/* A demo's own controls, built on Deck.useDeck(): the deck controls' pills. */
+.docs-controls {
+  display: flex;
+  flex: 0 0 100%;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  font-size: 14px;
+}
+
+.docs-controls [role="group"] {
+  display: flex;
+  gap: 4px;
+}
+
+.docs-controls button {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background-color: var(--control);
+  color: var(--control-text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.docs-controls button:disabled {
+  opacity: .4;
+  cursor: default;
+}
+
+.docs-controls button[aria-current="true"] {
+  background-color: var(--text);
+  color: var(--ground-page);
+}
+
+.docs-controls button:focus-visible {
+  outline: 2px solid var(--text-link);
+  outline-offset: 2px;
+}
+
+/* Each demo's CSS: the docs page's own, on a class of the demo's deck. */
+
+/* Layout, Drag and right to left: two and a half in view, centred. */
+.example-layout [data-carouseldeck-viewport] {
+  gap: 16px;
+}
+
+.example-layout [data-carouseldeck-slide] {
+  width: calc((100% - 2 * 16px) / 2.5);
+  scroll-snap-align: center;
+}
+
+/* Focal slide: three in view, centred; the focal one outlined. */
+.example-focal [data-carouseldeck-viewport] {
+  gap: 16px;
+}
+
+.example-focal [data-carouseldeck-slide] {
+  width: calc((100% - 2 * 16px) / 3);
+  scroll-snap-align: center;
+  cursor: pointer;
+}
+
+.example-focal [data-carouseldeck-slide][data-focal] {
+  outline: 3px solid var(--text-link);
+  outline-offset: -3px;
+}
+
+/* Loop: part of each neighbour in view, so the seam shows. */
+.example-loop [data-carouseldeck-viewport] {
+  gap: 16px;
+}
+
+.example-loop [data-carouseldeck-slide] {
+  width: 70%;
+  scroll-snap-align: center;
+}
+
+/* Vertical: the viewport's height, which each slide fills. */
+.example-vertical [data-carouseldeck-viewport] {
+  height: 240px;
+}
+
+.example-vertical [data-carouseldeck-slide] {
+  min-height: 0;
+}
+
+/* Pages: three slides to a page from 640px. */
+.example-pages [data-carouseldeck-viewport] {
+  gap: 16px;
+}
+
+@media (min-width: 640px) {
+  .example-pages [data-carouseldeck-slide] {
+    width: calc((100% - 2 * 16px) / 3);
+  }
+
+  .example-pages [data-carouseldeck-slide]:nth-child(3n + 1) {
+    scroll-snap-align: start;
+  }
+
+  .example-pages [data-carouseldeck-slide]:not(:nth-child(3n + 1)) {
+    scroll-snap-align: none;
+  }
+}
+
+/* Progress: smaller with distance from the focal slide. Two and a half
+   slides to the deck's width, each centred, the first and last too, so the
+   first slide rests at progress 0, as the server HTML starts it. */
+.example-progress {
+  container-type: inline-size;
+  --slide-width: calc((100cqi - 2 * 16px) / 2.5);
+}
+
+.example-progress [data-carouseldeck-viewport] {
+  gap: 16px;
+  /* Half the viewport less half a slide, at each end. */
+  padding-inline: calc(50% - var(--slide-width) / 2);
+}
+
+.example-progress [data-carouseldeck-slide] {
+  width: var(--slide-width);
+  scroll-snap-align: center;
+  /* abs() spelled with max() for older browsers. */
+  scale: calc(1 - min(max(var(--deck-slide-progress, 0), -1 * var(--deck-slide-progress, 0)), 1) * .2);
+  transform-origin: center;
+}
+
+/* Curve: cards on an arc of 3 slides, with room for the slides that are not
+   faded out at rest. */
+.example-curve [data-carouseldeck-viewport],
+.example-curve-size [data-carouseldeck-viewport] {
+  --deck-curve-radius: 3;
+  gap: 16px;
+  padding-inline: calc(50% - 80px);
+}
+
+.example-curve [data-carouseldeck-viewport] {
+  padding-block: 7px 150px;
+}
+
+.example-curve [data-carouseldeck-slide],
+.example-curve-size [data-carouseldeck-slide] {
+  width: 160px;
+  min-height: 0;
+  background: none;
+  scroll-snap-align: center;
+}
+
+.example-curve .card,
+.example-curve-size .card {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 200px;
+  border-radius: 20px;
+  background-color: var(--tile);
+}
+
+/* Size a curve: the recipe's room, for a slide about to fade out. */
+.example-curve-size [data-carouseldeck-viewport] {
+  padding-block: 7px 460px;
+}
+
+/* Centre the first and last slide. */
+.example-centred-ends {
+  --slide-width: 280px;
+}
+
+.example-centred-ends [data-carouseldeck-viewport] {
+  gap: 16px;
+  padding-inline: calc(50% - var(--slide-width) / 2);
+}
+
+.example-centred-ends [data-carouseldeck-slide] {
+  width: var(--slide-width);
+  scroll-snap-align: center;
+}
+
+/* Highlight the middle slide in view: centred. */
+.example-middle-centred [data-carouseldeck-viewport],
+.example-middle-by-progress [data-carouseldeck-viewport] {
+  gap: 16px;
+}
+
+.example-middle-centred [data-carouseldeck-slide] {
+  width: calc((100% - 2 * 16px) / 3);
+  scroll-snap-align: center;
+}
+
+.example-middle-centred [data-carouseldeck-slide][data-focal] {
+  outline: 3px solid var(--text-link);
+  outline-offset: -3px;
+}
+
+/* Highlight the middle slide in view: by progress. */
+.example-middle-by-progress [data-carouseldeck-slide] {
+  width: calc((100% - 2 * 16px) / 3);
+  --from-middle: min(max(var(--deck-slide-progress, 0) - 1, 1 - var(--deck-slide-progress, 0)), 1);
+  outline: 3px solid color-mix(in srgb, var(--text-link) calc((1 - var(--from-middle)) * 100%), transparent);
+  outline-offset: -3px;
+}
+
+/* Per breakpoint: three in view from 768px; below it, fade. */
+@media (min-width: 768px) {
+  .example-per-breakpoint [data-carouseldeck-viewport] {
+    gap: 16px;
+  }
+
+  .example-per-breakpoint [data-carouseldeck-slide] {
+    width: calc((100% - 2 * 16px) / 3);
+  }
+}
+
+@media (max-width: 400px) {
+  .docs-demo {
+    padding: 20px 16px;
+  }
+}
