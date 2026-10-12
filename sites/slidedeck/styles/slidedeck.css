@@ -836,7 +836,8 @@ main .home-family .home-more {
 
 /* Captions over a photo: white on a scrim dark enough for 4.5:1. */
 .hero-deck,
-.stories-deck {
+.stories-deck,
+.card-stack-deck {
   --ex-scrim: linear-gradient(to top, rgb(0 0 0 / .8), rgb(0 0 0 / .45) 60%, transparent);
 }
 
@@ -1327,7 +1328,137 @@ main .home-family .home-more {
   background-image: repeating-linear-gradient(90deg, #606c38 0 18px, #4a5429 18px 36px);
 }
 
-/* A phone: the testimonials' Previous, dots and Next stay on one row down to
+/* Card stack: photo cards on effect={stack}, the card stack recipe. The cards
+   behind the top one peek out above it; Next throws the top card out to the
+   left, clear of the stack, and back in behind it. */
+
+.card-stack-deck {
+  container-type: inline-size;
+}
+
+.card-stack-deck [data-slidedeck-viewport] {
+  /* Room for the throw on each side of the stack: a card's width, 16px and
+     the tilt, so 3.2 cards in all. */
+  --card-width: clamp(220px, (100cqi - 32px) / 3.2, 300px);
+  --card-height: calc(var(--card-width) * 1.25);
+  /* How far each card peeks out above the one in front of it. */
+  --peek: 16px;
+  /* The card, the four cards behind peeking out above it, and room for its
+     shadow. */
+  height: calc(var(--card-height) + 4 * var(--peek) + 32px);
+}
+
+.card-stack-deck [data-slidedeck-slide] {
+  display: grid;
+  place-items: end center;
+}
+
+.photo-card {
+  /* From progress: how far the card has been thrown (0 to 1); how far it
+     has come back in, past halfway (0 to 1); and its depth in the stack,
+     which on the way back in grows to the back, one less than the count.
+     Without motion, --exit is a step: the card cuts to the back halfway. */
+  --p: var(--deck-slide-progress);
+  --exit: clamp(0, (-1 * var(--p) - .5) * 1000, 1);
+  --return: clamp(0, var(--exit) * 2 - 1, 1);
+  --depth: calc(max(var(--p), 0) + var(--return) * (var(--deck-slide-count) - 1));
+  /* Thrown to the left: at its furthest, halfway, clear of the stack by 16px
+     and tilted 6deg; back in place as it lands. */
+  --throw: calc(100% + 16px);
+  --thrown: translateX(calc(-1 * var(--throw) * sin(var(--exit) * .5turn)))
+    rotate(calc(-6deg * sin(var(--exit) * .5turn)));
+  /* Behind: higher and smaller by depth, so each card peeks out above the
+     one in front of it. */
+  --behind: translateY(calc(-1 * var(--peek) * var(--depth))) scale(calc(1 - .05 * var(--depth)));
+
+  position: relative;
+  box-sizing: border-box;
+  width: var(--card-width);
+  height: var(--card-height);
+  margin-block-end: 16px;
+  overflow: hidden;
+  border-radius: 24px;
+  background-color: var(--card);
+  box-shadow: 0 16px 40px rgb(0 0 0 / .45);
+  transform-origin: 50% 0;
+  transform: var(--thrown) var(--behind);
+  /* Dimmer by depth. Not opacity, which would show the cards through one
+     another. */
+  filter: brightness(calc(1 - .1 * var(--depth)));
+  /* No fade. A card outside the stack is hidden outright: one thrown all
+     the way (where its copy now sits, the same card in the same place) and
+     the loop's copies waiting their turn. The engine writes progress in
+     whole thousandths of a slide, and the two windows meet halfway between
+     two of them: the thrown card shows down to -0.998, its copy from 4.001
+     in a deck of five. So each frame shows one of them, never neither (a
+     hole, where Firefox's scroll rests a thousandth short) and never both
+     (a doubled shadow). */
+  opacity: calc(
+    clamp(0, (var(--p) + .9985) * 2000, 1) *
+      clamp(0, (var(--deck-slide-count) - .9985 - var(--p)) * 2000, 1)
+  );
+}
+
+.photo-card img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.photo-card-caption {
+  position: absolute;
+  inset: auto 0 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 12px;
+  padding: 64px 20px 20px;
+  background: var(--ex-scrim);
+  color: #fff;
+}
+
+.photo-card h3 {
+  margin: 0 0 2px;
+  font-size: 22px;
+  letter-spacing: -.01em;
+}
+
+.photo-card p {
+  margin: 0;
+  font-size: 15px;
+}
+
+.photo-card [data-slidedeck-next] {
+  flex: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .photo-card {
+    --exit: clamp(0, -1 * var(--p), 1);
+  }
+}
+
+/* Too narrow for the throw to the side: wide cards, thrown up instead, their
+   own height, 16px and the cards peeking above them. So the stack sits at the
+   foot of a taller viewport, with room above it for the thrown card. */
+@container (max-width: 736px) {
+  .card-stack-deck [data-slidedeck-viewport] {
+    --card-width: min(300px, 100cqi);
+    --card-height: calc(var(--card-width) * .75);
+    --peek: 12px;
+    height: calc(2 * var(--card-height) + 4 * var(--peek) + 40px);
+  }
+
+  .photo-card {
+    --thrown: translateY(
+      calc(-1 * (100% + 16px + var(--peek) * (var(--deck-slide-count) - 1)) * sin(var(--exit) * .5turn))
+    );
+  }
+}
+
+/* A phone: the testimonials Previous, dots and Next stay on one row down to
    375px, with a shorter current dot. */
 @media (max-width: 400px) {
   .testimonials-deck {

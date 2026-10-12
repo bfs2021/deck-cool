@@ -495,6 +495,7 @@ describe("the Examples page", () => {
       "Stories",
       "Right to left",
       "Cover flow",
+      "Card stack",
     ]);
     expect(sections.map((section) => section.querySelector('[aria-roledescription="carousel"]')?.getAttribute("aria-label"))).toEqual([
       "Product photos",
@@ -503,6 +504,7 @@ describe("the Examples page", () => {
       "Travel stories",
       "وجهات للسفر",
       "Albums",
+      "Views",
     ]);
   });
 
