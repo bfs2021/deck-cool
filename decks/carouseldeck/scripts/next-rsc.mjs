@@ -36,12 +36,8 @@ const run = (command, args, cwd) =>
     env: { ...process.env, NEXT_TELEMETRY_DISABLED: '1' }
   });
 
-// Turbo replays a cached build, so this costs nothing after `pnpm build`.
-run(
-  'pnpm',
-  ['exec', 'turbo', 'run', 'build', '--filter=./packages/*'],
-  repoRoot
-);
+// Build the packages the tarballs are packed from.
+run('pnpm', ['--filter', './packages/*', 'build'], repoRoot);
 
 run(
   'pnpm',

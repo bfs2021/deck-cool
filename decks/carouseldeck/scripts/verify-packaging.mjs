@@ -62,8 +62,8 @@ const importGraph = (file, seen = new Set()) => {
 const packages = publishablePackages(repoRoot);
 const failures = [];
 
-// Turbo replays a cached build, so this costs nothing after `pnpm build`.
-pnpm(['exec', 'turbo', 'run', 'build', '--filter=./packages/*']);
+// Build the packages the tarballs are packed from.
+pnpm(['--filter', './packages/*', 'build']);
 
 for (const { manifest, path } of packages) {
   const { name } = manifest;

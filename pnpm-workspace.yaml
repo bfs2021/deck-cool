@@ -3,6 +3,14 @@ packages:
   - packages/*
   # The docs loader's fixture docs package, linked into @deck-cool/docs.
   - packages/docs/fixtures/example-docs
+  # carouseldeck, an in-repo deck (ADR 0002): its root package, for its scripts
+  # and dev dependencies, and its old workspace's members. tests/next-rsc
+  # stays outside, with its own lockfile.
+  - decks/carouseldeck
+  - decks/carouseldeck/packages/*
+  - decks/carouseldeck/apps/*
+  - decks/carouseldeck/tests/compare
+  - decks/carouseldeck/prototypes/scroll-snap
 # wrangler deploy runs without esbuild's and workerd's install scripts: the
 # Worker has no code to bundle or run, only static assets.
 allowBuilds:

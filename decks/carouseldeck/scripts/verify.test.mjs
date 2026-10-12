@@ -363,7 +363,7 @@ test('each gate job runs on a `changes` output that `changes` declares', () => {
 });
 
 test("ci.yml's Playwright image is the @playwright/test in the lockfile", () => {
-  const locked = read('pnpm-lock.yaml').match(
+  const locked = read('../../pnpm-lock.yaml').match(
     /^ {2}'@playwright\/test@([\d.]+)':$/m
   )?.[1];
   assert.ok(locked, 'pnpm-lock.yaml locks no @playwright/test');
