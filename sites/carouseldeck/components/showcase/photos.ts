@@ -125,7 +125,17 @@ export const PLACES = {
   pines: photo("pines", 640, 800, "غابة قرب البحر", ...FOREST)
 };
 
-/** Every photo, once each by its page on Unsplash, for the credits. */
+// The same photos with English alt text, for the card stack.
+export const VIEWS = {
+  valley: { ...PLACES.valley, alt: "A green valley between mountains" },
+  waterfall: { ...PLACES.waterfall, alt: "A waterfall between rocks" },
+  summit: { ...PLACES.summit, alt: "Snow-covered mountains" },
+  shore: { ...PLACES.shore, alt: "Rocks on a sea shore" },
+  pines: { ...PLACES.pines, alt: "A forest by the sea" }
+};
+
+/** Every photo, once each by its page on Unsplash, for the credits. VIEWS
+ * shares every photo's url with PLACES, so it adds none of its own. */
 export const CREDITS: readonly Photo[] = [
   ...new Map(
     [
