@@ -17,6 +17,8 @@
 
 import '../style.css';
 import { onSettle, settleSource } from '../settle';
+import { Axis, type Deck } from '../deck';
+import { installDrag, type Drag } from '../drag';
 
 const params = new URLSearchParams(location.search);
 
@@ -32,7 +34,8 @@ const controlDefs: Control[] = [
   { key: 'place', label: 'Placement', values: ['css', 'js'] },
   { key: 'slides', label: 'Slides', values: ['6', '3', '10'] },
   { key: 'per-view', label: 'Per view', values: ['1', '2'] },
-  { key: 'jank', label: 'Jank (ms busy / 300ms)', values: ['0', '150'] }
+  { key: 'jank', label: 'Jank (ms busy / 300ms)', values: ['0', '150'] },
+  { key: 'drag', label: 'Mouse drag', values: ['1', '0'] }
 ];
 
 function pick<T extends string>(key: string, values: readonly T[]): T {
@@ -46,6 +49,7 @@ const N = Number(pick('slides', ['6', '3', '10'] as const));
 const perView = Number(pick('per-view', ['1', '2'] as const));
 const jank = Number(pick('jank', ['0', '150'] as const));
 const placeRequested = pick('place', ['css', 'js'] as const);
+const dragEnabled = pick('drag', ['1', '0'] as const) === '1';
 
 const cssSupported = CSS.supports('animation-timeline: scroll()');
 const mode: Place =
@@ -264,15 +268,30 @@ function currentIndex(): number {
   return Math.round(wrapped / W) % N;
 }
 
+// A `scrollLeft` write made synchronously while the module's top-level code
+// runs is silently dropped in WebKit (confirmed: track/shell/viewport
+// layout is already correct at that point -- scrollWidth is right -- but
+// the write itself does not take; the same write from a later task
+// succeeds). WebKit evidently needs its first layout+paint to have
+// committed before it will honour a scroll write. Deferring the write (and
+// the placement that depends on it) by one frame fixes it in both
+// browsers; without this, the viewport rests at scrollLeft 0 -- in the
+// empty "before" shell set rather than the middle one -- until the first
+// settle "corrects" it with a spurious jump.
+function settleInitialScroll(left: number) {
+  requestAnimationFrame(() => {
+    viewport.scrollLeft = left;
+    applyMode();
+  });
+}
+
 layout();
-viewport.scrollLeft = L;
-applyMode();
+settleInitialScroll(L);
 
 window.addEventListener('resize', () => {
   const idx = currentIndex();
   layout();
-  viewport.scrollLeft = L + idx * W;
-  applyMode();
+  settleInitialScroll(L + idx * W);
 });
 
 // Jank: a busy main-thread loop, at most once per 300ms, to simulate a long
@@ -291,18 +310,29 @@ function maybeJank() {
   }
 }
 
+// Jump back by one set length into the middle set when the viewport has
+// drifted into a "before" or "after" shell set, then re-place in the same
+// task (for `place=js`; the CSS timeline recomputes on its own, from the
+// same scrollLeft, with no extra call needed).
 let jumpCount = 0;
 function jumpIfNeeded() {
   const pos = viewport.scrollLeft;
   if (pos < L - 1) {
     viewport.scrollLeft = pos + L;
     jumpCount++;
-    if (mode === 'js') place();
   } else if (pos >= 2 * L - 1) {
     viewport.scrollLeft = pos - L;
     jumpCount++;
-    if (mode === 'js') place();
   }
+}
+
+// Used at rest (scrollend/debounce), and -- when a mouse drag owns the
+// position -- on every drag move and at its release, so a long drag can
+// never carry the scroller out of the three sets, and the jump never
+// cuts a drag's momentum.
+function handleSettle() {
+  jumpIfNeeded();
+  if (mode === 'js') place();
 }
 
 viewport.addEventListener(
@@ -313,7 +343,25 @@ viewport.addEventListener(
   },
   { passive: true }
 );
-onSettle(viewport, jumpIfNeeded);
+
+// Mouse drag reuses the same Axis/snapPoints machinery as the other
+// prototype pages (../drag.ts, ../deck.ts): the shells carry
+// `scroll-snap-align`, so `snapPoints()` finds them the same way it finds
+// slides or clones on those pages.
+const axis = new Axis(viewport, false, false);
+const deckForDrag: Deck = { vp: viewport, track, axis, n: N, pageSize: 1 };
+let drag: Drag | undefined;
+if (dragEnabled) {
+  drag = installDrag(deckForDrag, 'scripted', {
+    onMove: handleSettle,
+    onEnd: handleSettle
+  });
+}
+
+onSettle(viewport, () => {
+  if (drag?.handleSettle()) return;
+  handleSettle();
+});
 
 document.querySelector('#prev')!.addEventListener('click', () => {
   viewport.scrollTo({ left: viewport.scrollLeft - W, behavior: 'smooth' });
@@ -322,9 +370,9 @@ document.querySelector('#next')!.addEventListener('click', () => {
   viewport.scrollTo({ left: viewport.scrollLeft + W, behavior: 'smooth' });
 });
 
-// Blank-frame detector: every rAF, sample the viewport's centre (and, with
-// two slides per view, 25%/75%) and check whether a shell -- not a real
-// slide -- is what paints there.
+// Blank-frame detector: every rAF, sample the viewport's left edge, centre
+// and right edge (a peeking neighbour must be a real slide, not a shell)
+// and check whether a shell -- not a real slide -- is what paints there.
 let blankFrames = 0;
 let flashTimer = 0;
 const hud = document.querySelector<HTMLElement>('#hud')!;
@@ -332,27 +380,82 @@ const hud = document.querySelector<HTMLElement>('#hud')!;
 function samplePoints(): { x: number; y: number }[] {
   const rect = viewport.getBoundingClientRect();
   const y = rect.top + rect.height / 2;
-  const points = [{ x: rect.left + rect.width / 2, y }];
-  if (perView === 2) {
-    points.push({ x: rect.left + rect.width * 0.25, y });
-    points.push({ x: rect.left + rect.width * 0.75, y });
-  }
-  return points;
+  return [
+    { x: rect.left + 10, y },
+    { x: rect.left + rect.width / 2, y },
+    { x: rect.right - 10, y }
+  ];
+}
+
+// "Off-scroll" detector: a visible slide's on-screen left must only change
+// by the scroll delta, plus whatever its own `translate` deliberately
+// changed by (the jump flips every slide's translate by one set length in
+// the same task it moves scrollLeft by one set length, and the two are
+// designed to cancel out exactly -- see FINDINGS.md and the jump-origin
+// bug this page's history fixed). Anything else -- translate and
+// scrollLeft disagreeing about where a visible slide should sit -- is
+// exactly the glitch the maintainer saw on the phone, so flag and flash on
+// it the same as a blank frame. (A simpler check that ignores translate
+// entirely would flag every normal jump that happens to catch a peeking
+// neighbour on screen, since a jump intentionally changes both scrollLeft
+// and translate together; that would make this detector useless on a real
+// device, so it accounts for the intentional change.)
+//
+// The baseline (previous scrollLeft, rects, translates) is captured lazily,
+// on tick's first call, not eagerly here at module load: this module runs
+// before the stylesheet is guaranteed to be applied, so an eager capture
+// read every slide's pre-CSS layout (all stacked at the same `left`,
+// `translate: none`) as the baseline, and the first real tick -- once
+// layout and `settleInitialScroll` have both run -- compared real,
+// correctly placed slides against that bogus baseline, flagging every
+// single page load as a false glitch, on every slide onscreen at the time.
+let offScrollFrames = 0;
+let havePrevFrame = false;
+let prevScrollLeft = 0;
+let prevSlideLefts = slides.map(() => 0);
+let prevSlideTranslates = slides.map(() => 0);
+
+function flashHud() {
+  hud.classList.add('warn');
+  clearTimeout(flashTimer);
+  flashTimer = window.setTimeout(() => hud.classList.remove('warn'), 250);
 }
 
 function tick() {
+  // Read rects and the computed `translate` for every slide before the
+  // `elementFromPoint` calls below, since each one forces a layout.
+  const rect = viewport.getBoundingClientRect();
+  const scrollLeft = viewport.scrollLeft;
+  const scrollDelta = scrollLeft - prevScrollLeft;
+  let offScroll = false;
+  slides.forEach((s, i) => {
+    const r = s.el.getBoundingClientRect();
+    const translate = parseFloat(getComputedStyle(s.el).translate) || 0;
+    const visible = r.right > rect.left && r.left < rect.right;
+    if (havePrevFrame) {
+      const moveDelta = r.left - prevSlideLefts[i];
+      const translateDelta = translate - prevSlideTranslates[i];
+      const expected = -scrollDelta + translateDelta;
+      if (visible && Math.abs(moveDelta - expected) > 2) {
+        offScroll = true;
+      }
+    }
+    prevSlideLefts[i] = r.left;
+    prevSlideTranslates[i] = translate;
+  });
+  prevScrollLeft = scrollLeft;
+  havePrevFrame = true;
+
   let hitShell = false;
   for (const p of samplePoints()) {
     const el = document.elementFromPoint(p.x, p.y);
     if (!el || el.closest('.slide')) continue;
     if (el.closest('.shell')) hitShell = true;
   }
-  if (hitShell) {
-    blankFrames++;
-    hud.classList.add('warn');
-    clearTimeout(flashTimer);
-    flashTimer = window.setTimeout(() => hud.classList.remove('warn'), 250);
-  }
+
+  if (hitShell) blankFrames++;
+  if (offScroll) offScrollFrames++;
+  if (hitShell || offScroll) flashHud();
   requestAnimationFrame(tick);
 }
 requestAnimationFrame(tick);
@@ -360,6 +463,7 @@ requestAnimationFrame(tick);
 document.querySelector('#reset')!.addEventListener('click', () => {
   jumpCount = 0;
   blankFrames = 0;
+  offScrollFrames = 0;
 });
 
 const tooFew = L < viewport.clientWidth + W;
@@ -372,9 +476,9 @@ setInterval(() => {
       (placeRequested === 'css' && mode === 'js'
         ? ' (css requested, animation-timeline unsupported -> fell back to js)'
         : ''),
-    `animation-timeline: scroll() ${cssSupported ? 'yes' : 'no'} · scrollend ${scrollendSupported ? 'yes' : 'no'} (settle via ${settleSource})`,
+    `animation-timeline: scroll() ${cssSupported ? 'yes' : 'no'} · scrollend ${scrollendSupported ? 'yes' : 'no'} (settle via ${settleSource}) · drag ${dragEnabled ? 'on' : 'off'}`,
     `scrollLeft ${Math.round(viewport.scrollLeft)} · set length ${L} · slide width ${W}`,
-    `index ${currentIndex() + 1} / ${N} · jumps ${jumpCount} · blank frames ${blankFrames}`,
+    `index ${currentIndex() + 1} / ${N} · jumps ${jumpCount} · blank frames ${blankFrames} · off-scroll frames ${offScrollFrames}`,
     tooFew
       ? 'WARNING: too few slides for one-instance loop at this viewport/per-view (one set is narrower than viewport + one slide)'
       : ''
@@ -390,6 +494,7 @@ declare global {
       index(): number;
       jumpCount(): number;
       blankFrames(): number;
+      offScrollFrames(): number;
       reset(): void;
     };
   }
@@ -400,8 +505,10 @@ window.__loopOne = {
   index: currentIndex,
   jumpCount: () => jumpCount,
   blankFrames: () => blankFrames,
+  offScrollFrames: () => offScrollFrames,
   reset: () => {
     jumpCount = 0;
     blankFrames = 0;
+    offScrollFrames = 0;
   }
 };
