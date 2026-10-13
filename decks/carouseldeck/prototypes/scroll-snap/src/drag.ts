@@ -86,8 +86,26 @@ export function installDrag(
     if (e.pointerId !== pointer) return;
     if (phase === 'pending') {
       if (Math.hypot(e.clientX - startX, e.clientY - startY) < 5) return;
+      // `setPointerCapture` throws ("InvalidPointerId") if the browser no
+      // longer considers this pointer active -- measured when a busy main
+      // thread (a page's own jank control, or ordinary congestion) delays
+      // this pointermove past the real pointerup. Setting `phase =
+      // 'dragging'` before that throw, with nothing to catch it, left it
+      // stuck there for good: the only way out is a `pointerup` or
+      // `pointercancel` matching this `pointer`, which never arrives for a
+      // pointer the browser already dropped. `handleSettle()` then reads
+      // every later settle as mid-drag and swallows it forever, so a
+      // caller whose own settle handler corrects the scroller position
+      // (loop-one-instance.ts's rest-jump) stops correcting it at all.
+      // Bail instead of committing to `dragging` when capture fails.
+      try {
+        vp.setPointerCapture(pointer);
+      } catch {
+        phase = 'idle';
+        pointer = -1;
+        return;
+      }
       phase = 'dragging';
-      vp.setPointerCapture(pointer);
       vp.classList.add('dragging');
       snapOff();
     }
