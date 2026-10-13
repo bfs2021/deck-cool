@@ -1,9 +1,10 @@
 // THROWAWAY. Loop with one real instance per slide.
 //
-// Three sets of empty, inert, aria-hidden shells (before / mid / after) are
-// the only scroll-snap targets. The real slides -- mounted once, never
-// moved in the DOM -- have `scroll-snap-align: none` and sit over whichever
-// shell is nearest the viewport, placed with `translate`:
+// `BUFFER_SETS` sets of empty, inert, aria-hidden shells sit on each side
+// of one middle set (2*BUFFER_SETS+1 sets total) and are the only
+// scroll-snap targets. The real slides -- mounted once, never moved in the
+// DOM -- have `scroll-snap-align: none` and sit over whichever shell is
+// nearest the viewport, placed with `translate`:
 //
 // - `place=css`: a named scroll-timeline on the viewport drives each
 //   slide's translate with step keyframes, computed on the compositor.
@@ -11,9 +12,20 @@
 // - `place=js`: a scroll listener recomputes every slide's translate.
 //
 // At rest (scrollend, or the debounce fallback in ../settle), the scroll
-// position jumps back by one set length into the middle set, same as
-// loop-clone-jump.ts's normalize -- but nothing is cloned, so every slide
-// (its video, its iframe) mounts exactly once.
+// position jumps back into the middle set by as many set lengths as it has
+// drifted, same idea as loop-clone-jump.ts's normalize -- but nothing is
+// cloned, so every slide (its video, its iframe) mounts exactly once.
+//
+// BUFFER_SETS is 2, not 1: a single flick's native momentum, or several
+// flicks chained before any of them settles (iOS keeps momentum going
+// across a chained flick, so scrollend may not fire between them -- see
+// AGENTS.md/this file's commit), can travel more than one set length
+// before the scroller ever rests. A mid-scroll correction was tried and
+// measured to cut a smooth scroll's (and, going by the same browser
+// behaviour, a native momentum scroll's) motion dead at the write in both
+// Chromium and WebKit, which is worse than the problem it would fix -- see
+// that commit for the numbers. More buffer sets are the gentler fix: still
+// just empty, inert, aria-hidden boxes, so the extra DOM cost is small.
 
 import '../style.css';
 import { onSettle, settleSource } from '../settle';
@@ -108,12 +120,14 @@ stage.innerHTML = `
 const viewport = document.querySelector<HTMLElement>('#viewport')!;
 const track = document.querySelector<HTMLElement>('#track')!;
 
-const SETS = ['before', 'mid', 'after'] as const;
-for (const set of SETS) {
+const BUFFER_SETS = 2;
+const TOTAL_SETS = 2 * BUFFER_SETS + 1;
+for (let set = -BUFFER_SETS; set <= BUFFER_SETS; set++) {
   for (let i = 0; i < N; i++) {
     const shell = document.createElement('div');
     shell.className = 'shell';
-    shell.dataset.set = set;
+    shell.dataset.set =
+      set === 0 ? 'mid' : set < 0 ? `before${-set}` : `after${set}`;
     shell.dataset.index = String(i);
     shell.setAttribute('aria-hidden', 'true');
     shell.inert = true;
@@ -202,40 +216,53 @@ function layout() {
   const ratio = perView === 2 ? 0.5 : 0.85;
   W = Math.max(40, Math.round(viewport.clientWidth * ratio));
   L = N * W;
-  track.style.width = `${3 * L}px`;
+  track.style.width = `${TOTAL_SETS * L}px`;
   track.querySelectorAll<HTMLElement>('.shell').forEach((shell) => {
     shell.style.flex = `0 0 ${W}px`;
     shell.style.width = `${W}px`;
   });
   slides.forEach((s, i) => {
     s.el.style.width = `${W}px`;
-    s.el.style.left = `${L + i * W}px`;
+    s.el.style.left = `${BUFFER_SETS * L + i * W}px`;
   });
+}
+
+/** k, clamped to the buffer sets available: the nearest of the
+ * `TOTAL_SETS` periodic copies of `home` to `centre`, i.e. which shell
+ * slot a slide should be translated to sit over. */
+function nearestK(home: number, centre: number): number {
+  const k = Math.round((centre - home) / L);
+  return Math.max(-BUFFER_SETS, Math.min(BUFFER_SETS, k));
+}
+
+function translateFor(k: number): string {
+  return k ? `${k * L}px 0` : '0px 0';
 }
 
 // `place=css`: a step function of scroll position, computed on the
 // compositor via a named scroll-timeline on the viewport. One keyframe
-// percent pair per slide: translate -L before its "before" window, 0 over
-// its middle window, +L after it.
+// percent pair per slide per buffer set: translate -BUFFER_SETS*L at the
+// far "before" end, stepping up by one set length at each boundary, to
+// +BUFFER_SETS*L at the far "after" end.
 let timelineStyle: HTMLStyleElement | null = null;
 function buildCssTimeline() {
   viewport.style.scrollTimeline = '--one-instance-scroll x';
-  const max = Math.max(1, 3 * L - viewport.clientWidth);
+  const max = Math.max(1, TOTAL_SETS * L - viewport.clientWidth);
   const half = viewport.clientWidth / 2;
   const clamp = (x: number) => Math.min(100, Math.max(0, x));
   let css = '';
   slides.forEach((s, i) => {
-    const centre = L + i * W + W / 2;
-    const a = clamp(((centre - L / 2 - half) / max) * 100);
-    const b = clamp(((centre + L / 2 - half) / max) * 100);
-    const aEnd = Math.min(100, a + 0.0005);
-    const bEnd = Math.min(100, b + 0.0005);
+    const home = BUFFER_SETS * L + i * W + W / 2;
     const name = `one-instance-k${i}`;
-    css +=
-      `@keyframes ${name}{` +
-      `0%{translate:${-L}px 0}${a}%{translate:${-L}px 0}` +
-      `${aEnd}%{translate:0 0}${b}%{translate:0 0}` +
-      `${bEnd}%{translate:${L}px 0}100%{translate:${L}px 0}}`;
+    let kf = `0%{translate:${translateFor(-BUFFER_SETS)}}`;
+    for (let k = -BUFFER_SETS; k < BUFFER_SETS; k++) {
+      // The boundary where k stops being nearest and k+1 takes over.
+      const boundary = clamp(((home + (k + 0.5) * L - half) / max) * 100);
+      kf += `${boundary}%{translate:${translateFor(k)}}`;
+      kf += `${Math.min(100, boundary + 0.0005)}%{translate:${translateFor(k + 1)}}`;
+    }
+    kf += `100%{translate:${translateFor(BUFFER_SETS)}}`;
+    css += `@keyframes ${name}{${kf}}`;
     s.el.style.animation = `${name} linear both`;
     s.el.style.animationTimeline = '--one-instance-scroll';
   });
@@ -250,11 +277,8 @@ function buildCssTimeline() {
 function place() {
   const centre = viewport.scrollLeft + viewport.clientWidth / 2;
   slides.forEach((s, i) => {
-    const home = L + i * W + W / 2;
-    let k = 0;
-    if (home < centre - L / 2) k = 1;
-    else if (home >= centre + L / 2) k = -1;
-    s.el.style.translate = k ? `${k * L}px 0` : '0px 0';
+    const home = BUFFER_SETS * L + i * W + W / 2;
+    s.el.style.translate = translateFor(nearestK(home, centre));
   });
 }
 
@@ -264,7 +288,7 @@ function applyMode() {
 }
 
 function currentIndex(): number {
-  const wrapped = (((viewport.scrollLeft - L) % L) + L) % L;
+  const wrapped = (((viewport.scrollLeft - BUFFER_SETS * L) % L) + L) % L;
   return Math.round(wrapped / W) % N;
 }
 
@@ -286,12 +310,12 @@ function settleInitialScroll(left: number) {
 }
 
 layout();
-settleInitialScroll(L);
+settleInitialScroll(BUFFER_SETS * L);
 
 window.addEventListener('resize', () => {
   const idx = currentIndex();
   layout();
-  settleInitialScroll(L + idx * W);
+  settleInitialScroll(BUFFER_SETS * L + idx * W);
 });
 
 // Jank: a busy main-thread loop, at most once per 300ms, to simulate a long
@@ -310,26 +334,34 @@ function maybeJank() {
   }
 }
 
-// Jump back by one set length into the middle set when the viewport has
+// Jump back into the middle set by as many set lengths as the viewport has
 // drifted into a "before" or "after" shell set, then re-place in the same
 // task (for `place=js`; the CSS timeline recomputes on its own, from the
-// same scrollLeft, with no extra call needed).
+// same scrollLeft, with no extra call needed). A loop, not a single ±L
+// step: with BUFFER_SETS > 1 a rest position can in principle be more than
+// one set length from the middle set (the physical scroll range is
+// TOTAL_SETS long), though in practice a single step has covered every
+// case measured so far.
 let jumpCount = 0;
 function jumpIfNeeded() {
   const pos = viewport.scrollLeft;
-  if (pos < L - 1) {
-    viewport.scrollLeft = pos + L;
-    jumpCount++;
-  } else if (pos >= 2 * L - 1) {
-    viewport.scrollLeft = pos - L;
+  const midStart = BUFFER_SETS * L;
+  let next = pos;
+  while (next < midStart - 1) {
+    next += L;
     jumpCount++;
   }
+  while (next >= midStart + L - 1) {
+    next -= L;
+    jumpCount++;
+  }
+  if (next !== pos) viewport.scrollLeft = next;
 }
 
-// Used at rest (scrollend/debounce), and -- when a mouse drag owns the
-// position -- on every drag move and at its release, so a long drag can
-// never carry the scroller out of the three sets, and the jump never
-// cuts a drag's momentum.
+// Used at rest (scrollend/debounce), on every Next/Prev press (see
+// below), and -- when a mouse drag owns the position -- on every drag
+// move and at its release, so a long drag can never carry the scroller
+// past the buffer sets, and the jump never cuts a drag's momentum.
 function handleSettle() {
   jumpIfNeeded();
   if (mode === 'js') place();
@@ -363,10 +395,23 @@ onSettle(viewport, () => {
   handleSettle();
 });
 
+// No waiting at the end: Next/Prev must keep advancing across the seam
+// without waiting for the rest jump. Measured: once scrollLeft is clamped
+// to the track's physical end, a `scrollTo` call asking to go further is a
+// no-op the browser does not even fire a `scroll` or `scrollend` event
+// for, in Chromium or WebKit -- so `onSettle`'s jump never runs again, and
+// rapid presses in one direction (faster than the browser's own smooth-
+// scroll settles between them) can pin the deck there for good, with no
+// event left to recover on. A big enough BUFFER_SETS makes this rare, but
+// cannot make it impossible: correct first, synchronously, so every press
+// always has its own full set of room to advance into, whether or not a
+// settle ever got the chance to.
 document.querySelector('#prev')!.addEventListener('click', () => {
+  handleSettle();
   viewport.scrollTo({ left: viewport.scrollLeft - W, behavior: 'smooth' });
 });
 document.querySelector('#next')!.addEventListener('click', () => {
+  handleSettle();
   viewport.scrollTo({ left: viewport.scrollLeft + W, behavior: 'smooth' });
 });
 
