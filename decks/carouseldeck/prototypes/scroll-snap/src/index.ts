@@ -11,6 +11,7 @@ document.body.innerHTML = `
   <ul>
     <li><a href="./loop-clone-jump.html">Loop: clone and jump</a> (copies at both ends, jump back at <code>scrollend</code>)</li>
     <li><a href="./loop-reposition.html">Loop: reposition</a> (no copies; move slides from one end to the other at rest)</li>
+    <li><a href="./loop-one-instance.html">Loop: one instance</a> (empty shells hold the snap points; each slide mounts once and is translated over the nearest one)</li>
     <li><a href="./drag.html">Mouse drag</a> (plain deck; the loop pages have the same drag)</li>
     <li><a href="./fade.html">Fade</a> (slides stacked with <code>position: sticky</code>, opacity from scroll progress)</li>
   </ul>

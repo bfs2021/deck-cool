@@ -9,12 +9,13 @@ Findings: [`FINDINGS.md`](./FINDINGS.md).
 
 ## Pages
 
-| Page                   | Technique                                                            |
-| ---------------------- | -------------------------------------------------------------------- |
-| `loop-clone-jump.html` | Copies at both ends; jump back by one set length at rest             |
-| `loop-reposition.html` | No copies; move slides from the far end to the near end at rest      |
-| `drag.html`            | Mouse drag on a plain deck (the loop pages and fade have it too)     |
-| `fade.html`            | Slides stacked with `position: sticky`, opacity from scroll progress |
+| Page                     | Technique                                                                                                                                       |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `loop-clone-jump.html`   | Copies at both ends; jump back by one set length at rest                                                                                        |
+| `loop-reposition.html`   | No copies; move slides from the far end to the near end at rest                                                                                 |
+| `loop-one-instance.html` | No copies; empty shells hold the snap points, each slide mounts once and is translated over the nearest one (CSS scroll-driven animation or JS) |
+| `drag.html`              | Mouse drag on a plain deck (the loop pages and fade have it too)                                                                                |
+| `fade.html`              | Slides stacked with `position: sticky`, opacity from scroll progress                                                                            |
 
 Every page has toggles for group snapping, vertical, RTL, mouse drag and the
 drag handoff, plus technique-specific ones. Toggles are URL query

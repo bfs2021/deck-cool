@@ -205,3 +205,84 @@ h1 {
   border-color: #d00;
   box-shadow: 0 0 0 2px #d00;
 }
+.hud.too-few {
+  border-color: #d00;
+  border-style: dashed;
+}
+
+/* Loop: one instance. Shells carry the scroll snap points; the single
+   mounted slide is translated over whichever shell is nearest the
+   viewport, so the track itself must position both. */
+.loop-one .track {
+  position: relative;
+  height: 100%;
+}
+.loop-one .shell {
+  flex: 0 0 auto;
+  height: 100%;
+  box-sizing: border-box;
+  scroll-snap-align: start;
+}
+.loop-one .slide {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  box-sizing: border-box;
+  padding: 6px;
+  scroll-snap-align: none;
+}
+.loop-one-card {
+  box-sizing: border-box;
+  height: 100%;
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow: hidden;
+  background: hsl(var(--hue) 65% 45%);
+  color: #fff;
+}
+.loop-one-card .card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 0.8rem;
+}
+.loop-one-card .num {
+  font-size: clamp(2rem, 9vw, 4rem);
+  font-weight: 800;
+  line-height: 1;
+}
+.loop-one-card .card-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.demo-video,
+.demo-iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  border-radius: 8px;
+  background: #000;
+}
+.plain-body {
+  font-size: clamp(1.5rem, 6vw, 3rem);
+  font-weight: 700;
+  margin: 0;
+}
+.loop-one-card .tap-btn {
+  font: inherit;
+  align-self: flex-start;
+  padding: 6px 12px;
+}
+.loop-one .slide:focus-visible {
+  outline: none;
+}
+.loop-one .slide:focus-visible .loop-one-card {
+  outline: 4px solid var(--fg);
+  outline-offset: -4px;
+}
