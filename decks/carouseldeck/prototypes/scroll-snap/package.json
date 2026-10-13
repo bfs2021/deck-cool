@@ -9,10 +9,18 @@
     "build": "vite build",
     "preview": "vite preview",
     "serve": "vite build && vite preview --host 0.0.0.0 --port 4317 --strictPort",
-    "measure": "node -e \"fs.rmSync('measure-results',{recursive:true,force:true})\" && playwright test -c playwright.config.ts"
+    "measure": "node -e \"fs.rmSync('measure-results',{recursive:true,force:true})\" && playwright test -c playwright.config.ts",
+    "bench": "playwright test -c bench/playwright.config.ts"
   },
   "devDependencies": {
+    "@carouseldeck/core": "workspace:*",
+    "@egjs/axes": "3.9.3",
+    "@egjs/flicking": "4.17.1",
     "@playwright/test": "1.63.0",
+    "@splidejs/splide": "4.1.4",
+    "embla-carousel": "8.6.0",
+    "keen-slider": "6.8.6",
+    "swiper": "14.3.0",
     "vite": "8.3.1"
   }
 }

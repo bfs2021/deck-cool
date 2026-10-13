@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Smoothness bench (THROWAWAY, #138)</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        max-width: 640px;
+        margin: 40px auto;
+        padding: 0 16px;
+        color-scheme: light dark;
+      }
+      .banner {
+        background: #0057b0;
+        color: #fff;
+        padding: 8px 16px;
+        margin: 0 -16px 20px;
+        font-weight: 600;
+      }
+      li {
+        margin: 6px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="banner">
+      THROWAWAY bench for #138. Seven decks, same content, same widths, looping.
+      See bench/RESULTS.md for the numbers.
+    </div>
+    <h1>Smoothness bench</h1>
+    <p>
+      Every link opens the deck with its default (6 slides). Add
+      <code>?slides=10</code> or <code>?slides=50</code> for the heap-cost
+      variants.
+    </p>
+    <ul>
+      <li><a href="./bench-carouseldeck.html">carouseldeck (shipped)</a></li>
+      <li>
+        <a href="./bench-one-instance.html?video=0&iframe=0"
+          >carouseldeck (one-instance loop prototype)</a
+        >
+      </li>
+      <li><a href="./bench-embla.html">Embla 8.6.0</a></li>
+      <li><a href="./bench-keen.html">Keen Slider 6.8.6</a></li>
+      <li><a href="./bench-swiper.html">Swiper 14.3.0</a></li>
+      <li><a href="./bench-splide.html">Splide 4.1.4</a></li>
+      <li><a href="./bench-flicking.html">Flicking 4.17.1</a></li>
+    </ul>
+    <p>
+      <a href="./bench-iphone.html">iPhone page</a> (loads any deck by
+      <code>?deck=</code>, shows the main-thread-visible metrics live).
+    </p>
+  </body>
+</html>

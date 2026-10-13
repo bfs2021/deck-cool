@@ -44,7 +44,7 @@ interface Control {
 
 const controlDefs: Control[] = [
   { key: 'place', label: 'Placement', values: ['css', 'js'] },
-  { key: 'slides', label: 'Slides', values: ['6', '3', '10'] },
+  { key: 'slides', label: 'Slides', values: ['6', '3', '10', '50'] },
   { key: 'per-view', label: 'Per view', values: ['1', '2'] },
   { key: 'jank', label: 'Jank (ms busy / 300ms)', values: ['0', '150'] },
   { key: 'drag', label: 'Mouse drag', values: ['1', '0'] },
@@ -60,7 +60,7 @@ function pick<T extends string>(key: string, values: readonly T[]): T {
     : values[0];
 }
 
-const N = Number(pick('slides', ['6', '3', '10'] as const));
+const N = Number(pick('slides', ['6', '3', '10', '50'] as const));
 const perView = Number(pick('per-view', ['1', '2'] as const));
 const jank = Number(pick('jank', ['0', '150'] as const));
 const placeRequested = pick('place', ['css', 'js'] as const);

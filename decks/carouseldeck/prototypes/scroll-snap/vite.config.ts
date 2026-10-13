@@ -16,7 +16,17 @@ export default defineConfig({
         'loop-reposition': page('loop-reposition'),
         'loop-one-instance': page('loop-one-instance'),
         drag: page('drag'),
-        fade: page('fade')
+        fade: page('fade'),
+        // #138's smoothness bench.
+        bench: page('bench'),
+        'bench-carouseldeck': page('bench-carouseldeck'),
+        'bench-one-instance': page('bench-one-instance'),
+        'bench-embla': page('bench-embla'),
+        'bench-keen': page('bench-keen'),
+        'bench-swiper': page('bench-swiper'),
+        'bench-splide': page('bench-splide'),
+        'bench-flicking': page('bench-flicking'),
+        'bench-iphone': page('bench-iphone')
       }
     }
   }

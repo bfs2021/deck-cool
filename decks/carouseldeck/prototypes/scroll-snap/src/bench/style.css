@@ -1,0 +1,115 @@
+/* THROWAWAY bench styles (#138). Fixed pixel geometry (content.ts), the
+   same on every deck, so a difference in the numbers is the engine. */
+:root {
+  color-scheme: light dark;
+  font-family: system-ui, sans-serif;
+  --fg: #111;
+  --bg: #fafafa;
+  --muted: #666;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fg: #eee;
+    --bg: #141414;
+    --muted: #999;
+  }
+}
+body {
+  margin: 0 auto;
+  padding: 0 16px 48px;
+  max-width: 720px;
+  color: var(--fg);
+  background: var(--bg);
+  line-height: 1.4;
+}
+.bench-banner {
+  margin: 0 -16px 12px;
+  padding: 8px 16px;
+  background: #0057b0;
+  color: #fff;
+  font-weight: 600;
+}
+.bench-nav a {
+  margin-inline-end: 12px;
+}
+.bench-title {
+  font-size: 1.1rem;
+  margin: 12px 0;
+}
+.buttons {
+  display: flex;
+  gap: 8px;
+  margin: 12px 0;
+}
+.buttons button {
+  font: inherit;
+  padding: 6px 14px;
+}
+.hud {
+  font:
+    0.8rem/1.5 ui-monospace,
+    monospace;
+  padding: 8px;
+  border: 1px solid var(--muted);
+  border-radius: 6px;
+  white-space: pre-wrap;
+}
+
+/* The deck. Every library's viewport is this exact box; every slide this
+   exact width, so the only difference between decks is the engine. */
+#viewport {
+  width: 640px;
+  height: 420px;
+  max-width: 100%;
+}
+.bench-slide {
+  width: 544px;
+  flex: 0 0 auto;
+  box-sizing: border-box;
+  padding: 6px;
+}
+.bench-card {
+  box-sizing: border-box;
+  height: 100%;
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-start;
+  background: hsl(var(--hue) 65% 45%);
+  color: #fff;
+}
+.bench-num {
+  font-size: clamp(2.5rem, 10vw, 5rem);
+  font-weight: 800;
+  line-height: 1;
+}
+.bench-text {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+/* carouseldeck as shipped: a native scroll container, the slides its direct
+   children. */
+#viewport.native {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  overscroll-behavior-x: contain;
+  overflow-anchor: none;
+  outline-offset: 2px;
+}
+.native .bench-slide {
+  scroll-snap-align: start;
+}
+
+/* Embla: the root is overflow:hidden; the container is the flex row Embla
+   moves with `translate3d`. */
+#viewport.embla-root {
+  overflow: hidden;
+}
+.embla-root .embla__container {
+  display: flex;
+  height: 100%;
+}
