@@ -1110,12 +1110,20 @@ export function createDeck(
       // Under the threshold a press is still a click.
       const moved = Math.hypot(event.clientX - startX, event.clientY - startY);
       if (moved < DRAG_THRESHOLD_PX) return;
+      try {
+        viewport.setPointerCapture(pointer);
+      } catch {
+        // A busy main thread can deliver this move after the pointer
+        // itself is gone, and the capture throws (#140). Tried before
+        // anything else changes, so a throw here leaves the drag never
+        // started.
+        return;
+      }
       // The drag takes over any scroll in flight, its own release included:
       // where the deck goes now is decided when the pointer lets go.
       drag = 'dragging';
       takeOver();
       removeSnap();
-      viewport.setPointerCapture(pointer);
       // Before the drag first moves the deck (see `shiftOffCopies`).
       shiftOffCopies();
       dragAt = dragAxis.position;
