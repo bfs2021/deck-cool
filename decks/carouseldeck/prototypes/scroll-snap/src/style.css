@@ -274,6 +274,26 @@ h1 {
   font-weight: 700;
   margin: 0;
 }
+.demo-placeholder {
+  width: 100%;
+  height: 100%;
+  border-radius: 8px;
+  background: repeating-linear-gradient(
+    45deg,
+    #000,
+    #000 10px,
+    #222 10px,
+    #222 20px
+  );
+  color: #fff;
+  font:
+    0.9rem/1.3 ui-monospace,
+    monospace;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
 .loop-one-card .tap-btn {
   font: inherit;
   align-self: flex-start;
@@ -285,4 +305,10 @@ h1 {
 .loop-one .slide:focus-visible .loop-one-card {
   outline: 4px solid var(--fg);
   outline-offset: -4px;
+}
+/* `will-change` variant (?will-change=1): try before/after on a real
+   device if the video/iframe toggles above point at compositing, not at
+   the loop's own placement logic. */
+.loop-one.will-change-slides .slide {
+  will-change: translate;
 }

@@ -47,7 +47,10 @@ const controlDefs: Control[] = [
   { key: 'slides', label: 'Slides', values: ['6', '3', '10'] },
   { key: 'per-view', label: 'Per view', values: ['1', '2'] },
   { key: 'jank', label: 'Jank (ms busy / 300ms)', values: ['0', '150'] },
-  { key: 'drag', label: 'Mouse drag', values: ['1', '0'] }
+  { key: 'drag', label: 'Mouse drag', values: ['1', '0'] },
+  { key: 'video', label: 'Slide 1 is a video', values: ['1', '0'] },
+  { key: 'iframe', label: 'Slide 2 is an iframe', values: ['1', '0'] },
+  { key: 'will-change', label: 'will-change on slides', values: ['0', '1'] }
 ];
 
 function pick<T extends string>(key: string, values: readonly T[]): T {
@@ -62,6 +65,9 @@ const perView = Number(pick('per-view', ['1', '2'] as const));
 const jank = Number(pick('jank', ['0', '150'] as const));
 const placeRequested = pick('place', ['css', 'js'] as const);
 const dragEnabled = pick('drag', ['1', '0'] as const) === '1';
+const videoEnabled = pick('video', ['1', '0'] as const) === '1';
+const iframeEnabled = pick('iframe', ['1', '0'] as const) === '1';
+const willChangeEnabled = pick('will-change', ['0', '1'] as const) === '1';
 
 const cssSupported = CSS.supports('animation-timeline: scroll()');
 const mode: Place =
@@ -119,6 +125,7 @@ stage.innerHTML = `
 `;
 const viewport = document.querySelector<HTMLElement>('#viewport')!;
 const track = document.querySelector<HTMLElement>('#track')!;
+viewport.classList.toggle('will-change-slides', willChangeEnabled);
 
 const BUFFER_SETS = 2;
 const TOTAL_SETS = 2 * BUFFER_SETS + 1;
@@ -155,7 +162,7 @@ function buildCard(i: number): HTMLElement {
     <button type="button" class="tap-btn">Tap (<span class="tap-count">0</span>)</button>
   `;
   const body = card.querySelector<HTMLElement>('.card-body')!;
-  if (i === 0) {
+  if (i === 0 && videoEnabled) {
     const video = document.createElement('video');
     video.className = 'demo-video';
     video.src = '/clock.mp4';
@@ -164,7 +171,7 @@ function buildCard(i: number): HTMLElement {
     video.loop = true;
     video.playsInline = true;
     body.append(video);
-  } else if (i === 1) {
+  } else if (i === 1 && iframeEnabled) {
     const iframe = document.createElement('iframe');
     iframe.className = 'demo-iframe';
     iframe.title = 'Counter since load';
@@ -176,6 +183,11 @@ function buildCard(i: number): HTMLElement {
       "document.getElementById('counter').textContent=String(n);},100);" +
       '</script>';
     body.append(iframe);
+  } else if (i === 0 || i === 1) {
+    // video=0 or iframe=0: a plain coloured box standing in for the
+    // embedded content, to tell apart "any slide at this index" from
+    // "specifically a video (or iframe) element" as the cause of a flash.
+    body.innerHTML = `<div class="demo-placeholder">slide ${i + 1}<br>(${i === 0 ? 'video' : 'iframe'}=0)</div>`;
   } else {
     body.innerHTML = `<p class="plain-body">Slide ${i + 1}</p>`;
   }
@@ -446,6 +458,16 @@ function samplePoints(): { x: number; y: number }[] {
 // and translate together; that would make this detector useless on a real
 // device, so it accounts for the intentional change.)
 //
+// It also flags a visible slide's `translate` changing at all, even when
+// the resulting on-screen position is exactly right (the case above):
+// the "slide 1 flashes" report named the video slide specifically, and
+// per-frame capture around the seam crossing and the rest jump found no
+// placement discontinuity in either engine or mode (see that commit) --
+// so if it is real, the leading suspect is the video's own compositor
+// layer reacting to its host element's `translate` changing, which a
+// position-only check cannot see even though nothing looks wrong by that
+// measure.
+//
 // The baseline (previous scrollLeft, rects, translates) is captured lazily,
 // on tick's first call, not eagerly here at module load: this module runs
 // before the stylesheet is guaranteed to be applied, so an eager capture
@@ -482,6 +504,11 @@ function tick() {
       const translateDelta = translate - prevSlideTranslates[i];
       const expected = -scrollDelta + translateDelta;
       if (visible && Math.abs(moveDelta - expected) > 2) {
+        offScroll = true;
+      }
+      // Flag a visible slide's translate changing at all, even when the
+      // position it produces is exactly right -- see the comment above.
+      if (visible && Math.abs(translateDelta) > 0.5) {
         offScroll = true;
       }
     }
@@ -522,6 +549,7 @@ setInterval(() => {
         ? ' (css requested, animation-timeline unsupported -> fell back to js)'
         : ''),
     `animation-timeline: scroll() ${cssSupported ? 'yes' : 'no'} · scrollend ${scrollendSupported ? 'yes' : 'no'} (settle via ${settleSource}) · drag ${dragEnabled ? 'on' : 'off'}`,
+    `slide 1 video ${videoEnabled ? 'on' : 'off'} · slide 2 iframe ${iframeEnabled ? 'on' : 'off'} · will-change ${willChangeEnabled ? 'on' : 'off'}`,
     `scrollLeft ${Math.round(viewport.scrollLeft)} · set length ${L} · slide width ${W}`,
     `index ${currentIndex() + 1} / ${N} · jumps ${jumpCount} · blank frames ${blankFrames} · off-scroll frames ${offScrollFrames}`,
     tooFew
