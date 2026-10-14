@@ -186,7 +186,9 @@ export function createDeck(
   const paint = (along = axis()) => {
     cancelAnimationFrame(frame);
     frame = 0;
-    writeProgress(viewport, along, align, placedAt);
+    writeProgress(viewport, along, align, (slide, i) =>
+      slotOf(slide, i, along)
+    );
   };
 
   // Whether the viewport holds loop's copies and an effect's snap targets,
@@ -211,6 +213,213 @@ export function createDeck(
   // further box read, mid-scroll: cached by the last `layoutShells`, null
   // outside shells mode.
   let placement: Placement | null = null;
+
+  // CSS path only (ADR-0013, #145): true where the browser can place a
+  // real slide with a `ScrollTimeline`'s step keyframes, on the compositor,
+  // rather than the scroll listener below (Firefox today, and Safari
+  // before 26). Read once, here, in `createDeck`'s own scope, so a test
+  // can stub `CSS.supports` before mount, and the check never changes once
+  // the engine starts.
+  const timelines =
+    typeof ScrollTimeline === 'function' &&
+    CSS.supports('animation-timeline: scroll()');
+  // Each real slide's own placement animation, kept in step with
+  // `placement` wherever it is (re)assigned (`syncPlacers`, below): a
+  // `ScrollTimeline` whose own axis is read-only once made, so an axis
+  // change discards and remakes every one of them. Empty, and untouched,
+  // on the JS path.
+  const placers = new Map<Element, Animation>();
+  // What `placers`' keyframes were last built from, so an unrelated settle
+  // or refresh does not rebuild every slide's keyframes for nothing.
+  let placerSignature = '';
+  // The axis `placers` were last made on; `null` before the first sync.
+  let placersVertical: boolean | null = null;
+  // The slides a pin currently holds at an inline `!important` translate
+  // (ADR-0013, #145), until the shared rAF below lifts them.
+  let pinned: Element[] = [];
+  let unpinFrame = 0;
+
+  // Cancels and forgets every placer: the deck has left shells mode, or
+  // never was in it, so nothing should be left running against a
+  // `ScrollTimeline` on a viewport that no longer places this way.
+  const forgetPlacers = () => {
+    for (const animation of placers.values()) animation.cancel();
+    placers.clear();
+    placerSignature = '';
+  };
+
+  // CSS path only (ADR-0013, #145): keeps `placers` in step with `geometry`,
+  // as `layoutShells` last measured it -- run wherever `placement` is
+  // (re)assigned. A no-op, after forgetting any placer there is, outside
+  // shells mode or off the CSS path. An axis change needs new animations,
+  // not just new keyframes: a `ScrollTimeline`'s own `axis` cannot change
+  // once made.
+  const syncPlacers = (along: Axis, geometry: Placement | null) => {
+    if (!timelines || !geometry) {
+      forgetPlacers();
+      return;
+    }
+    if (placersVertical !== null && placersVertical !== along.vertical) {
+      forgetPlacers();
+    }
+    placersVertical = along.vertical;
+    const { slides } = slidesOf(viewport);
+    const signature = [
+      geometry.centres.join(),
+      geometry.length,
+      geometry.view,
+      geometry.max,
+      along.sign
+    ].join('|');
+    const changed = signature !== placerSignature;
+    placerSignature = signature;
+    // A slide no longer among them -- removed, or shells mode just left --
+    // keeps no animation of its own.
+    for (const [slide, animation] of placers) {
+      if (!slides.includes(slide)) {
+        animation.cancel();
+        placers.delete(slide);
+      }
+    }
+    slides.forEach((slide, i) => {
+      const keyframes = placerKeyframes(geometry.centres[i], geometry, along);
+      const existing = placers.get(slide);
+      if (!existing) {
+        placers.set(
+          slide,
+          slide.animate(keyframes, {
+            timeline: new ScrollTimeline({
+              source: viewport,
+              axis: along.vertical ? 'y' : 'x'
+            }),
+            fill: 'both'
+          })
+        );
+      } else if (changed) {
+        (existing.effect as KeyframeEffect).setKeyframes(keyframes);
+      }
+    });
+  };
+
+  // Shells mode's CSS path only (ADR-0013, #145): pins every real slide
+  // onto its own `nearestSlot`, the same function the placers' keyframes
+  // encode, with `!important`: a beat where a scroll timeline cannot yet
+  // see the engine's own write -- a late
+  // `ResizeObserver` or rAF write in WebKit, or a placer's own first,
+  // still-`pending` frame -- would otherwise show the slide at its old
+  // slot, or at `none`, for a frame. The pins hand straight back once
+  // every placer has sampled the position that moved them (`unpinPlaced`,
+  // the shared rAF below).
+  const pinPlaced = (along: Axis, geometry: Placement) => {
+    const { centres, length, view } = geometry;
+    if (length === 0) return;
+    const centre = along.position + view / 2;
+    const { slides } = slidesOf(viewport);
+    pinned = slides;
+    slides.forEach((slide, i) => {
+      if (!(slide instanceof HTMLElement)) return;
+      const slot = nearestSlot(centre - centres[i], length);
+      const offset = slot * length;
+      const value =
+        slot === 0
+          ? 'none'
+          : along.vertical
+            ? `0px ${offset}px`
+            : `${offset * along.sign}px 0px`;
+      slide.style.setProperty('translate', value, 'important');
+    });
+    cancelAnimationFrame(unpinFrame);
+    unpinFrame = requestAnimationFrame(unpinPlaced);
+  };
+
+  // The shared unpin (ADR-0013, #145): re-schedules itself for as long as any
+  // placer is still `pending` (WebKit, a newly (re)created animation), so
+  // it never lifts a pin before the animation it uncovers has a sampled
+  // value of its own; otherwise removes the pin from every slide it holds.
+  const unpinPlaced = () => {
+    unpinFrame = 0;
+    for (const animation of placers.values()) {
+      if (animation.pending) {
+        unpinFrame = requestAnimationFrame(unpinPlaced);
+        return;
+      }
+    }
+    for (const slide of pinned) {
+      if (slide instanceof HTMLElement) slide.style.removeProperty('translate');
+    }
+    pinned = [];
+  };
+
+  // Shells mode only (ADR-0013, #145): wraps `layoutShells` on the CSS
+  // path -- translate neutralised with an `!important` pin first, so the
+  // measurement reads each slide's untranslated home the same way the JS
+  // path's own `placedAt` already gives it -- then restored to whatever it
+  // read before, so the neutralising pin never outlives this one
+  // measurement: the caller's own `placeOrPin`, exactly where it already
+  // runs on the JS path, decides the slide's next slot. Also syncs the
+  // placers' own keyframes to the fresh geometry. A passthrough on the JS
+  // path.
+  const measureShells = (along: Axis): Placement | null => {
+    const max = along.max();
+    const { sets, stacked, slides } = slidesOf(viewport);
+    const inShells = timelines && sets === 2 && !stacked;
+    const saved = inShells
+      ? slides.map((slide) =>
+          slide instanceof HTMLElement
+            ? {
+                value: slide.style.translate,
+                priority: slide.style.getPropertyPriority('translate')
+              }
+            : null
+        )
+      : null;
+    if (saved) {
+      for (const slide of slides) {
+        if (slide instanceof HTMLElement) {
+          slide.style.setProperty('translate', 'none', 'important');
+        }
+      }
+    }
+    const next = layoutShells(viewport, along, placedAt);
+    if (next) next.max = max;
+    if (timelines) syncPlacers(along, next);
+    if (saved) {
+      slides.forEach((slide, i) => {
+        const was = saved[i];
+        if (!(slide instanceof HTMLElement) || !was) return;
+        if (was.value)
+          slide.style.setProperty('translate', was.value, was.priority);
+        else slide.style.removeProperty('translate');
+      });
+    }
+    return next;
+  };
+
+  // Shells mode only (ADR-0013, #145): writes every real slide's currently
+  // nearest slot: `place` on the JS path; a pin on the CSS path, where the
+  // placers' own animations do the rest.
+  const placeOrPin = (along: Axis) => {
+    if (timelines) {
+      if (placement) pinPlaced(along, placement);
+    } else {
+      place(viewport, along, placement, placedAt);
+    }
+  };
+
+  // Shells mode only (ADR-0013, #145): a real slide's currently placed
+  // slot, for `writeProgress`, `onClick` and `onFocusIn` to read. On the
+  // JS path, `placedAt`'s own slot, as `place` last wrote it. On the CSS
+  // path, `placedAt` is never written: the same `nearestSlot`
+  // the placers' keyframes encode, read fresh against the slide's own
+  // index `i` among the real slides, so it agrees with the painted slot
+  // except within `ε` of a boundary.
+  const slotOf = (slide: Element, i: number, along: Axis): number => {
+    if (!timelines || !placement) return placedAt.get(slide)?.slot ?? 0;
+    const { centres, length, view } = placement;
+    const centre = along.position + view / 2;
+    return nearestSlot(centre - centres[i], length);
+  };
+
   // Shells mode only (ADR-0013): the real slides `settle` currently has
   // the deck's own `ResizeObserver` watching, so a slide no longer among
   // them -- the deck has left shells mode, or the slide itself is gone --
@@ -269,7 +478,7 @@ export function createDeck(
     // `refresh` in between: a late `scrollend`, after a resize's CSS lands
     // but before its `ResizeObserver` entry fires, is not rare in WebKit.
     const { previous, endRelayout } = beginShellsRelayout(along, () =>
-      layoutShells(viewport, along, placedAt)
+      measureShells(along)
     );
     // Shells mode only (ADR-0013): a real slide's own resize, as content
     // loading can bring with no resize of the viewport at all, must still
@@ -296,7 +505,7 @@ export function createDeck(
       known = geometry;
       knownKind = kind;
       jumpOffCopies(along, geometry);
-      place(viewport, along, placement, placedAt);
+      placeOrPin(along);
       // Its own settle reports where the deck comes to rest.
       if (resnap(along, geometry)) return;
       const { points, slides } = geometry;
@@ -360,7 +569,7 @@ export function createDeck(
     style.scrollSnapType = 'none';
     along.scrollTo(along.position + delta, 'instant');
     style.scrollSnapType = snap;
-    place(viewport, along, placement, placedAt);
+    placeOrPin(along);
     if (drag === 'dragging') dragAt += delta;
     if (taken) taken.at += delta;
     if (resnapFrom !== null) resnapFrom += delta;
@@ -379,18 +588,31 @@ export function createDeck(
   // make, never this one's.
   const compensateShift = (previous: Placement, along: Axis) => {
     if (!placement || !lengthMoved(placement.length, previous.length)) return;
-    placement = layoutShells(viewport, along, placedAt);
+    placement = measureShells(along);
     if (!placement) return;
-    // Re-measuring above, into `placement`, runs regardless: `place`, below
-    // this call in both callers, needs it fresh whether or not there is a
-    // shift here to make. Only the shift itself, against `known`, is this
-    // kind's alone to make.
-    if (kindOf(viewport) !== knownKind) return;
-    const idx = state.index;
-    if (idx < 0 || idx >= known.points.length) return;
-    const now = snapPoints(viewport, along);
-    const to = now.points[idx];
-    if (to !== undefined) moveBy(to - known.points[idx], along);
+    // Re-measuring above, into `placement`, runs regardless: a resize can
+    // move centres or length without the shift below having anything to
+    // undo, and the CSS path's placers still need the fresh geometry
+    // (`measureShells`'s own `syncPlacers`). Only the shift itself, against
+    // `known`, is this kind's alone to make.
+    //
+    // On the CSS path, wherever this leaves without a `moveBy` shift to
+    // place the slides on the fresh geometry (`moveBy` itself does, once
+    // it moves the deck), it does so itself: a resize can move a slide onto
+    // a different slot with no shift of its own to make.
+    let shifted = false;
+    if (kindOf(viewport) === knownKind) {
+      const idx = state.index;
+      if (idx >= 0 && idx < known.points.length) {
+        const now = snapPoints(viewport, along);
+        const to = now.points[idx];
+        if (to !== undefined && to !== known.points[idx]) {
+          moveBy(to - known.points[idx], along);
+          shifted = true;
+        }
+      }
+    }
+    if (!shifted && timelines) placeOrPin(along);
   };
 
   // A touch or pen pressed on the viewport, or a mouse drag as it starts,
@@ -701,10 +923,16 @@ export function createDeck(
     scrollEnded();
   };
   const onScroll = () => {
-    // Shells mode (ADR-0013): placed on every scroll event, reading no box
-    // or computed style, before anything else, so a real slide is never a
-    // frame late onto its nearest slot.
-    place(viewport, axis(), placement, placedAt);
+    // Shells mode, JS path (ADR-0013): placed on every scroll event,
+    // reading no box or computed style, before anything else, so a real
+    // slide is never a frame late onto its nearest slot. On the CSS path
+    // the placers' own animations already read the new scroll position, no
+    // script needed (#145): a drag's direct write to `dragAxis.position`
+    // and a reduced-motion instant `scrollTo` rely on this scroll event for
+    // placement on the JS path, and need no pin either, since they run in
+    // an input handler or a task, not a frame a scroll timeline cannot yet
+    // see.
+    if (!timelines) place(viewport, axis(), placement, placedAt);
     frame ||= requestAnimationFrame(() => paint());
     // The scroll a refresh's new layout makes, to where it settled the
     // deck, is no scroll (see `relaidAt`).
@@ -1058,7 +1286,7 @@ export function createDeck(
     // actually is.
     const placed =
       sets === 2
-        ? first + index + (placedAt.get(slide)?.slot ?? 0) * own.length
+        ? first + index + slotOf(slide, index, along) * own.length
         : first + index;
     // A slide in no page, as one before the first snap point where the
     // slides snap to their start, goes to the snap point nearest its start,
@@ -1089,8 +1317,8 @@ export function createDeck(
     // `seedPlacedAt`, just below, keeps a slide still on its own CSS
     // estimate matching it first.
     const { previous, endRelayout } = beginShellsRelayout(along, () => {
-      seedPlacedAt(along, placedAt, slidesOf(viewport).slides);
-      return layoutShells(viewport, along, placedAt);
+      if (!timelines) seedPlacedAt(along, placedAt, slidesOf(viewport).slides);
+      return measureShells(along);
     });
     if (previous && !placement && slidesOf(viewport).sets !== 2) {
       clearShells(slidesOf(viewport).slides, placedAt);
@@ -1194,7 +1422,7 @@ export function createDeck(
     settle();
   };
 
-  seedPlacedAt(axis(), placedAt, slidesOf(viewport).slides);
+  if (!timelines) seedPlacedAt(axis(), placedAt, slidesOf(viewport).slides);
 
   // With one slide per snap point, server HTML already rests here where the
   // browser honours `scroll-initial-target`, and this scroll is a no-op.
@@ -1217,7 +1445,7 @@ export function createDeck(
   // way this is wrong -- a deck with no shells rests wherever the browser
   // puts it, same as it always has on main.
   const shellsAtMount = slidesOf(viewport).sets === 2;
-  layoutShells(viewport, axis(), placedAt);
+  placement = measureShells(axis());
   alignCopies(viewport);
   restOn(options.index);
 
@@ -1493,7 +1721,7 @@ export function createDeck(
     // placed, not its own mid shell.
     if (sets === 2 && slide && own.includes(slide)) {
       index = own.indexOf(slide);
-      set = placedAt.get(slide)?.slot ?? 0;
+      set = slotOf(slide, index, along);
     } else {
       // A loop's copy, or a shell, is inert, so a click there reaches the
       // viewport itself: the one under the pointer is the one in `run`.
@@ -1918,6 +2146,11 @@ interface Placement {
   /** The viewport's own size along the axis, cached here so `place` reads
    * no box. */
   view: number;
+  /** The scroll range (`along.max()`), read once here, after the spacers'
+   * own new size lands (#145): the CSS path's keyframes turn a boundary
+   * into the `[0, 1]` progress a scroll timeline reports, and
+   * `layoutShells` already measures everything else they need. */
+  max: number;
 }
 
 /** `style`'s border-box size along `dimension`, subpixel and independent of
@@ -2121,7 +2354,8 @@ function layoutShells(
   return {
     centres: homes.map((home, i) => home + sizes[i] / 2),
     length,
-    view: view[1] - view[0]
+    view: view[1] - view[0],
+    max: 0
   };
 }
 
@@ -2177,6 +2411,54 @@ function clearShells(slides: Element[], placedAt: PlacedAt) {
 function nearestSlot(delta: number, length: number): number {
   const k = Math.floor((delta + length / 2 + 0.5) / length);
   return Math.max(-2, Math.min(2, k));
+}
+
+/** How far below a keyframe's own boundary `placerKeyframes` places its
+ * offset (#145): WebKit's `ScrollTimeline` samples progress in single
+ * precision, off a true boundary by about 6e-8 of the scroll range -- under
+ * this at ranges up to 100 000px -- so without it a position right at the
+ * boundary could read, there, as just short of it, a frame late onto the
+ * next slot. */
+const PLACER_EPSILON_PX = 1 / 64;
+
+/**
+ * Shells mode's CSS path only (ADR-0013, #145): the keyframes a real
+ * slide's placement animation needs to reproduce `nearestSlot` as a
+ * `ScrollTimeline` steps through it -- ported from the prototype's
+ * `place=css` mode. Four boundaries, `length` apart, each the scroll
+ * position at which the slide's own centre, `centre`, crosses from one
+ * slot to the next (`nearestSlot`'s own `floor`, inverted); `step-end`
+ * holds a keyframe's value until the next one's own offset, so a tie goes
+ * to the slot after, the same as `nearestSlot` itself. `geometry.max`
+ * turns each boundary into the `[0, 1]` progress a scroll timeline
+ * reports.
+ */
+function placerKeyframes(
+  centre: number,
+  geometry: Placement,
+  along: Axis
+): Keyframe[] {
+  const { length, view, max } = geometry;
+  const translate = (slot: number) =>
+    slot === 0
+      ? 'none'
+      : along.vertical
+        ? `0px ${slot * length}px`
+        : `${slot * length * along.sign}px 0px`;
+  const offsetAt = (slot: number) => {
+    const boundary = centre - view / 2 + (slot - 0.5) * length - 0.5;
+    return max > 0
+      ? Math.min(1, Math.max(0, (boundary - PLACER_EPSILON_PX) / max))
+      : 0;
+  };
+  return [
+    { offset: 0, translate: translate(-2), easing: 'step-end' },
+    { offset: offsetAt(-1), translate: translate(-1), easing: 'step-end' },
+    { offset: offsetAt(0), translate: translate(0), easing: 'step-end' },
+    { offset: offsetAt(1), translate: translate(1), easing: 'step-end' },
+    { offset: offsetAt(2), translate: translate(2), easing: 'step-end' },
+    { offset: 1, translate: translate(2) }
+  ];
 }
 
 /**
@@ -2494,7 +2776,7 @@ function writeProgress(
   viewport: HTMLElement,
   axis: Axis,
   align: string,
-  placedAt: PlacedAt
+  slotOf: (slide: Element, i: number) => number
 ) {
   const view = axis.view();
   // With loop, the copies too, each by its own place in the run: a copy in
@@ -2533,8 +2815,7 @@ function writeProgress(
         );
         return;
       }
-      const slot = placedAt.get(slide)?.slot ?? 0;
-      write(slide, first + i + slot * own.length);
+      write(slide, first + i + slotOf(slide, i) * own.length);
     });
     return;
   }

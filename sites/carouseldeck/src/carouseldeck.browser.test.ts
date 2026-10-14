@@ -72,7 +72,12 @@ describe.each(PAGES)("%s in a browser", (path) => {
     const { page } = await visit(path, { width: 1280, reducedMotion: "reduce" });
     await hydrated(page);
     await page.mouse.wheel(0, 2000);
-    expect(await page.evaluate(() => document.getAnimations().map((animation) => animation.constructor.name))).toEqual([]);
+    // A looping deck's own placement animations (ADR-0013, #145) are not motion this excludes: each is a step function of the user's own scroll, on a `ScrollTimeline`, never playing on its own.
+    expect(
+      await page.evaluate(() =>
+        document.getAnimations().filter((animation) => !(animation.timeline instanceof ScrollTimeline)).map((animation) => animation.constructor.name),
+      ),
+    ).toEqual([]);
     for (const toggle of await page.locator("[data-carouseldeck-autoplay-toggle]").all()) {
       expect(await toggle.getAttribute("data-playing")).toBeNull();
     }
