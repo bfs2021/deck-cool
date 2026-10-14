@@ -17,7 +17,9 @@ import {
 import {
   COPY,
   createDeck,
+  SHELL,
   SNAP_TARGET,
+  SPACER,
   type DeckEngine,
   type Orientation
 } from '@carouseldeck/core';
@@ -38,6 +40,12 @@ interface DeckContextValue {
   slide: number | null;
   /** The focal slide; null until the viewport has been measured. */
   focal: number | null;
+  /** Whether the engine has fallen back to rendering loop's copies rather
+   * than shells (ADR-0013): false until it measures a run too short for
+   * shells to have room, so `Viewport` renders shells first and corrects
+   * if the engine's own measurement says otherwise. Meaningless without
+   * `loop`. */
+  copies: boolean;
   /** The slides in Deck.Viewport, for the first render only, before any
    * measurement: Dots and Counter then count a page per slide. Null after, or
    * where Root cannot see Viewport's children. */
@@ -61,6 +69,22 @@ interface DeckContextValue {
 
 const clampSlide = (index: number, count: number) =>
   Math.min(Math.max(index, 0), count - 1);
+
+/** A stacked, looping slide's progress with shells (ADR-0013; the
+ * maintainer's ruling on the fork, 2026-10-13): wrapped into `(b, b + n]`,
+ * `b = -0.9985` -- a slide thrown to within the engine's precision returns
+ * at the back, rather than carrying on past -1 with nowhere shown, as
+ * shells give it no copy of its own to land on (the card-stack recipe's
+ * own two windows, kept unchanged, already meet exactly there). Mirrors
+ * `@carouseldeck/core`'s own copy of the same formula, which gives the
+ * engine's measured progress the same wrap once it mounts. */
+const STACKED_WRAP = -0.9985;
+function wrapStackedProgress(progress: number, count: number): number {
+  let wrapped = progress;
+  while (wrapped <= STACKED_WRAP) wrapped += count;
+  while (wrapped > STACKED_WRAP + count) wrapped -= count;
+  return wrapped;
+}
 
 const DeckContext = createContext<DeckContextValue | null>(null);
 
@@ -105,15 +129,17 @@ interface RootBaseProps extends ComponentProps<'div'> {
    * Defaults to horizontal. */
   orientation?: Orientation;
   /** Whether scrolling past the last snap point arrives at the first, and
-   * back, with no visible jump: Prev and Next are then never disabled.
-   * `Deck.Viewport` renders a copy of every slide on each side of the
-   * slides, inert and `aria-hidden`, and the deck jumps from a copy to its
-   * slide once it rests (clone and jump, ADR-0006, as built in ADR-0009).
-   * Indexes, Dots and Counter count the slides' snap points only, never the
-   * copies'. A copy renders the slide's children again, so their state is
-   * their own and an `id` in a slide repeats; `useSlide` tells them whether
-   * they are in a copy. A deck whose slides all fit does not loop and renders
-   * no copies. Defaults to false. */
+   * back, with no visible jump: Prev and Next are then never disabled. Each
+   * slide's children mount once: `Deck.Viewport` moves the slide nearest the
+   * viewport onto empty, inert, `aria-hidden` shells that carry the snap
+   * points on each side of it, by `translate` (ADR-0013). A deck whose set
+   * of slides is too narrow for a shell to have room beside its own slide
+   * falls back to rendering full copies instead (clone and jump, ADR-0006,
+   * as built in ADR-0009): a copy renders the slide's children again, so
+   * their state is their own and an `id` in a slide repeats; `useSlide`
+   * tells them whether they are in one. Indexes, Dots and Counter count the
+   * slides' snap points only, never a shell's or a copy's. A deck whose
+   * slides all fit does not loop and renders neither. Defaults to false. */
   loop?: boolean;
   /** Moves the deck one snap point on every this many milliseconds, counted
    * from when it comes to rest, and stops at the last, unless the deck
@@ -186,7 +212,16 @@ export function Root({
     count: number | null;
     slide: number | null;
     focal: number | null;
-  }>({ index: initialIndex, count: null, slide: null, focal: null });
+    copies: boolean;
+  }>({
+    index: initialIndex,
+    count: null,
+    slide: null,
+    focal: null,
+    // Unmeasured: Viewport renders shells first, the engine's own first
+    // settle corrects it (ADR-0013) before the first paint.
+    copies: false
+  });
   const viewportRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef<DeckEngine>(null);
   const onIndexChangeRef = useRef(onIndexChange);
@@ -550,10 +585,15 @@ const visuallyHidden: CSSProperties = {
   border: 0
 };
 
-/** The viewport's slides: its children but snap targets and loop copies. */
+/** The viewport's slides: its children but snap targets, loop copies,
+ * shells and spacers. */
 const slideCount = (viewport: HTMLElement) =>
   [...viewport.children].filter(
-    (child) => !child.hasAttribute(SNAP_TARGET) && !child.hasAttribute(COPY)
+    (child) =>
+      !child.hasAttribute(SNAP_TARGET) &&
+      !child.hasAttribute(COPY) &&
+      !child.hasAttribute(SHELL) &&
+      !child.hasAttribute(SPACER)
   ).length;
 
 /** Warns about controlled-deck mistakes, as React does for an input's
@@ -615,6 +655,13 @@ const SlideContext = createContext<{
   style: CSSProperties | undefined;
   /** The slide's progress as the deck starts, until the engine measures it. */
   progress: number;
+  /** With shells (#144), the real slide's estimated starting slot, `k` sets
+   * either side of its own, times the slide count: present only where `k`
+   * is not 0. `Deck.Slide` turns it into a starting `translate`, over the
+   * shell at that slot, the same way the engine's own placement will once
+   * it mounts (ADR-0013; `deckDefaults` has the CSS). Undefined outside
+   * shells, and at a slide's own slot. */
+  placed?: number;
   /** A loop's copy of the slide, and which side of the slides it is on. */
   copy?: 'before' | 'after';
 } | null>(null);
@@ -629,8 +676,10 @@ export interface UseSlideResult {
 
 /** The slide a component is rendered in: its index, and whether it is a
  * loop's copy, so stateful content, such as a video player, can render
- * differently in a copy, which is inert and never focal. Throws outside a
- * `Deck.Slide`. */
+ * differently in a copy, which is inert and never focal. Each slide mounts
+ * once: `copy` is undefined unless the deck's set of slides is too narrow
+ * for shells and falls back to rendering copies (ADR-0013). Throws outside
+ * a `Deck.Slide`. */
 export function useSlide(): UseSlideResult {
   const slide = use(SlideContext);
   if (!slide) throw new Error('Deck.useSlide must be inside Deck.Slide');
@@ -651,11 +700,13 @@ export interface Effect {
    * CSS overrides any of them (ADR-0003). */
   css: string;
   /** The structural styles the effect needs, set inline as the deck's own
-   * are, for a deck of `count` slides, a loop's copies included. With
-   * `target`, the viewport holds an empty snap target per slide, and per
-   * copy, in the order they run, after the slides, styled by it: the slides
-   * stack in one place, the engine measures each by its target, and every
-   * slide but the focal one is inert, as it cannot be seen. */
+   * are, for a deck of `count` slides: with loop, a small deck's three sets
+   * of copies, or, with shells (ADR-0013), all five sets of them instead,
+   * each a shell rather than a copy. With `target`, the viewport holds an
+   * empty snap target per slide, per copy or per shell, in the order they
+   * run, after the slides, styled by it: the slides stack in one place, the
+   * engine measures each by its target, and every slide but the focal one
+   * is inert, as it cannot be seen. */
   layout?: (
     orientation: Orientation,
     count: number
@@ -687,22 +738,60 @@ const viewportStyles: Record<Orientation, CSSProperties> = {
 };
 
 /** The native scroll container. Its children are the deck's slides; with
- * `loop`, a copy of every slide on each side of them; an `effect` may add a
- * snap target after them for each. */
+ * `loop`, two in-flow spacers and empty shells carrying their snap points on
+ * each side of them (ADR-0013), or, where the set of slides is too narrow
+ * for a shell to have room beside its own slide, a copy of every slide on
+ * each side instead; an `effect` may add a snap target after them for each
+ * slide, copy or shell. */
 export function Viewport({ style, children, effect, ...props }: ViewportProps) {
-  const { viewportRef, engineRef, orientation, loop, count, initialIndex } =
-    useDeckContext('Viewport');
+  const {
+    viewportRef,
+    engineRef,
+    orientation,
+    loop,
+    count,
+    initialIndex,
+    copies: smallDeck
+  } = useDeckContext('Viewport');
+  const vertical = orientation === 'vertical';
   const slides = Children.toArray(children);
   // A deck whose slides all fit has nothing to loop (see createDeck).
-  const copies = loop && !everySlideFits(count);
-  const run = slides.length * (copies ? 3 : 1);
+  const looping = loop && !everySlideFits(count);
+  const shells = looping && !smallDeck;
+  const copies = looping && smallDeck;
+  // Whether the effect stacks the slides in one place: known from calling
+  // its layout once -- stacked or not never depends on the count passed
+  // in, only the grid it draws does.
+  const stacked =
+    effect?.layout?.(orientation, slides.length)?.target !== undefined;
+  // With shells, stacked (ADR-0013): the shells are the effect's own snap
+  // targets, one per shell rather than one per slide, so the run is five
+  // full sets of them, never three copies (shells have no copies).
+  const run = slides.length * (copies ? 3 : shells && stacked ? 5 : 1);
   const layout = effect?.layout?.(orientation, run);
   const target = layout?.target;
-  const stacked = target !== undefined;
   // Each slide starts at its distance in slides from the slide the deck
   // starts at, a copy by its own place in the run, so server HTML paints
   // progress as the engine will once it measures (ADR-0011, #125).
   const start = clampSlide(initialIndex, slides.length);
+  // With shells, not stacked (ADR-0013), the slot `k` a real slide starts
+  // placed at -- the shell, -2 to 2 sets either side of its own, nearest
+  // where the deck starts -- mirrors the engine's own `nearestSlot` on
+  // exact ties: `k = clamp(floor((s - i) / n + 0.5), -2, 2)`, `s` the
+  // starting slide, `i` the slide's own index, `n` the slide count.
+  const nonStackedShells = shells && !stacked;
+  const slotOf = (index: number) =>
+    nonStackedShells
+      ? Math.max(
+          -2,
+          Math.min(2, Math.floor((start - index) / slides.length + 0.5))
+        )
+      : 0;
+  // With shells, stacked: a slide is never translated onto another slot --
+  // it is sticky, always its own -- so its progress wraps into the back of
+  // the stack instead, the maintainer's ruling on ADR-0013's fork
+  // (`wrapStackedProgress`).
+  const stackedShells = shells && stacked;
   // Adding or removing a slide, the copies or an effect's snap targets can
   // change the snap points without resizing the viewport, which is all the
   // engine observes. Where the copies or snap targets came or went, the
@@ -714,31 +803,43 @@ export function Viewport({ style, children, effect, ...props }: ViewportProps) {
     .join();
   useLayoutEffect(() => {
     engineRef.current?.refresh();
-  }, [engineRef, slides.length, copies, stacked, order]);
+  }, [engineRef, slides.length, copies, shells, stacked, order]);
   const set = (copy?: 'before' | 'after') =>
-    slides.map((slide, index) => (
-      // `toArray` gives every element a key derived from the consumer's,
-      // so a reordered slide moves instead of remounting.
-      <SlideContext
-        key={isValidElement(slide) ? slide.key : index}
-        value={{
-          index,
-          count: slides.length,
-          stacked,
-          // The copies before the slides come after them in the document, so
-          // a consumer's `:nth-child()` still counts the slides from 1.
-          style:
-            copy === 'before' ? { ...layout?.slide, order: -1 } : layout?.slide,
-          progress:
-            index -
-            start +
-            (copy === 'after' ? slides.length : copy ? -slides.length : 0),
-          copy
-        }}
-      >
-        {slide}
-      </SlideContext>
-    ));
+    slides.map((slide, index) => {
+      const slot = slotOf(index);
+      return (
+        // `toArray` gives every element a key derived from the consumer's,
+        // so a reordered slide moves instead of remounting.
+        <SlideContext
+          key={isValidElement(slide) ? slide.key : index}
+          value={{
+            index,
+            count: slides.length,
+            stacked,
+            // The copies before the slides come after them in the document,
+            // so a consumer's `:nth-child()` still counts the slides from 1.
+            style:
+              copy === 'before'
+                ? { ...layout?.slide, order: -1 }
+                : layout?.slide,
+            progress: stackedShells
+              ? wrapStackedProgress(index - start, slides.length)
+              : index -
+                start +
+                (copy === 'after'
+                  ? slides.length
+                  : copy
+                    ? -slides.length
+                    : slot * slides.length),
+            placed:
+              !stackedShells && slot !== 0 ? slot * slides.length : undefined,
+            copy
+          }}
+        >
+          {slide}
+        </SlideContext>
+      );
+    });
   return (
     <div
       ref={viewportRef}
@@ -746,6 +847,9 @@ export function Viewport({ style, children, effect, ...props }: ViewportProps) {
       data-carouseldeck-viewport=""
       data-orientation={orientation}
       data-carouseldeck-effect={effect?.name}
+      data-carouseldeck-loop={
+        looping ? (shells ? 'shells' : 'copies') : undefined
+      }
       style={{
         ...viewportStyles[orientation],
         ...layout?.viewport,
@@ -764,7 +868,51 @@ export function Viewport({ style, children, effect, ...props }: ViewportProps) {
       {set()}
       {copies && <Fragment key="after">{set('after')}</Fragment>}
       {copies && <Fragment key="before">{set('before')}</Fragment>}
+      {shells && !stacked && (
+        <div
+          data-carouseldeck-spacer="before"
+          aria-hidden="true"
+          style={spacerStyle(true, slides.length)}
+        />
+      )}
+      {shells && !stacked && (
+        <div
+          data-carouseldeck-spacer="after"
+          aria-hidden="true"
+          style={spacerStyle(false, slides.length)}
+        />
+      )}
+      {/* Shells (ADR-0013). Stacked, they are the effect's own snap
+          targets, one grid cell each: the grid places them exactly, so
+          there is nothing for hydration to correct, and `target`'s own
+          style is every bit of layout they need. Otherwise, an estimated
+          home (exact under the default layout: slides 100% of the
+          viewport, no gap, where the before-spacer's own estimate holds
+          too) is all that's estimated -- never their size, which the
+          engine alone measures. */}
+      {shells &&
+        SHELL_SETS.flatMap((shellSet) =>
+          Array.from({ length: slides.length }, (_, index) => (
+            <div
+              key={`shell:${shellSet}:${index}`}
+              data-carouseldeck-shell={shellSet}
+              data-carouseldeck-snap-target={stacked ? '' : undefined}
+              aria-hidden="true"
+              inert
+              style={
+                stacked
+                  ? target?.((shellSet + 2) * slides.length + index)
+                  : {
+                      ...shellStyle,
+                      [vertical ? 'insetBlockStart' : 'insetInlineStart']:
+                        `${((shellSet + 2) * slides.length + index) * 100}%`
+                    }
+              }
+            />
+          ))
+        )}
       {target &&
+        !stackedShells &&
         Array.from({ length: run }, (_, index) => (
           <div
             key={`target-${index}`}
@@ -776,6 +924,59 @@ export function Viewport({ style, children, effect, ...props }: ViewportProps) {
     </div>
   );
 }
+
+/** Shells' five sets, -2 to 2, 0 being the real slides' own (ADR-0013). */
+const SHELL_SETS = [-2, -1, 0, 1, 2] as const;
+
+/** A shell: an empty, inert, `aria-hidden` stand-in for a slide, out of
+ * flow, sized and positioned by the engine. Neutralised against any
+ * consumer CSS that would otherwise size or paint a wildcard-selected
+ * child (ADR-0013). `scroll-snap-align` is `none` until the engine copies
+ * the real slide's own onto it: a wildcard consumer rule must not make an
+ * unmeasured shell a snap target. */
+const shellStyle = {
+  position: 'absolute',
+  margin: 0,
+  padding: 0,
+  border: 0,
+  scale: 'none',
+  rotate: 'none',
+  translate: 'none',
+  opacity: 0,
+  pointerEvents: 'none',
+  scrollSnapAlign: 'none'
+} as CSSProperties;
+
+/** One of shells' two in-flow spacers, before the real slides or after
+ * them: pushes them two sets in, so the shells before them have somewhere
+ * to sit (ADR-0013), sized by the engine once it mounts. Its own SSR
+ * estimate (`2L - gap`, exact under the default layout) is a
+ * `flex-basis`, never a `flex` shorthand: an inline `flex` would bake in
+ * its own `flex-basis: auto`, which no stylesheet rule, zero specificity or
+ * not, can then override (inline always beats a stylesheet). The
+ * after-spacer's is inline, straight; the before-spacer's is a custom
+ * property, which `deckDefaults` turns into `flex-basis` only where the
+ * browser honours `scroll-initial-target` (see there), so elsewhere it
+ * keeps today's pre-hydration behaviour, slide 0 at scroll 0, with no
+ * inline `flex-basis` of its own to out-rank that absence. */
+const spacerStyle = (before: boolean, count: number) =>
+  ({
+    ...(before && { order: -1 }),
+    flexGrow: 0,
+    flexShrink: 0,
+    margin: 0,
+    padding: 0,
+    border: 0,
+    scale: 'none',
+    rotate: 'none',
+    translate: 'none',
+    opacity: 0,
+    pointerEvents: 'none',
+    scrollSnapAlign: 'none',
+    ...(before
+      ? { '--carouseldeck-spacer-estimate': `${2 * count * 100}%` }
+      : { flexBasis: `${2 * count * 100}%` })
+  }) as CSSProperties;
 
 // A slide's size and alignment are geometry, which belongs to consumer CSS
 // (ADR-0003). These defaults make a deck work with no stylesheet, and their
@@ -791,6 +992,37 @@ const deckDefaults =
   ':where([data-carouseldeck-slide]){width:100%;scroll-snap-align:start}' +
   ':where([data-orientation=vertical]>[data-carouseldeck-slide]){height:100%}' +
   ':where([data-carouseldeck-viewport]){scrollbar-width:none}' +
+  // Shells (ADR-0013) are absolutely positioned by the engine: the
+  // viewport becomes their containing block, unless the consumer already
+  // gives it a non-static position.
+  ':where([data-carouseldeck-loop=shells]){position:relative}' +
+  // The engine alone moves a shells deck's scroll position (ADR-0006):
+  // resizing the before-spacer can leave content above the viewport's own
+  // rest point larger or smaller than it was, which is exactly what the
+  // browser's own scroll anchoring reacts to, adjusting the scroll
+  // position on its own, before the engine's next read of it (measured in
+  // WebKit). Its own adjustment and the engine's own compensation would
+  // then both move the viewport for the same resize, overshooting.
+  // `overflow-anchor: none` opts the whole shells subtree out, leaving the
+  // engine the only thing that ever moves it.
+  ':where([data-carouseldeck-loop=shells]){overflow-anchor:none}' +
+  // A real slide's SSR estimate (#144, ADR-0013): placed `k` sets away
+  // from its own, before the engine measures, translated by `k` set
+  // lengths -- `--carouseldeck-placed`, `k * n` -- exact under the default
+  // layout. Horizontal, then its right-to-left flip, then vertical: equal,
+  // zero specificity (ADR-0003), so each later rule wins for the decks it
+  // is about.
+  ':where([data-carouseldeck-placed]){translate:calc(var(--carouseldeck-placed) * 100%) 0}' +
+  ':where([data-carouseldeck-placed]:dir(rtl)){translate:calc(var(--carouseldeck-placed) * -100%) 0}' +
+  ':where([data-orientation=vertical]>[data-carouseldeck-placed]){translate:0 calc(var(--carouseldeck-placed) * 100%)}' +
+  // The before-spacer's own SSR estimate, only where the
+  // browser honours `scroll-initial-target`: elsewhere -- Firefox and
+  // Safari, at the time of writing -- the spacer takes no space, and
+  // slide 0 paints at scroll 0, as a plain deck already does before
+  // hydration.
+  '@supports (scroll-initial-target: nearest) {' +
+  ':where([data-carouseldeck-spacer="before"]){flex-basis:var(--carouseldeck-spacer-estimate)}' +
+  '}' +
   '@supports not (scrollbar-width:none){' +
   ':where([data-carouseldeck-viewport])::-webkit-scrollbar{display:none}}';
 
@@ -798,6 +1030,9 @@ const deckDefaults =
 const initialTarget = { scrollInitialTarget: 'nearest' } as CSSProperties;
 
 /** One slide, labelled "n of m". Its size and alignment are consumer CSS.
+ * With loop, it mounts once: shells carry its snap points on each side, and
+ * `translate` moves it onto whichever is nearest the viewport (ADR-0013); a
+ * deck too narrow for shells copies it instead.
  * For CSS to read, it carries `--deck-slide-index`, its index, and
  * `--deck-slide-count`, the number of slides, copies not counted, from the
  * first render; `--deck-slide-progress`, its signed distance from the focal
@@ -838,6 +1073,7 @@ export function Slide({ style, ...props }: ComponentProps<'div'>) {
       aria-label={`${index + 1} of ${count}`}
       data-carouseldeck-slide=""
       data-carouseldeck-copy={copy}
+      data-carouseldeck-placed={slide.placed !== undefined ? '' : undefined}
       aria-hidden={copy ? true : undefined}
       data-current={current ? '' : undefined}
       data-focal={focal ? '' : undefined}
@@ -860,6 +1096,11 @@ export function Slide({ style, ...props }: ComponentProps<'div'>) {
         // order only, so React never rewrites it mid-scroll; where the order
         // changes, Viewport refreshes the engine, which paints over it.
         ...({ '--deck-slide-progress': slide.progress } as CSSProperties),
+        // With shells, placed over a shell other than its own before the
+        // engine measures: `deckDefaults` turns this into the same
+        // `translate` the engine's own placement would write (ADR-0013).
+        ...(slide.placed !== undefined &&
+          ({ '--carouseldeck-placed': slide.placed } as CSSProperties)),
         // Server HTML paints at defaultIndex before any script runs, where
         // supported; elsewhere Root's layout effect scrolls before paint.
         // Exact with one slide per snap point; see createDeck's mount.

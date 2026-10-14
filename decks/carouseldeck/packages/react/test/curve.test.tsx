@@ -463,11 +463,12 @@ describe('curve in server HTML', () => {
       expected: range(-2, 3)
     },
     {
-      // Each copy by its own place in the run: those after the slides go on
-      // from the last, those before lead up to the first.
+      // Each real slide's progress wrapped into its own nearest slot
+      // (ADR-0013): `p = i + k·n − s`, `k` clamped to the two buffer sets
+      // either side, rather than running on forever as a copy's would.
       name: 'looping, at defaultIndex 1',
       props: { loop: true, defaultIndex: 1 },
-      expected: [...range(-1, 4), ...range(5, 10), ...range(-7, -2)]
+      expected: ['-1', '0', '1', '2', '3', '-2']
     }
   ])('gives each slide its progress $name', ({ props, expected }) => {
     expect(serverProgress(renderToString(<CurveDeck {...props} />))).toEqual(
@@ -563,6 +564,26 @@ describe('curve in server HTML', () => {
     expect(progressOf(viewport)).toEqual(
       [0, 1, 2, 3, 4, 5].map((i) => i - focal)
     );
+  });
+});
+
+// Curve has no stacking target, so a real slide placed over a shell is
+// translated onto it exactly as any non-stacked shells deck's is
+// (ADR-0013): this is a regression check that the translate still composes
+// with curve's own content transform once an effect is in play.
+describe('one instance: curve with shells', () => {
+  test("placed before slide 1, slide '6 of 6' turns the mirror of slide 2's turn", async () => {
+    addStyle(SLIDE_CSS);
+    render(<CurveDeck loop defaultIndex={0} />);
+    const root = screen.getByRole('region', { name: 'Test deck' });
+    const { angles } = readDeck(root);
+    await nextFrame();
+    await nextFrame();
+
+    const a = angles();
+    expect(a[5]).toBe(-a[1]!);
+    expect(a[5]).not.toBe(0);
+    expect(root.dataset.index).toBe('0');
   });
 });
 

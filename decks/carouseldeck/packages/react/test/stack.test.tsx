@@ -128,27 +128,58 @@ describe('stack', () => {
     expect(topDown(zIndex())).toEqual([1, 2, 3, 0]);
   });
 
-  test('looping, brings a slide leaving back in at the back as its copy', async () => {
+  test('looping, brings a slide leaving back in at the back once thrown', async () => {
     const { zIndex, hold } = renderDeck({ slides: 3, loop: true });
 
     await hold(0.6);
 
-    // The slides, then the copies after them: slide 1's copy is at the back
-    // of the three cards on top, and slide 1 itself is below them.
+    // Slide 1 mounts once (ADR-0013): thrown behind the seam, it comes back
+    // in at the back of the stack rather than vanishing past -1.
     const z = zIndex();
-    expect(topDown(z).slice(0, 3)).toEqual([1, 2, 3]);
-    expect(z[0]).toBeLessThan(z[3]!);
+    expect(z[0]).toBeLessThan(z[1]!);
+    expect(z[0]).toBeLessThan(z[2]!);
+  });
+});
+
+// With shells, a stacked effect's shells are its own snap targets, and the
+// run stays at the real slides, never 3n copies. A thrown card's progress
+// wraps into the back of the stack directly (the maintainer's ruling on
+// ADR-0013's fork): held past the last card, two cards that would be
+// invisible past -1 without a copy to land on instead read as if just
+// behind the top of the stack.
+describe('one instance: stack with shells', () => {
+  test('held 0.6 into a throw crossing the seam, the thrown slide is below the other two', async () => {
+    render(<StackDeck slides={3} loop defaultIndex={2} />);
+    const viewport = viewportOf(
+      screen.getByRole('region', { name: 'Test deck' })
+    );
+    const zIndex = () =>
+      [
+        ...viewport.querySelectorAll<HTMLElement>('[data-carouseldeck-slide]')
+      ].map((slide) => Number(getComputedStyle(slide).zIndex));
+    const hold = async (way: number) => {
+      viewport.style.scrollSnapType = 'none';
+      viewport.scrollLeft += WIDTH * way;
+      await nextFrame();
+      await nextFrame();
+    };
+
+    await hold(0.6);
+
+    const z = zIndex();
+    expect(z[2]).toBeLessThan(z[0]!);
+    expect(z[2]).toBeLessThan(z[1]!);
   });
 });
 
 describe('--deck-slide-count on a stack', () => {
-  test('is the number of slides, on each slide and copy', () => {
+  test('is the number of slides, each mounted once', () => {
     const { slides } = renderDeck({ slides: 3, loop: true });
 
     expect(
       slides().map((slide) =>
         slide.style.getPropertyValue('--deck-slide-count')
       )
-    ).toEqual(Array(9).fill('3'));
+    ).toEqual(Array(3).fill('3'));
   });
 });

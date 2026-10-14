@@ -119,10 +119,10 @@ copy it jumps a set back to the identical slide (and, at a press on the
 copies, a set back before the gesture, or at a wheel event there, as it
 scrolls; ADR-0009). Not a slide: indexes, Dots and Counter never count
 copies. "Clone and jump" (ADR-0006) is the name of the technique; the
-elements are copies. Today a copy renders the slide's content again, a
-`Deck.Slide` of its own, a second or third time. ADR-0013 decides to
-replace most copies with **Shells** instead; only a deck too small for a
-shell still renders copies this way.
+elements are copies. A copy renders the slide's content again, a
+`Deck.Slide` of its own, a second or third time. Built in #144, loop
+renders **Shells** instead; only a deck too small for a shell still renders
+copies this way.
 _Avoid_: clone
 
 **Shell** (ADR-0013):
@@ -130,8 +130,8 @@ An empty box loop lays out in place of a copy: inert and `aria-hidden` like
 a copy, but rendering none of the slide's content, and itself the snap
 target its slide would otherwise need (see **Snap target**). The one real
 slide is moved onto whichever shell sits nearest the viewport, by
-`translate`, so its content mounts once instead of once per copy. Decided,
-not yet built: until #144 lands, loop renders full copies instead (see
+`translate`, so its content mounts once instead of once per copy. Built in
+#144; only a deck too small for a shell still renders copies instead (see
 **Copy**).
 _Avoid_: placeholder, empty copy
 

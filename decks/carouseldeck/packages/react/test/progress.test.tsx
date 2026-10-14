@@ -180,7 +180,14 @@ describe('--deck-slide-progress in server HTML', () => {
   const painted = (viewport: HTMLElement) =>
     [...viewport.children].map((slide) => getComputedStyle(slide).scale);
 
-  test.each<{ name: string; props: ProgressDeckProps; progress: number[] }>([
+  test.each<{
+    name: string;
+    props: ProgressDeckProps;
+    progress: number[];
+    /** Where hydration corrects the server's estimate (ADR-0013, known
+     * limit); `progress` where it does not. */
+    afterHydration?: number[];
+  }>([
     {
       name: 'at defaultIndex 2',
       props: { defaultIndex: 2 },
@@ -192,13 +199,22 @@ describe('--deck-slide-progress in server HTML', () => {
       progress: [-1, 0, 1, 2, 3]
     },
     {
+      // Each real slide's progress wrapped into its own nearest slot
+      // (ADR-0013): `p = i + k·n − s`, `k` clamped to the two buffer sets
+      // either side, rather than running on forever as a copy's would. The
+      // server's estimate is per slide alone: it cannot know three slides
+      // are in view, so it disagrees with the engine's own nearestSlot for
+      // slide 5, off-screen -- corrected from -2 to 3 at hydration. The
+      // scale it paints is the same either side of ±1, so hydration still
+      // changes nothing a person sees.
       name: 'looping, at defaultIndex 1',
       props: { loop: true, defaultIndex: 1 },
-      progress: [-1, 0, 1, 2, 3, 4, 5, 6, 7, 8, -6, -5, -4, -3, -2]
+      progress: [-1, 0, 1, 2, -2],
+      afterHydration: [-1, 0, 1, 2, 3]
     }
   ])(
     'with no effect, gives each slide its progress and hydrates without changing it, $name',
-    async ({ props, progress }) => {
+    async ({ props, progress, afterHydration }) => {
       addStyle(SCALED);
       const { viewport, server, serverProgress, hydrated } =
         await serverThenHydrated(
@@ -207,7 +223,7 @@ describe('--deck-slide-progress in server HTML', () => {
         );
 
       expect(serverProgress).toEqual(progress);
-      expect(progressOf(viewport)).toEqual(serverProgress);
+      expect(progressOf(viewport)).toEqual(afterHydration ?? serverProgress);
       expect(hydrated).toEqual(server);
     }
   );
@@ -242,19 +258,21 @@ describe('--deck-slide-index', () => {
 });
 
 describe('--deck-slide-count', () => {
-  test('is the number of slides, on each slide and copy, in the server HTML', () => {
+  test('is the number of slides, on each real slide, in the server HTML', () => {
     const html = renderToString(<ProgressDeck slides={3} loop />);
     const container = document.createElement('div');
     container.innerHTML = html;
-    const slides = [...viewportOf(container).children] as HTMLElement[];
+    const viewport = viewportOf(container);
 
-    // Copies are not counted.
+    // Shells and copies are not counted.
+    expect(viewport.querySelectorAll('[data-carouseldeck-copy]')).toHaveLength(
+      0
+    );
     expect(
-      slides.filter((slide) => slide.hasAttribute('data-carouseldeck-copy'))
-    ).toHaveLength(6);
-    expect(
-      slides.map((slide) => slide.style.getPropertyValue('--deck-slide-count'))
-    ).toEqual(Array(9).fill('3'));
+      [
+        ...viewport.querySelectorAll<HTMLElement>('[data-carouseldeck-slide]')
+      ].map((slide) => slide.style.getPropertyValue('--deck-slide-count'))
+    ).toEqual(Array(3).fill('3'));
   });
 });
 

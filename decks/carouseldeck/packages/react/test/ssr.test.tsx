@@ -3,7 +3,6 @@ import { hydrateRoot } from 'react-dom/client';
 import { renderToString } from 'react-dom/server';
 import { afterEach, expect, test, vi } from 'vitest';
 import * as Deck from '@carouseldeck/react';
-// Internal: see the test that uses it.
 import { ServerSlidesProvider } from '../src/server-slides';
 import { nextFrame, TestDeck, viewportOf, WIDTH } from './fixtures';
 
@@ -20,7 +19,7 @@ const rectsOf = (elements: Element[]) =>
 async function hydrate(
   props: DeckProps,
   atServer: (v: HTMLElement) => void = () => {},
-  { mayCorrect = false } = {}
+  { mayCorrect = false }: { mayCorrect?: boolean } = {}
 ) {
   const container = document.createElement('div');
   container.innerHTML = renderToString(<TestDeck {...props} />);
@@ -209,25 +208,46 @@ test('index={NaN} renders and hydrates as index 0', async () => {
   consoleError.mockRestore();
 });
 
-// Server HTML holds a loop's copies too, so it already starts on the slide at
-// defaultIndex, not on a copy, and hydration moves nothing.
-test('a looping deck starts on the slide at defaultIndex without layout shift', async () => {
+// Server HTML holds a loop's shells and spacers too (ADR-0013), not copies,
+// so it already starts on the slide at defaultIndex, not a shell, and
+// hydration moves nothing. The before-spacer's own SSR estimate pushes the
+// slides two sets in, same as a 5-set copies layout would: shells carry no
+// content, so only their estimated inset is compared here, never their
+// size, which the estimate does not cover (they are `opacity:0` and
+// `inert`, so a size change at mount, if it ever showed as a shift, would
+// still paint nothing a person sees).
+test('a looping deck with shells starts on the slide at defaultIndex without layout shift', async () => {
   const slideOffset = (viewport: HTMLElement) =>
-    viewport
-      .querySelector('[aria-label="3 of 5"]:not([data-carouseldeck-copy])')!
-      .getBoundingClientRect().left - viewport.getBoundingClientRect().left;
+    viewport.querySelector('[aria-label="3 of 5"]')!.getBoundingClientRect()
+      .left - viewport.getBoundingClientRect().left;
+  const rectsOfSlidesAndSpacers = (viewport: HTMLElement) =>
+    [
+      ...viewport.querySelectorAll(':scope > :not([data-carouseldeck-shell])')
+    ].map((el) => el.getBoundingClientRect().toJSON());
+
+  let serverShells = -1;
+  let serverCopies = -1;
+  let before: unknown;
   const { viewport, index } = await hydrate(
     { loop: true, defaultIndex: 2 },
     (viewport) => {
-      expect(
-        viewport.querySelectorAll('[data-carouseldeck-copy]')
-      ).toHaveLength(10);
+      serverShells = viewport.querySelectorAll(
+        '[data-carouseldeck-shell]'
+      ).length;
+      serverCopies = viewport.querySelectorAll(
+        '[data-carouseldeck-copy]'
+      ).length;
       expect(slideOffset(viewport)).toBe(0);
-    }
+      before = rectsOfSlidesAndSpacers(viewport);
+    },
+    { mayCorrect: true }
   );
 
+  expect(serverShells).toBe(25);
+  expect(serverCopies).toBe(0);
+  expect(rectsOfSlidesAndSpacers(viewport)).toEqual(before);
   expect(slideOffset(viewport)).toBe(0);
-  expect(viewport.scrollLeft).toBe(7 * WIDTH);
+  expect(viewport.scrollLeft).toBe(12 * WIDTH);
   expect(index).toBe('2');
 });
 
