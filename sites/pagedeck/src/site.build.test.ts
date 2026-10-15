@@ -45,7 +45,7 @@ const OWN_PAGES = [PATHS.home, PATHS.search, PATHS.features, PATHS.interactive, 
 
 /**
  * Two docs pages, the first and one with tables, which the tests of every page
- * cover too. @pagedeck/docs 0.3.0 marks no demo, so neither has one.
+ * cover too. @pagedeck/docs 0.3.1 marks no demo, so neither has one.
  */
 const DOCS_PAGES = [DOCS.start, DOCS_WITH_TABLES];
 
@@ -659,10 +659,10 @@ describe("the docs, from @pagedeck/docs", () => {
   /** The demos a built page renders, by component, in order. */
   const demosOn = (doc: Document) => [...doc.querySelectorAll("article [data-fw-component]")].map((island) => island.getAttribute("data-fw-component"));
 
-  test("takes the docs from npm at 0.3.0, the version of every @pagedeck package", () => {
+  test("takes the docs from npm at 0.3.1, the version of every @pagedeck package", () => {
     const pkg = JSON.parse(readFileSync(`${SITE}package.json`, "utf8")) as { dependencies: Record<string, string> };
-    expect(pkg.dependencies["@pagedeck/docs"]).toBe("0.3.0");
-    for (const [name, version] of Object.entries(pkg.dependencies)) if (name.startsWith("@pagedeck/")) expect(version, name).toBe("0.3.0");
+    expect(pkg.dependencies["@pagedeck/docs"]).toBe("0.3.1");
+    for (const [name, version] of Object.entries(pkg.dependencies)) if (name.startsWith("@pagedeck/")) expect(version, name).toBe("0.3.1");
   });
 
   test.each(DOCS_NAV)("$href renders with each demo it marks, in order", ({ href, demos }) => {

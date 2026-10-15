@@ -104,7 +104,7 @@ const docs = defineDocs({
   base: "/docs",
   layout: DOCS_PAGE,
   demos: DEMOS,
-  languages: ["css", "html", "js", "json", "sh", "toml", "ts", "tsx"],
+  languages: ["css", "html", "js", "json", "nginx", "sh", "toml", "ts", "tsx"],
   theme: CODE_THEME,
   // Each table in a region that scrolls, and each plain block focusable.
   prose: (html) => scrollableProse(html, { tableClass: "fw-table" }),
