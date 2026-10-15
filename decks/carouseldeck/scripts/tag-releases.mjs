@@ -13,9 +13,13 @@
 //
 // Node's built-ins only, so the job installs nothing. It reads npm anonymously
 // and holds no npm credential.
+//
+// Writes the `react-tagged` job output: `true` when this run gave
+// `@carouseldeck/react` a new tag, however the version reached npm, so
+// `deploy` can run on it instead of on `publish`'s own output.
 
 import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { appendFileSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath, URL } from 'node:url';
 import { publishablePackages } from './workspace-packages.mjs';
@@ -74,6 +78,9 @@ export const changelogSection = (changelog, version) => {
  *   sleep: (ms: number) => Promise<void>;
  *   log: (line: string) => void;
  * }} options
+ * @returns {Promise<{ tagged: Release[] }>} `tagged` lists every release this
+ *   call gave a new tag and GitHub release to, in the order it tagged them;
+ *   a release that already had one is left out.
  */
 export const tagReleases = async ({
   releases,
@@ -88,6 +95,8 @@ export const tagReleases = async ({
   /** @param {Version} v */
   const tagOf = (v) => `${v.name}@${v.version}`;
   const publishedTags = new Set(published.map(tagOf));
+  /** @type {Release[]} */
+  const tagged = [];
   /** @param {Release} release */
   const tagAndRelease = (release) => {
     const tag = tagOf(release);
@@ -96,6 +105,7 @@ export const tagReleases = async ({
       return;
     }
     createRelease(tag, changelogSection(release.changelog, release.version));
+    tagged.push(release);
   };
   /**
    * `true` once npm shows `release`, otherwise npm's last answer.
@@ -145,6 +155,8 @@ export const tagReleases = async ({
       `Published in this run, but still not on npm after the wait, so not tagged: ${waiting.map((w) => `${tagOf(w.release)} (npm's last answer: ${w.last})`).join(', ')}. Re-run the tag job once npm shows them.`
     );
   }
+
+  return { tagged };
 };
 
 /**
@@ -186,7 +198,7 @@ const main = async () => {
     changelog: readFileSync(join(path, 'CHANGELOG.md'), 'utf8')
   }));
 
-  await tagReleases({
+  const result = await tagReleases({
     releases,
     published,
     delays: backoff({ first: 10_000, max: 60_000, total: 10 * 60_000 }),
@@ -219,6 +231,14 @@ const main = async () => {
     sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
     log: (line) => console.log(line)
   });
+
+  const githubOutput = process.env.GITHUB_OUTPUT;
+  if (githubOutput) {
+    const reactTagged = result.tagged.some(
+      (release) => release.name === '@carouseldeck/react'
+    );
+    appendFileSync(githubOutput, `react-tagged=${reactTagged}\n`);
+  }
 };
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

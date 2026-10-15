@@ -113,9 +113,14 @@ nothing, then:
   on it.
 - after that PR merges, it runs the whole `pnpm verify`, publishes the
   versions npm does not have yet, with provenance, from the tarballs the
-  verify job packed, then tags them `<name>@<version>` and creates the GitHub
-  releases. Then it dispatches a run of `deploy-carouseldeck.yml` with
-  `apply`, which deploys carousel.deck.cool at the release.
+  verify job packed, then tags every version npm has but GitHub does not yet,
+  however it reached npm, and creates its GitHub release. When that gives
+  `@carouseldeck/react` a new tag, it dispatches a run of
+  `deploy-carouseldeck.yml` with `apply`, which deploys carousel.deck.cool at
+  the release. A version published by hand, such as 1.3.0 on 2026-10-15
+  (npm/cli#9969), is tagged and deployed the same way on the next push to
+  `main` that reruns the release workflow; a run that tags nothing new
+  deploys nothing.
 
 **The first publish**, 1.2.0, used the `NPM_TOKEN` secret: npm sets a trusted
 publisher per package, so a package has to exist first. Each of the four
