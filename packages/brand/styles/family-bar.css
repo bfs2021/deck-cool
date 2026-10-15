@@ -306,6 +306,9 @@
 .family-bar__menu-list li:last-child a {
   border-bottom: 0;
 }
+.family-bar__menu-list a:hover {
+  color: var(--text);
+}
 .family-bar__install {
   flex: none;
   margin-left: 8px;
@@ -325,7 +328,8 @@
   .family-bar__chevron {
     transition: transform .45s var(--ease);
   }
-  .family-bar__links a {
+  .family-bar__links a,
+  .family-bar__menu-list a {
     transition: color .2s var(--ease);
   }
   .family-bar__decks a {

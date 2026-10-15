@@ -194,4 +194,23 @@ describe("the Family bar's links menu", () => {
     expect(await page.locator('header button[aria-label="Menu"]').isVisible()).toBe(false);
     expect(await page.locator("header .family-bar__links").isVisible()).toBe(true);
   });
+
+  // 735px is just above the bar's 734px phone breakpoint: the row is as
+  // tight as it gets with the links inline, and pagedeck's six links are the
+  // most any site's bar carries.
+  test("at 735px, just above the phone breakpoint, every link stays in the row and none overlaps the next", async () => {
+    const { page } = await visit(PATHS.home, { width: 735, reducedMotion: "reduce" });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(735);
+    const row = await page.locator("header .family-bar__row").boundingBox();
+    if (row === null) throw new Error("the row is not on screen");
+    const boxes = await page
+      .locator("header .family-bar__links a")
+      .evaluateAll((links) => links.map((a) => a.getBoundingClientRect()).map(({ left, right }) => ({ left, right })));
+    expect(boxes).toHaveLength(LINKS.length);
+    for (const [index, box] of boxes.entries()) {
+      expect(box.right).toBeLessThanOrEqual(row.x + row.width);
+      const next = boxes[index + 1];
+      if (next) expect(box.right).toBeLessThanOrEqual(next.left);
+    }
+  });
 });

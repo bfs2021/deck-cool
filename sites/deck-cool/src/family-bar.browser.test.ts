@@ -381,4 +381,30 @@ describe("the Family bar's links menu", () => {
     await settled(page);
     expect(await page.locator(MENU_PANEL).isVisible()).toBe(false);
   });
+
+  test("at 390px, with prefers-reduced-motion: reduce, nothing animates, opening or closing", async () => {
+    const { page } = await visit("/", { width: 390, isMobile: true, reducedMotion: "reduce" });
+    expect(await running(page)).toEqual([]);
+    await page.locator(MENU_BUTTON).click();
+    expect(await isOpen(page, MENU_PANEL)).toBe(true);
+    expect(await running(page)).toEqual([]);
+
+    const timings = await page.locator("header, header *").evaluateAll((elements) =>
+      elements.flatMap((element) =>
+        ["", "::before", "::after", "::backdrop"].map((pseudo) => {
+          const style = getComputedStyle(element, pseudo || null);
+          return [style.animationName, style.transitionDuration];
+        }),
+      ),
+    );
+    for (const [animation, transition] of timings) {
+      expect(animation).toBe("none");
+      expect(transition?.split(", ").every((duration) => duration === "0s")).toBe(true);
+    }
+
+    await page.keyboard.press("Escape");
+    expect(await isOpen(page, MENU_PANEL)).toBe(false);
+    expect(await running(page)).toEqual([]);
+    expect(await page.locator(MENU_PANEL).isVisible()).toBe(false);
+  });
 });
