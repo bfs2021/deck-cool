@@ -345,6 +345,21 @@ corrected it back. With `shiftOffCopies` run unguarded, neither browser
 pins, in either path, and the deck lands on the slide 40 presses from where
 it started, each way.
 
+**Scope: Next and Prev alone.** Next and Prev step through `step`, so both
+read the correction above. Dots and arrow keys do not step, and needed their
+own check. A dot's `scrollTo` goes the direct way, within the slides
+(ADR-0009): it is already clamped into the middle set, so it never reaches
+the shells or the scroll range's edge, and was never at risk. An arrow key
+scrolls the viewport by the browser's own native, unsnapped increment per
+keydown, through neither `step` nor `scrollTo`, so the same test run against
+it, 40 ArrowRight presses 50 ms apart then 40 ArrowLeft: in Chromium and
+WebKit, on both placement paths, the position never pinned at either end of
+the scroll range for longer than a frame or two, and the deck kept
+answering a press after. A native key scroll moves in small steps, each one
+its own `scroll` event, so the engine's own settle keeps correcting it the
+whole way, where a `scrollTo` clamped outright at the edge gives it nothing
+to correct from. `onKeyDown` needed no change.
+
 **Bundle.** 12.02 KB min+gzip (`compare`), up from 12.01 KB.
 
 ## What is open to the implementation
