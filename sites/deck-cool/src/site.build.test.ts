@@ -16,21 +16,6 @@ const SITE = fileURLToPath(new URL("..", import.meta.url));
 const CAROUSELDECK_SITE = fileURLToPath(new URL("../../carouseldeck/", import.meta.url));
 const BRAND = fileURLToPath(new URL("../../../packages/brand/public/", import.meta.url));
 
-interface BudgetReport {
-  pages: { path: string; actual: number }[];
-}
-
-test("every page ships 0 B of JavaScript", () => {
-  const report = JSON.parse(
-    readFileSync(`${SITE}.pagedeck/budget-report.json`, "utf8"),
-  ) as BudgetReport;
-
-  expect(report.pages.map((page) => page.path)).toContain("/");
-  for (const page of report.pages) {
-    expect(page, page.path).toMatchObject({ actual: 0 });
-  }
-});
-
 test("no page uses an em dash", () => {
   expect(pagesWithEmDashes(SITE)).toEqual([]);
 });

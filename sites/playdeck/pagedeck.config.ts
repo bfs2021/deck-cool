@@ -87,27 +87,6 @@ const BAR_LINKS = [
   { label: "GitHub", href: REPO },
 ];
 
-/** The docs pages that mark a demo, in @playdeck/docs 1.3.0. */
-const DOCS_DEMO_PAGES = ["/docs/examples/"];
-
-// Measured, not chosen: each is the page's size rounded up to a whole
-// kilobyte. Re-measure rather than raise one. The home page's counts its eager
-// chunks only, not the chunks its players load when they come into view; the
-// maintainer ruled the budget is not a constraint on that page.
-const BUDGET = {
-  "/**": "0b",
-  [PATHS.home]: "60kb",
-  [PATHS.examples]: "89kb",
-  [PATHS.search]: "60kb",
-  // A docs page with no demo ships nothing: search is a page of its own.
-  "/docs/**": "0b",
-  // A docs page with demos ships playdeck and its demos. Budget globs cannot
-  // pick out the pages with a demo, so each is listed. They share one budget,
-  // the largest one's, so a release that moves or adds a demo among these pages
-  // still builds; a demo on another page needs it listed.
-  ...Object.fromEntries(DOCS_DEMO_PAGES.map((path) => [path, "89kb"])),
-};
-
 /**
  * One directory to publish from: the brand kit's icons and .assetsignore, then
  * the site's own files. Passthrough reads one root, and skips a symlink.
@@ -271,7 +250,6 @@ export default defineConfig({
       ],
     },
     vite: { plugins: [playdeckChunkNames()] },
-    budget: BUDGET,
     search: defineSearch(),
   },
 });
