@@ -329,6 +329,19 @@ describe('one instance: fade with shells', () => {
     expect(stacked.every(Boolean)).toBe(true);
     expect(inert().filter((i) => !i)).toHaveLength(1);
   });
+
+  // #145: a stacked effect's shells are never translated, so there is
+  // nothing for a `ScrollTimeline` to place -- `layoutShells` returns null
+  // for them, and `syncPlacers` has nothing to sync.
+  test('no real slide carries a placement animation', async () => {
+    const { slides } = renderShellsFade({ defaultIndex: 1 });
+    await nextFrame();
+    await nextFrame();
+
+    for (const slide of slides()) {
+      expect(slide.getAnimations()).toHaveLength(0);
+    }
+  });
 });
 
 describe('fade under reduced motion', () => {

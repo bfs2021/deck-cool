@@ -15,12 +15,27 @@ description: 'Known limits of carouseldeck: a small looping deck still renders c
   small deck's copies; everywhere else `copy` is always `undefined`, since a
   real slide is never a copy of itself.
 - **A looping slide's `translate` is the deck's.** The engine moves it onto
-  whichever empty shell sits nearest the viewport. A consumer's own
-  `translate` on a looping slide is overwritten.
-- **A translated slide's `position: fixed` descendants are contained by
-  it.** `translate` creates a containing block, so a fixed descendant of a
-  looping slide positions against the slide, not the viewport, for as long
-  as the slide is moved.
+  whichever empty shell sits nearest the viewport, as a `ScrollTimeline`
+  animation where the browser supports placing that way (Chromium 115+,
+  Safari 26+), or a scroll listener everywhere else (Firefox today,
+  ADR-0013). A consumer's own `translate` on a looping slide is overwritten;
+  an `!important` one fights the engine's own brief pins at a jump, a
+  resize or a shift. `slide.getAnimations()` and `document.getAnimations()`
+  list the placement animation, where there is one, alongside a consumer's
+  own.
+- **A looping slide's `position: fixed` descendants are contained by it.**
+  `translate` creates a containing block, so a fixed descendant of a
+  looping slide positions against the slide, not the viewport. On the
+  `ScrollTimeline` path this holds for as long as the slide's placement
+  animation runs, which is the whole time it loops, not only while it is
+  translated to a different slot; on the scroll-listener path, only while
+  the slide is actually moved.
+- **A `direction` change in CSS alone still isn't watched** (see
+  [Vertical and right-to-left](./vertical-and-rtl.md)). Where a
+  `ScrollTimeline` places, its keyframes keep the old direction until the
+  next settle or refresh; the scroll-listener path re-checks it on every
+  scroll. Both windows are unwatched today; the `ScrollTimeline` path's is
+  the longer of the two.
 - **A looping slide's computed `scroll-snap-align` reads `none`.** Its shell
   carries the snap point instead.
 - **A stacked looping slide wraps at the engine's own precision.** Fade and

@@ -1,9 +1,10 @@
 # Loop places one real slide by translate over empty snap targets
 
 This decision is accepted, on 2026-10-13. **Status: built in #144 with
-JavaScript placement; #145, #146 to come.** Three issues build it: #144
-places each slide once, in JavaScript; #145 moves that placement to CSS;
-#146 corrects a press at the seam.
+JavaScript placement and in #145 with CSS placement where supported; #146 to
+come.** Three issues build it: #144 places each slide once, in JavaScript;
+#145 moves that placement to CSS, where the browser supports it; #146
+corrects a press at the seam.
 
 ADR-0009 built loop as clone and jump: a full set of copies on each side of
 the slides, each a `Deck.Slide` rendered again, so its state, effects, ids
@@ -76,8 +77,10 @@ shell, the engine jumps the scroll position back into the real slides' own
 set, by whole set lengths, exactly as ADR-0009's `jumpOffCopies` already
 does; nothing is cloned, so nothing needs re-measuring at the jump, only the
 translate of whichever slides it moves. CSS placement recomputes on its own
-from the new `scrollLeft`; the JavaScript fallback re-places explicitly, in
-the same task, so nothing paints a wrong frame.
+from the new `scrollLeft` where the write lands before the frame's own
+scroll-timeline update; where it does not (#145's pins, below), a pin covers
+the rest. The JavaScript fallback re-places explicitly, in the same task, so
+nothing paints a wrong frame.
 
 **No waiting at the seam.** Measured in the prototype: once `scrollLeft` is
 clamped to the track's physical end, a `scrollTo` asking to go further is a
@@ -205,6 +208,115 @@ viewport for the same resize, overshooting. A shells deck's viewport gets
 subtree out, so the engine alone ever moves it; a consumer can still
 override it, at their own risk.
 
+## As built (#145)
+
+CSS placement, decided above, built as follows.
+
+**The feature test.** `createDeck` reads `typeof ScrollTimeline ===
+'function' && CSS.supports('animation-timeline: scroll()')` once, into
+`timelines`, in its own scope rather than a module-level constant: the
+check runs afresh for every deck a page mounts, so a test can stub
+`CSS.supports` before mount and force the JavaScript path in a browser that
+could otherwise place by CSS. The check never re-runs once a deck's own
+engine has started.
+
+**Web Animations with a `ScrollTimeline`, not a named timeline in CSS.**
+Each real slide, in shells mode, gets its own animation:
+`slide.animate(keyframes, { timeline: new ScrollTimeline({ source:
+viewport, axis }), fill: 'both' })`. Under the docs site's CSP (`style-src
+'self' <hashes>`), an appended `<style>` is refused in both Chromium and
+WebKit, and per-deck keyframes hold measured values no hash could ever
+list. A constructed `CSSStyleSheet` with a static `@keyframes` would be
+CSP-safe, but it would grow `deckDefaults` and need `DECK_STYLE_HASHES`
+regenerated on every page, and the inline `animation` shorthand it needs
+would replace a consumer's own `animation` on a looping slide, which
+`slide.animate` does not. So the issue's brief of "a named scroll timeline
+on the viewport" is built as a `ScrollTimeline` made from script, not a
+named one in CSS: the same timeline type the brief names, made where the
+engine already runs rather than in a stylesheet this repo cannot ship it
+in.
+
+**The keyframes reproduce `nearestSlot`.** `placerKeyframes` builds four
+`step-end` boundaries, `length` apart, marking where a slide's own centre
+crosses from one slot to the next; `geometry.max` turns each into the `[0,
+1]` progress a scroll timeline reports. `PLACER_EPSILON_PX`, `1/64` px,
+sits just below every boundary: WebKit's `ScrollTimeline` samples progress
+in single precision, off a true boundary by about `6e-8` of the scroll
+range (under `1/64` px at ranges up to 100 000px), so without it a position
+exactly at a boundary could read as just short of it, a frame late onto the
+next slot.
+
+**`layoutShells` measures with translate neutralised, not pinned.**
+`measureShells` sets every real slide's `translate` to `none` with
+`!important`, calls `layoutShells` unchanged, then restores whatever
+`translate` each slide had before: the neutralising write never outlives
+the one measurement it is for, and does not itself place anything.
+`placeOrPin`, the caller, decides each slide's next slot once the geometry
+is fresh, at the same call sites shells already used on the JavaScript
+path.
+
+**The pins.** The CSS Scroll-Driven Animations spec (drafts.csswg.org,
+§5.1, "HTML Processing Model: Event loop") updates a scroll progress
+timeline's current time once a frame, during step 7.10, as step 1 of
+updating animations and sending events; a write the engine makes after that
+step, in the same frame, is not reflected until the next one. Measured with
+a pre-paint sampler (a `ResizeObserver` callback, which runs after layout
+and before paint): a scroll-position write from a `scroll` or `scrollend`
+handler, or from a task, reads back fresh in both Chromium and WebKit, but
+a write from a `ResizeObserver` or a `requestAnimationFrame` callback reads
+back stale in WebKit alone, for one frame; so does a just-created
+animation's first frame, reporting `none` in WebKit until its `ready`
+promise resolves. `pinPlaced` writes each real slide's `nearestSlot` value
+as an inline `translate: … !important` wherever a stale frame could
+otherwise show: `settle` after the jump, `moveBy`, and `compensateShift`'s
+own resize-only move. A shared `requestAnimationFrame` lifts every pin once
+no placer's animation is still `pending`, so the unpin never runs before
+the animation it uncovers has a sampled value of its own.
+
+Task 2's pre-paint samples (the mount itself, a resize that moves `L`, and
+a whole-set `restOn` from a resize) found no blank frame and no slide off
+its own shell, in Chromium or WebKit, with the pins in place. Disabling
+`pinPlaced` locally did not fail any of those three cases in this
+Playwright WebKit build (26.6): by the time this build's own
+`ResizeObserver` gets a turn, the real engine's write, watched the same
+way, already reads fresh. A minimal, isolated repro (a bare `ScrollTimeline`
+animation plus a second `ResizeObserver` reading `getComputedStyle(…).translate`
+right after a `scrollLeft` write inside its own callback) does reproduce
+the staleness the spec and MDN's processing model predict. So the pins
+stand on the spec's own text and on that isolated repro, not on a test that
+fails against the engine's own call pattern in this WebKit build: kept as a
+guard against a sampling order the spec allows, and a future WebKit build
+could still expose, not as proven necessary here.
+
+**`seedPlacedAt` and `placedAt` stay JavaScript-path only.**
+`seedPlacedAt`'s job, matching the SSR estimate before `layoutShells`
+subtracts it, is already done by the neutralising measurement; `placedAt`
+is never written on the CSS path, since nothing reads it as the truth
+there (`slotOf`, next).
+
+**The slot readers.** `writeProgress`, `onClick` and `onFocusIn` go through
+one `slotOf(slide, i, along)`: `placedAt.get(slide)?.slot ?? 0` on the
+JavaScript path, or `nearestSlot` computed fresh against the slide's own
+measured centre on the CSS path, agreeing with the painted slot except
+within `ε` of a boundary, always off screen wherever shells apply.
+
+**Following an axis or a direction change, and leaving shells mode.**
+`ScrollTimeline.axis` is read-only once a timeline is made, so
+`syncPlacers` discards and remakes every placer on a `placersVertical`
+mismatch, which an orientation change reaches through the engine's own
+`refresh`; a direction change needs only new keyframes, since the
+signature `syncPlacers` builds already reads `along.sign`, so the next
+settle or refresh picks it up. `forgetPlaced` cancels every placer, the
+shared unpin frame and any pinned inline `translate`, at `clearShells`'s
+own two call sites -- `refresh`, on leaving shells mode, and `destroy`, on
+unmount -- so neither outlives shells mode; `syncPlacers` already forgets a
+placer on its own, as a side effect of `measureShells`, wherever
+`placement` itself goes null.
+
+**Bundle.** 11.26 KB to 11.99 KB min+gzip for placement itself, 12.01 KB
+min+gzip once #145 is complete (`compare`); #144's own growth was still
+unreleased when #145 landed.
+
 ## What is open to the implementation
 
 This records the decided technique, not its code. Left to the stacked PRs
@@ -212,8 +324,12 @@ that build it (#119's brief allows landing placement first, then press
 correction, then the small-deck fallback, provided `main` never ships one
 half-done):
 
-- whether the CSS path and the JavaScript fallback can share one
-  measurement-and-positioning pass, or need their own.
+- **The CSS path and the JavaScript fallback share one
+  measurement-and-positioning pass**, settled in #145: both read
+  `layoutShells`, over translate neutralised the same way, and place by the
+  same `nearestSlot` -- the CSS path encoding it in each slide's keyframes,
+  read fresh by `slotOf`; the JavaScript path calling `place`, which calls
+  `nearestSlot` directly. Neither path owns its own geometry.
 
 ## Out of scope
 

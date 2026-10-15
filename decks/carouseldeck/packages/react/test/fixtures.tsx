@@ -50,6 +50,24 @@ export function TestDeck({
   );
 }
 
+/**
+ * Forces the JS placement path (ADR-0013, #145), as an engine without
+ * `CSS.supports('animation-timeline: scroll()')` reads it (Firefox today,
+ * Safari before 26): `createDeck` reads it once, at mount, so stub before
+ * rendering. A no-op with `'css'`: the real browser's own answer stands.
+ * Restored after the test.
+ */
+export function placementPath(path: 'css' | 'js') {
+  if (path !== 'js') return;
+  const real = CSS.supports.bind(CSS);
+  const spy = vi
+    .spyOn(CSS, 'supports')
+    .mockImplementation((...args: Parameters<typeof CSS.supports>) =>
+      args[0] === 'animation-timeline: scroll()' ? false : real(...args)
+    );
+  onTestFinished(() => spy.mockRestore());
+}
+
 /** Adds consumer CSS to the document for the rest of the current test. */
 export function addStyle(css: string) {
   const style = document.createElement('style');

@@ -11,6 +11,7 @@ import {
   mouseAt,
   mouseDrag,
   pagesOf,
+  placementPath,
   progressOf,
   viewportOf,
   WIDTH
@@ -81,6 +82,37 @@ const scrollLeft = (viewport: HTMLElement) => () => viewport.scrollLeft;
 
 /** A slow drag: held still before release, so it carries no flick. */
 const slowly = { steps: 10, stepMs: 20, holdMs: 120 };
+
+/**
+ * Counts a "blank" frame, every animation frame until stopped: a real
+ * slide must be under the viewport's start, centre and end, mid-way
+ * across the cross axis (ADR-0013, #145's own `countBlankFrames`, ported
+ * here for the direction-change seam, which a placer's keyframes keep the
+ * old `sign` through until the next settle -- the live `dir` switch's own
+ * risk, "a direction change in CSS alone isn't watched").
+ */
+function countBlankFrames(viewport: HTMLElement) {
+  let blanks = 0;
+  let done = false;
+  const tick = () => {
+    const rect = viewport.getBoundingClientRect();
+    const y = rect.top + rect.height / 2;
+    for (const x of [
+      rect.left + 1,
+      (rect.left + rect.right) / 2,
+      rect.right - 1
+    ]) {
+      const el = document.elementFromPoint(x, y);
+      if (!el?.closest('[data-carouseldeck-slide]')) blanks++;
+    }
+    if (!done) requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+  return () => {
+    done = true;
+    return blanks;
+  };
+}
 
 describe('in a right-to-left document', () => {
   test('the deck starts at its first slide, on the right', () => {
@@ -379,34 +411,47 @@ describe('a live change of writing direction', () => {
     expect(root.dataset.index).toBe('4');
   });
 
-  test('with loop, keeps resting on the current slide, and Next moves on', async () => {
-    const { root, viewport, onIndexChange, setDir, next, fromStart } =
-      renderSwitching({ defaultIndex: 2, loop: true });
-    expect(fromStart('3 of 5')).toBe(0);
+  for (const path of ['css', 'js'] as const) {
+    test(`with loop, keeps resting on the current slide, and Next moves on (${path})`, async () => {
+      placementPath(path);
+      const { root, viewport, onIndexChange, setDir, next, fromStart } =
+        renderSwitching({ defaultIndex: 2, loop: true });
+      expect(fromStart('3 of 5')).toBe(0);
 
-    setDir('rtl');
+      setDir('rtl');
 
-    await expect.poll(() => fromStart('3 of 5')).toBe(0);
-    await expectRestOnASlide(viewport, root, onIndexChange);
-    expect(root.dataset.index).toBe('2');
-    expect(progressOf(viewport, { copies: false })).toEqual([-2, -1, 0, 1, 2]);
+      await expect.poll(() => fromStart('3 of 5')).toBe(0);
+      await expectRestOnASlide(viewport, root, onIndexChange);
+      expect(root.dataset.index).toBe('2');
+      expect(progressOf(viewport, { copies: false })).toEqual([
+        -2, -1, 0, 1, 2
+      ]);
 
-    await userEvent.click(next);
-    await expectSettledTo(() => fromStart('4 of 5'), 0);
-    expect(root.dataset.index).toBe('3');
+      await userEvent.click(next);
+      await expectSettledTo(() => fromStart('4 of 5'), 0);
+      expect(root.dataset.index).toBe('3');
 
-    setDir('ltr');
+      setDir('ltr');
 
-    await expect.poll(() => fromStart('4 of 5')).toBe(0);
-    await expectRestOnASlide(viewport, root, onIndexChange);
+      await expect.poll(() => fromStart('4 of 5')).toBe(0);
+      await expectRestOnASlide(viewport, root, onIndexChange);
 
-    await userEvent.click(next);
-    await expectSettledTo(() => fromStart('5 of 5'), 0);
-    await userEvent.click(next);
-    await expectSettledTo(() => fromStart('1 of 5'), 0);
-    await expectRestOnASlide(viewport, root, onIndexChange);
-    expect(onIndexChange.mock.calls).toEqual([[3], [4], [0]]);
-  });
+      await userEvent.click(next);
+      await expectSettledTo(() => fromStart('5 of 5'), 0);
+
+      // The seam crossing itself, after the live direction change: a
+      // CSS-path placer's keyframes carry `sign` (#145), so a dir switch
+      // this close to a seam crossing is exactly where a stale `sign`
+      // would show.
+      const stopBlanks = countBlankFrames(viewport);
+      await userEvent.click(next);
+      await expectSettledTo(() => fromStart('1 of 5'), 0);
+      expect(stopBlanks()).toBe(0);
+
+      await expectRestOnASlide(viewport, root, onIndexChange);
+      expect(onIndexChange.mock.calls).toEqual([[3], [4], [0]]);
+    });
+  }
 
   test('a vertical deck goes on along the block axis', async () => {
     const { root, viewport, onIndexChange, setDir, next, fromTop } =

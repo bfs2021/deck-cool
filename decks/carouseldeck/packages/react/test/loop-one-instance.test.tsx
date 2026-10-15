@@ -10,6 +10,7 @@ import {
   expectSettledTo,
   nextFrame,
   pagesOf,
+  placementPath,
   sleep,
   viewportOf,
   WIDTH
@@ -61,9 +62,11 @@ const renderShells = (
 ) => {
   const onIndexChange = vi.fn();
   const tree = <ShellDeck loop onIndexChange={onIndexChange} {...props} />;
-  render(dir === 'rtl' ? <div dir="rtl">{tree}</div> : tree);
+  const { unmount } = render(
+    dir === 'rtl' ? <div dir="rtl">{tree}</div> : tree
+  );
   const root = screen.getByRole('region', { name: 'Test deck' });
-  return { root, viewport: viewportOf(root), onIndexChange };
+  return { root, viewport: viewportOf(root), onIndexChange, unmount };
 };
 
 const slidesIn = (viewport: HTMLElement) => [
@@ -82,6 +85,19 @@ const axisStart = (el: Element, vertical: boolean) => {
   const rect = el.getBoundingClientRect();
   return vertical ? rect.top : rect.left;
 };
+
+/** Asserts which placement path actually ran (ADR-0013, #145): one
+ * placement animation, on a `ScrollTimeline`, on the CSS path; none on the
+ * JS path. Every test parameterised over `['css', 'js']` asserts this
+ * first, so a stub that silently failed to force the JS path is never
+ * mistaken for the two paths agreeing. */
+function expectPlacementPath(viewport: HTMLElement, path: 'css' | 'js') {
+  const [slide] = slidesIn(viewport);
+  const animated = slide
+    .getAnimations()
+    .some((animation) => animation.timeline instanceof ScrollTimeline);
+  expect(animated).toBe(path === 'css');
+}
 
 describe('one instance: structure', () => {
   test('children mount once, and a ref callback points at the one element', async () => {
@@ -225,35 +241,6 @@ describe('one instance: structure', () => {
     }
   });
 
-  test('rests at defaultIndex, with the slide there at offset 0', async () => {
-    const { root, viewport } = renderShells({ defaultIndex: 3 });
-    await sleep(100);
-
-    const slide = screen.getByRole('group', { name: '4 of 5' });
-    const offset = Math.round(
-      slide.getBoundingClientRect().left - viewport.getBoundingClientRect().left
-    );
-    expect(offset).toBe(0);
-    expect(root.dataset.index).toBe('3');
-  });
-
-  // #144 (ADR-0013): the mount's own scroll write may be dropped (WebKit,
-  // the prototype's history) or never settle-debounced at all in a fast
-  // test, so this checks the rest lands within two frames, not the ~100ms
-  // a settle's debounce would otherwise hide behind.
-  test('rests at defaultIndex within two frames, with no debounce to hide behind', async () => {
-    const { root, viewport } = renderShells({ defaultIndex: 3 });
-    await nextFrame();
-    await nextFrame();
-
-    const slide = screen.getByRole('group', { name: '4 of 5' });
-    const offset = Math.round(
-      slide.getBoundingClientRect().left - viewport.getBoundingClientRect().left
-    );
-    expect(offset).toBe(0);
-    expect(root.dataset.index).toBe('3');
-  });
-
   test('Next, then Prev, within the slides, settle and report', async () => {
     const { root, onIndexChange } = renderShells({ defaultIndex: 1 });
     const next = screen.getByRole('button', { name: 'Next' });
@@ -269,6 +256,47 @@ describe('one instance: structure', () => {
   });
 });
 
+// #145: the rest a mount settles to is the same whichever path placed it.
+describe.each(['css', 'js'] as const)(
+  'one instance: structure, rests at defaultIndex (%s)',
+  (path) => {
+    test('rests at defaultIndex, with the slide there at offset 0', async () => {
+      placementPath(path);
+      const { root, viewport } = renderShells({ defaultIndex: 3 });
+      await sleep(100);
+      expectPlacementPath(viewport, path);
+
+      const slide = screen.getByRole('group', { name: '4 of 5' });
+      const offset = Math.round(
+        slide.getBoundingClientRect().left -
+          viewport.getBoundingClientRect().left
+      );
+      expect(offset).toBe(0);
+      expect(root.dataset.index).toBe('3');
+    });
+
+    // #144 (ADR-0013): the mount's own scroll write may be dropped (WebKit,
+    // the prototype's history) or never settle-debounced at all in a fast
+    // test, so this checks the rest lands within two frames, not the ~100ms
+    // a settle's debounce would otherwise hide behind.
+    test('rests at defaultIndex within two frames, with no debounce to hide behind', async () => {
+      placementPath(path);
+      const { root, viewport } = renderShells({ defaultIndex: 3 });
+      await nextFrame();
+      await nextFrame();
+      expectPlacementPath(viewport, path);
+
+      const slide = screen.getByRole('group', { name: '4 of 5' });
+      const offset = Math.round(
+        slide.getBoundingClientRect().left -
+          viewport.getBoundingClientRect().left
+      );
+      expect(offset).toBe(0);
+      expect(root.dataset.index).toBe('3');
+    });
+  }
+);
+
 // #144: a slide whose width is not a whole pixel (3 slides each
 // `calc(100% / 3)` of a viewport whose own width is not divisible by 3)
 // was given a shell rounded to the nearest whole pixel, through
@@ -276,69 +304,74 @@ describe('one instance: structure', () => {
 // then land up to a pixel off. The shell's size now comes from the
 // slide's own computed, subpixel, border-box size instead, still
 // independent of any `translate` or `scale` a consumer writes.
-describe('one instance: subpixel sizes', () => {
-  const thirds = (align: string) =>
-    // Gap enough that the run clears the fallback-to-copies threshold too
-    // (L >= viewport + widest slide), not only that it loops at all: three
-    // slides each a third of the 1000px viewport are, on their own,
-    // exactly a small deck, however large the viewport -- the gap is what
-    // gives this one enough room to stay in shells, and the subpixel width
-    // under test comes from the 1000px viewport not dividing evenly by 3,
-    // independent of it.
-    `.thirds { column-gap: 180px; }
+describe.each(['css', 'js'] as const)(
+  'one instance: subpixel sizes (%s)',
+  (path) => {
+    const thirds = (align: string) =>
+      // Gap enough that the run clears the fallback-to-copies threshold too
+      // (L >= viewport + widest slide), not only that it loops at all: three
+      // slides each a third of the 1000px viewport are, on their own,
+      // exactly a small deck, however large the viewport -- the gap is what
+      // gives this one enough room to stay in shells, and the subpixel width
+      // under test comes from the 1000px viewport not dividing evenly by 3,
+      // independent of it.
+      `.thirds { column-gap: 180px; }
      .thirds > [data-carouseldeck-slide] { width: calc(100% / 3); scroll-snap-align: ${align}; }`;
 
-  for (const align of ['end', 'center'] as const) {
-    test(`a shell's width matches its slide's unscaled, subpixel width, and the rest lands within half a pixel after the seam and back (${align})`, async () => {
-      addStyle(thirds(align));
-      const { root, viewport } = renderShells({
-        slides: 3,
-        viewportClassName: 'thirds',
-        width: 1000
+    for (const align of ['end', 'center'] as const) {
+      test(`a shell's width matches its slide's unscaled, subpixel width, and the rest lands within half a pixel after the seam and back (${align})`, async () => {
+        placementPath(path);
+        addStyle(thirds(align));
+        const { root, viewport } = renderShells({
+          slides: 3,
+          viewportClassName: 'thirds',
+          width: 1000
+        });
+        await sleep(100);
+        expectPlacementPath(viewport, path);
+
+        const slides = slidesIn(viewport);
+        const mid = shellsAt(viewport, 0);
+        const expected = 1000 / 3;
+        slides.forEach((slide, i) => {
+          expect(
+            Math.abs(slide.getBoundingClientRect().width - expected)
+          ).toBeLessThan(0.05);
+          expect(
+            Math.abs(mid[i].getBoundingClientRect().width - expected)
+          ).toBeLessThan(0.05);
+        });
+
+        // The rest lands at the alignment point itself, within half a pixel:
+        // for `end`, the slide's end flush with the viewport's; for
+        // `center`, their centres level.
+        const restOffset = () => {
+          const v = viewport.getBoundingClientRect();
+          const s = screen
+            .getByRole('group', { name: '1 of 3' })
+            .getBoundingClientRect();
+          return align === 'end'
+            ? s.right - v.right
+            : (s.left + s.right) / 2 - (v.left + v.right) / 2;
+        };
+        expect(Math.abs(restOffset())).toBeLessThan(0.5);
+
+        const next = screen.getByRole('button', { name: 'Next' });
+        const prev = screen.getByRole('button', { name: 'Previous' });
+        for (let i = 0; i < 3; i++) {
+          await userEvent.click(next);
+          await expectSettledTo(() => root.dataset.index, String((i + 1) % 3));
+        }
+        for (let i = 0; i < 3; i++) {
+          await userEvent.click(prev);
+          await expectSettledTo(() => root.dataset.index, String((2 - i) % 3));
+        }
+
+        expect(Math.abs(restOffset())).toBeLessThan(0.5);
       });
-      await sleep(100);
-
-      const slides = slidesIn(viewport);
-      const mid = shellsAt(viewport, 0);
-      const expected = 1000 / 3;
-      slides.forEach((slide, i) => {
-        expect(
-          Math.abs(slide.getBoundingClientRect().width - expected)
-        ).toBeLessThan(0.05);
-        expect(
-          Math.abs(mid[i].getBoundingClientRect().width - expected)
-        ).toBeLessThan(0.05);
-      });
-
-      // The rest lands at the alignment point itself, within half a pixel:
-      // for `end`, the slide's end flush with the viewport's; for
-      // `center`, their centres level.
-      const restOffset = () => {
-        const v = viewport.getBoundingClientRect();
-        const s = screen
-          .getByRole('group', { name: '1 of 3' })
-          .getBoundingClientRect();
-        return align === 'end'
-          ? s.right - v.right
-          : (s.left + s.right) / 2 - (v.left + v.right) / 2;
-      };
-      expect(Math.abs(restOffset())).toBeLessThan(0.5);
-
-      const next = screen.getByRole('button', { name: 'Next' });
-      const prev = screen.getByRole('button', { name: 'Previous' });
-      for (let i = 0; i < 3; i++) {
-        await userEvent.click(next);
-        await expectSettledTo(() => root.dataset.index, String((i + 1) % 3));
-      }
-      for (let i = 0; i < 3; i++) {
-        await userEvent.click(prev);
-        await expectSettledTo(() => root.dataset.index, String((2 - i) % 3));
-      }
-
-      expect(Math.abs(restOffset())).toBeLessThan(0.5);
-    });
+    }
   }
-});
+);
 
 // #144 (ADR-0013): the rAF re-check after mount
 // (`startFrame`, comparing `beforeStart`) ran for every deck, looping or
@@ -460,331 +493,878 @@ function countBlankFrames(viewport: HTMLElement, vertical: boolean) {
   };
 }
 
-describe('one instance: across the seam', () => {
-  test('Next from 5 to 1, then Prev from 1 to 5, each report once and land at offset 0', async () => {
-    const { root, onIndexChange } = renderShells({ defaultIndex: 4 });
-    const next = screen.getByRole('button', { name: 'Next' });
-    const prev = screen.getByRole('button', { name: 'Previous' });
-    const offsetOf = (label: string) => {
-      const slide = screen.getByRole('group', { name: label });
-      const viewport = viewportOf(root);
-      return Math.round(
-        slide.getBoundingClientRect().left -
-          viewport.getBoundingClientRect().left
-      );
-    };
-
-    await userEvent.click(next);
-    await expectSettledTo(() => onIndexChange.mock.calls, [[0]]);
-    expect(offsetOf('1 of 5')).toBe(0);
-
-    await userEvent.click(prev);
-    await expectSettledTo(() => onIndexChange.mock.calls, [[0], [4]]);
-    expect(offsetOf('5 of 5')).toBe(0);
-  });
-
-  const seamCases: [
-    string,
-    { viewportClassName?: string; orientation?: Deck.Orientation },
-    { css?: string; dir?: 'rtl' }
-  ][] = [
+// #145: each real slide, in shells mode, carries one placement animation,
+// on a `ScrollTimeline` sourced from the viewport, where the browser
+// supports placing this way; none where it does not (`placementPath`
+// stubs `CSS.supports` to force that). A shell or a spacer, never
+// translated, carries no animation either way.
+describe('one instance: placement path', () => {
+  const pathCases: [string, ShellDeckProps, { dir?: 'rtl' }][] = [
     ['default', {}, {}],
-    ['centred', { viewportClassName: 'centred' }, { css: CENTRED }],
     ['vertical', { orientation: 'vertical' }, {}],
     ['rtl', {}, { dir: 'rtl' }]
   ];
 
-  for (const [name, props, opts] of seamCases) {
-    test(`no blank frame crossing the seam, by press, wheel and drag (${name})`, async () => {
-      if (opts.css) addStyle(opts.css);
-      const vertical = props.orientation === 'vertical';
-      const { viewport } = renderShells(
-        { ...props, defaultIndex: 4 },
-        { dir: opts.dir }
-      );
+  for (const [name, props, opts] of pathCases) {
+    test(`one animation per real slide, on a ScrollTimeline sourced from the viewport, none on a shell or spacer (${name})`, async () => {
+      const { viewport } = renderShells(props, { dir: opts.dir });
       await sleep(100);
-      const blanks = countBlankFrames(viewport, vertical);
-      const next = screen.getByRole('button', { name: 'Next' });
-      const prev = screen.getByRole('button', { name: 'Previous' });
 
-      // A seam crossing each way by press.
-      await userEvent.click(next);
-      await sleep(600);
-      await userEvent.click(prev);
-      await sleep(600);
+      for (const slide of slidesIn(viewport)) {
+        const animations = slide.getAnimations();
+        expect(animations).toHaveLength(1);
+        expect(animations[0].timeline).toBeInstanceOf(ScrollTimeline);
+        expect((animations[0].timeline as ScrollTimeline).source).toBe(
+          viewport
+        );
+      }
+      const notSlides = [
+        ...viewport.querySelectorAll(
+          '[data-carouseldeck-shell], [data-carouseldeck-spacer]'
+        )
+      ];
+      expect(notSlides.length).toBeGreaterThan(0);
+      for (const el of notSlides) expect(el.getAnimations()).toHaveLength(0);
+    });
 
-      // One by wheel, big enough to cross a seam from wherever that left
-      // the deck.
-      const box = viewport.getBoundingClientRect();
-      const midX = box.left + box.width / 2;
-      const midY = box.top + box.height / 2;
-      await mouse(
-        ['move', midX, midY],
-        vertical ? ['wheel', 0, 8 * WIDTH] : ['wheel', 8 * WIDTH, 0]
-      );
-      await sleep(600);
+    test(`no placement animation on any real slide, forcing the JS path (${name})`, async () => {
+      placementPath('js');
+      const { viewport } = renderShells(props, { dir: opts.dir });
+      await sleep(100);
 
-      // One by a mouse drag, same reach.
-      const start = vertical
-        ? { x: midX, y: box.bottom - 10 }
-        : { x: box.right - 10, y: midY };
-      await mouse(
-        ['move', start.x, start.y],
-        ['down'],
-        vertical
-          ? ['move', start.x, start.y - 3 * WIDTH, 10]
-          : ['move', start.x - 3 * WIDTH, start.y, 10],
-        ['up']
-      );
-      await sleep(600);
-
-      expect(blanks()).toBe(0);
+      for (const slide of slidesIn(viewport)) {
+        expect(slide.getAnimations()).toHaveLength(0);
+      }
     });
   }
+});
 
-  // Each real slide must sit exactly over one of its own shells, not just
-  // on the right slot. A slide whose slot is unchanged when L changes, as
-  // a resize changes it, must still move to its shell at the new L, or the
-  // gap it leaves beside the next slide shows as a blank frame as it
-  // crosses the viewport. The mount-time estimate must not set L wrong
-  // either: in WebKit, a centred deck's subpixel slides render it 1.5px
-  // off what the engine records for it.
-  test('each real slide sits over one of its own shells, at rest, across the seam each way, and after a resize (centred)', async () => {
-    addStyle(CENTRED);
-    const { viewport, onIndexChange } = renderShells({
-      viewportClassName: 'centred',
-      defaultIndex: 4
-    });
-    const offShells = () =>
-      slidesIn(viewport).flatMap((slide, i) => {
-        const off = Math.min(
-          ...[-2, -1, 0, 1, 2].map((set) =>
-            Math.abs(
-              axisStart(slide, false) -
-                axisStart(shellsAt(viewport, set)[i], false)
-            )
-          )
-        );
-        return off < 0.5 ? [] : [{ slide: i, off }];
-      });
-    await sleep(100);
-    expect(offShells()).toEqual([]);
-
-    await userEvent.click(screen.getByRole('button', { name: 'Next' }));
-    await expectSettledTo(() => onIndexChange.mock.calls, [[0]]);
-    expect(offShells()).toEqual([]);
-
-    await userEvent.click(screen.getByRole('button', { name: 'Previous' }));
-    await expectSettledTo(() => onIndexChange.mock.calls, [[0], [4]]);
-    expect(offShells()).toEqual([]);
-
-    // Slide 3 widening moves L, with slides 1 and 2 still on the slot
-    // after: they have to move with it.
-    addStyle(
-      '.centred > [data-carouseldeck-slide]:nth-child(3) { width: 120px; }'
-    );
-    await nextFrame();
-    await nextFrame();
-    await sleep(100);
-    expect(offShells()).toEqual([]);
-  });
-
-  test(
-    "an iframe's running counter never reloads across the seam, by press, wheel and drag",
-    { timeout: 30_000 },
-    async () => {
-      let loads = 0;
-      function IframeDeck() {
-        return (
-          <Deck.Root aria-label="Test deck" loop defaultIndex={4}>
-            <Deck.Prev />
-            <Deck.Viewport style={{ width: WIDTH }}>
-              {Array.from({ length: 5 }, (_, i) => (
-                <Deck.Slide key={i}>
-                  {i === 1 ? (
-                    <iframe
-                      title="counter"
-                      onLoad={() => {
-                        loads++;
-                      }}
-                      srcDoc={
-                        '<!doctype html><script>window.n=0;' +
-                        'setInterval(()=>{window.n++;},20);</script>'
-                      }
-                    />
-                  ) : (
-                    `Slide ${i + 1}`
-                  )}
-                </Deck.Slide>
-              ))}
-            </Deck.Viewport>
-            <Deck.Next />
-          </Deck.Root>
-        );
-      }
-      render(<IframeDeck />);
-      const root = screen.getByRole('region', { name: 'Test deck' });
-      const viewport = viewportOf(root);
-      await sleep(100);
-
-      const frame = viewport.querySelector('iframe')!;
-      const counterAt = () =>
-        (frame.contentWindow as (Window & { n?: number }) | null)?.n ?? -1;
-      await expect.poll(counterAt, { timeout: 5000 }).toBeGreaterThan(0);
-
-      const next = screen.getByRole('button', { name: 'Next' });
-      const prev = screen.getByRole('button', { name: 'Previous' });
-      const readings: number[] = [];
-      for (let loop = 0; loop < 3; loop++) {
-        for (let i = 0; i < 5; i++) {
-          await userEvent.click(next);
-          await sleep(600);
-        }
-        readings.push(counterAt());
-      }
-      // Three full loops of five presses, with 5 slides: back at the same
-      // index proves it actually went all the way round three times, not
-      // just across one seam.
-      await expectSettledTo(() => root.dataset.index, '4');
-      await sleep(400);
-      for (let loop = 0; loop < 3; loop++) {
-        for (let i = 0; i < 5; i++) {
-          await userEvent.click(prev);
-          await sleep(600);
-        }
-        readings.push(counterAt());
-      }
-      await expectSettledTo(() => root.dataset.index, '4');
-      await sleep(400);
-
-      // Started outside the iframe: a pointer over its own document never
-      // reaches the viewport's listeners.
-      const box = viewport.getBoundingClientRect();
-      const outside = { x: box.right - 10, y: box.bottom - 10 };
-      await mouse(['move', outside.x, outside.y], ['wheel', 8 * WIDTH, 0]);
-      await sleep(400);
-      readings.push(counterAt());
-      await mouse(
-        ['move', outside.x, outside.y],
-        ['down'],
-        ['move', outside.x - 3 * WIDTH, outside.y, 10],
-        ['up']
-      );
-      await sleep(600);
-      readings.push(counterAt());
-
-      expect(loads).toBe(1);
-      expect(viewport.querySelector('iframe')).toBe(frame);
-      for (let i = 1; i < readings.length; i++) {
-        expect(readings[i]).toBeGreaterThanOrEqual(readings[i - 1]);
-      }
+// #145: `ScrollTimeline.axis` is read-only once a timeline is made, so a
+// live orientation change on the CSS path has to discard and remake every
+// placer (`syncPlacers`'s own forgetting on a `placersVertical` mismatch),
+// not just update its keyframes.
+describe('one instance: setOrientation on a mounted looping deck', () => {
+  test('the placers switch to the new axis, and a seam crossing in the new orientation shows no blank frame (css)', async () => {
+    function OrientedDeck({
+      orientation
+    }: {
+      orientation: 'horizontal' | 'vertical';
+    }) {
+      return <ShellDeck loop orientation={orientation} defaultIndex={4} />;
     }
-  );
-
-  test('children stay mounted once, and the ref unchanged, after a seam crossing', async () => {
-    const mounts: number[] = [];
-    const refs: (HTMLElement | null)[] = [];
-    function Probe({ index }: { index: number }) {
-      const mounted = useRef(false);
-      useEffect(() => {
-        if (mounted.current) return;
-        mounted.current = true;
-        mounts[index] = (mounts[index] ?? 0) + 1;
-      }, [index]);
-      return (
-        <div
-          data-testid={`probe-${index}`}
-          ref={(el) => {
-            refs[index] = el;
-          }}
-        />
-      );
-    }
-    render(
-      <Deck.Root aria-label="Test deck" loop defaultIndex={4}>
-        <Deck.Prev />
-        <Deck.Viewport style={{ width: WIDTH, height: 50 }}>
-          {Array.from({ length: 5 }, (_, i) => (
-            <Deck.Slide key={i}>
-              <Probe index={i} />
-            </Deck.Slide>
-          ))}
-        </Deck.Viewport>
-        <Deck.Next />
-      </Deck.Root>
-    );
-    await sleep(100);
+    const { rerender } = render(<OrientedDeck orientation="horizontal" />);
     const root = screen.getByRole('region', { name: 'Test deck' });
-    const probesBefore = [...root.querySelectorAll('[data-testid^="probe-"]')];
-    const refsBefore = [...refs];
-
-    await userEvent.click(screen.getByRole('button', { name: 'Next' }));
-    await expectSettledTo(() => root.dataset.index, '0');
-
-    expect(mounts).toEqual([1, 1, 1, 1, 1]);
-    const probesAfter = [...root.querySelectorAll('[data-testid^="probe-"]')];
-    expect(probesAfter).toEqual(probesBefore);
-    expect(refs).toEqual(refsBefore);
-  });
-
-  test("progress through a seam crossing stays within a quarter slide of each slide's own offset", async () => {
-    const { root, viewport } = renderShells({ defaultIndex: 4 });
-    const slides = slidesIn(viewport);
-    const frames: { progress: number; at: number }[][] = [];
-    const stop = sampleEveryFrame(() => {
-      const box = viewport.getBoundingClientRect();
-      frames.push(
-        slides.map((slide) => {
-          const rect = slide.getBoundingClientRect();
-          return {
-            at: (rect.left - box.left) / WIDTH,
-            progress: Number(
-              slide.style.getPropertyValue('--deck-slide-progress')
-            )
-          };
-        })
-      );
-    });
-
-    await userEvent.click(screen.getByRole('button', { name: 'Next' }));
-    await expectSettledTo(() => root.dataset.index, '0');
-    await sleep(300);
-    stop();
-    await nextFrame();
-
-    for (const frame of frames) {
-      for (const { progress, at } of frame) {
-        // Only in or near view: a slide placed well off-screen checks its
-        // own progress elsewhere (the structure describe's geometry
-        // tests), and a seam crossing or a jump can move it between
-        // slots in ways this loose check is not about.
-        if (at <= -1 || at >= 1) continue;
-        // A frame's paint can trail the scroll by one frame's worth.
-        expect(Math.abs(progress - at)).toBeLessThan(0.25);
-      }
-    }
-  });
-
-  test('data-in-view, at rest, matches the real slides with at least 1px visible', async () => {
-    const { viewport } = renderShells({ defaultIndex: 0, slides: 10 });
+    const viewport = viewportOf(root);
     await sleep(100);
-    const slides = slidesIn(viewport);
-    const box = viewport.getBoundingClientRect();
-    const expected = slides.map((slide) => {
-      const rect = slide.getBoundingClientRect();
-      return (
-        Math.min(rect.right, box.right) - Math.max(rect.left, box.left) >= 1
-      );
-    });
+    expectPlacementPath(viewport, 'css');
+    for (const slide of slidesIn(viewport)) {
+      const [animation] = slide.getAnimations();
+      expect((animation.timeline as ScrollTimeline).axis).toBe('x');
+    }
 
-    expect(slides.map((slide) => slide.hasAttribute('data-in-view'))).toEqual(
-      expected
-    );
-    // The visible slide only; the rest, placed nearest the viewport but
-    // off to either side, are not.
-    expect(expected.filter(Boolean)).toHaveLength(1);
+    rerender(<OrientedDeck orientation="vertical" />);
+    await sleep(100);
+    expectPlacementPath(viewport, 'css');
+    for (const slide of slidesIn(viewport)) {
+      const [animation] = slide.getAnimations();
+      expect((animation.timeline as ScrollTimeline).axis).toBe('y');
+    }
+
+    const stopBlanks = countBlankFrames(viewport, true);
+    await userEvent.click(screen.getByRole('button', { name: 'Next' }));
+    await sleep(600);
+
+    expect(stopBlanks()).toBe(0);
   });
 });
+
+/**
+ * Counts how many times a real slide's own inline `translate` changes
+ * (ADR-0013, #145's "no script per frame"): a `MutationObserver` on every
+ * real slide's `style` attribute, stopped from a capture-phase `scrollend`
+ * listener on `document` -- before the engine's own `scrollend` handler on
+ * the viewport, and so before the settle's own pins -- draining anything
+ * still pending with `takeRecords()` there, so a pin at the very settle is
+ * never miscounted as the seam crossing's own script.
+ */
+function countTranslateWrites(viewport: HTMLElement) {
+  const slides = slidesIn(viewport);
+  const last = new Map<Element, string>(
+    slides.map((slide) => [slide, slide.style.translate])
+  );
+  let changes = 0;
+  const record = (target: Element) => {
+    const value = (target as HTMLElement).style.translate;
+    if (last.get(target) !== value) {
+      last.set(target, value);
+      changes++;
+    }
+  };
+  const observer = new MutationObserver((records) => {
+    for (const { target } of records) record(target as Element);
+  });
+  for (const slide of slides) {
+    observer.observe(slide, { attributes: true, attributeFilter: ['style'] });
+  }
+  let stopped = false;
+  const stop = () => {
+    if (stopped) return;
+    stopped = true;
+    for (const { target } of observer.takeRecords()) record(target as Element);
+    observer.disconnect();
+  };
+  // `scrollsnapchange` reports a settled snap target no later than
+  // `scrollend` (ADR-0013): the engine's own `onEnd` answers either one
+  // first, so this stops at whichever fires first too.
+  for (const type of ['scrollsnapchange', 'scrollend']) {
+    document.addEventListener(type, stop, { capture: true, once: true });
+  }
+  return () => {
+    stop();
+    return changes;
+  };
+}
+
+/** Samples a slide's own computed `translate` every frame, to confirm a
+ * gesture actually moved it (ADR-0013, #145): the positive control for
+ * `countTranslateWrites`, since the seam-crossing slide's computed value
+ * must change even where no script wrote its inline style. */
+function sampleComputedTranslate(slide: HTMLElement) {
+  let first: string | null = null;
+  let last = '';
+  const stop = sampleEveryFrame(() => {
+    const value = getComputedStyle(slide).translate;
+    if (first === null) first = value;
+    last = value;
+  });
+  return () => {
+    stop();
+    return { first: first ?? '', last };
+  };
+}
+
+describe('one instance: no script per frame', () => {
+  test('no inline translate write crossing the seam, on the CSS path', async () => {
+    const { viewport } = renderShells({ defaultIndex: 4 });
+    await sleep(100);
+    expectPlacementPath(viewport, 'css');
+
+    const slide = screen.getByRole('group', { name: '1 of 5' }) as HTMLElement;
+    const stopWrites = countTranslateWrites(viewport);
+    const stopSamples = sampleComputedTranslate(slide);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Next' }));
+    await sleep(600);
+
+    expect(stopWrites()).toBe(0);
+    const { first, last } = stopSamples();
+    expect(first).not.toBe(last);
+  });
+
+  // The positive control: the same gesture, forced onto the JS path, does
+  // write inline translate while crossing the seam (`place`, on every
+  // scroll event) -- proving `countTranslateWrites` would have caught it.
+  test('a positive control, forcing the JS path, writes inline translate crossing the seam', async () => {
+    placementPath('js');
+    const { viewport } = renderShells({ defaultIndex: 4 });
+    await sleep(100);
+    expectPlacementPath(viewport, 'js');
+
+    const stopWrites = countTranslateWrites(viewport);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Next' }));
+    await sleep(600);
+
+    expect(stopWrites()).toBeGreaterThan(0);
+  });
+});
+
+/**
+ * Runs `sample` from a `ResizeObserver` callback on a sentinel element this
+ * resizes every rAF, plus `watch` -- the same element or elements the
+ * engine's own `resizes` observer watches for whatever write is under test
+ * (a slide, or the viewport) -- so this callback is in the same batch as
+ * the engine's own, and so runs after it: a `ResizeObserver`'s callbacks
+ * run in the order their observers were created, and the engine's is made
+ * first, in `createDeck` (decision 4 and 6, #145). That beat runs after
+ * layout, before paint -- the same one a late `ResizeObserver` write (a
+ * `refresh` or `compensateShift`) or a newly created placer's own first,
+ * still-`pending` frame lands in, in WebKit, where a rAF sampler
+ * (`sampleEveryFrame`) only ever reads the timeline's next, already
+ * re-sampled frame and so never catches it. `watch` also gives a mount's
+ * own first sample a beat to run at, since a `ResizeObserver` reports a
+ * target's size once as soon as it is observed, whether or not it has
+ * changed. Returns a function that stops sampling.
+ */
+function sampleBeforePaint(sample: () => void, watch: Element[] = []) {
+  const sentinel = document.createElement('div');
+  sentinel.style.cssText = 'position:fixed;top:-9999px;left:-9999px;';
+  document.body.append(sentinel);
+  const observer = new ResizeObserver(sample);
+  for (const el of watch) observer.observe(el);
+  observer.observe(sentinel);
+  let done = false;
+  let wide = false;
+  const tick = () => {
+    if (done) return;
+    wide = !wide;
+    sentinel.style.width = wide ? '2px' : '1px';
+    requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+  return () => {
+    done = true;
+    observer.disconnect();
+    sentinel.remove();
+  };
+}
+
+/** `countBlankFrames`, before paint rather than on the next rAF (decision
+ * 4 and 6, #145): see `sampleBeforePaint`. */
+function countBlankFramesBeforePaint(
+  viewport: HTMLElement,
+  vertical: boolean,
+  watch: Element[] = []
+) {
+  let blanks = 0;
+  const stop = sampleBeforePaint(() => {
+    const rect = viewport.getBoundingClientRect();
+    const across = vertical
+      ? rect.left + rect.width / 2
+      : rect.top + rect.height / 2;
+    const points = vertical
+      ? [
+          { x: across, y: rect.top + 1 },
+          { x: across, y: (rect.top + rect.bottom) / 2 },
+          { x: across, y: rect.bottom - 1 }
+        ]
+      : [
+          { x: rect.left + 1, y: across },
+          { x: (rect.left + rect.right) / 2, y: across },
+          { x: rect.right - 1, y: across }
+        ];
+    for (const { x, y } of points) {
+      const el = document.elementFromPoint(x, y);
+      if (!el?.closest('[data-carouseldeck-slide]')) blanks++;
+    }
+  }, watch);
+  return () => {
+    stop();
+    return blanks;
+  };
+}
+
+/** The df7bbf2 "each real slide sits over one of its own shells" assertion,
+ * before paint rather than at rest (decision 4 and 6, #145): see
+ * `sampleBeforePaint`. A sample taken once the deck has left shells mode --
+ * no shell left to check against -- counts nothing. */
+function countOffShellFramesBeforePaint(
+  viewport: HTMLElement,
+  vertical: boolean,
+  watch: Element[] = []
+) {
+  let offs = 0;
+  const stop = sampleBeforePaint(() => {
+    if (viewport.querySelector('[data-carouseldeck-shell]') === null) return;
+    slidesIn(viewport).forEach((slide, i) => {
+      const off = Math.min(
+        ...[-2, -1, 0, 1, 2].map((set) =>
+          Math.abs(
+            axisStart(slide, vertical) -
+              axisStart(shellsAt(viewport, set)[i], vertical)
+          )
+        )
+      );
+      if (off >= 0.5) offs++;
+    });
+  }, watch);
+  return () => {
+    stop();
+    return offs;
+  };
+}
+
+// #145, decision 4: a scroll-progress timeline samples the scroll position
+// once a frame, during the HTML Processing Model's step 7.10 -- not when a
+// `ResizeObserver` callback or a rAF writes it, which in WebKit lands after
+// that beat, one frame late. The engine's pins (`pinPlaced`) cover exactly
+// that frame; these tests sample from the one place that can see whether
+// they did -- a `ResizeObserver` callback of their own, run the same beat
+// (`sampleBeforePaint`). Parameterised over both paths: the CSS path is the
+// one this staleness applies to, and the JS path places synchronously in
+// the same task as the write, so it is never stale either, by a different
+// route.
+describe.each(['css', 'js'] as const)(
+  'one instance: no stale frame before paint (%s)',
+  (path) => {
+    test("a resize that moves L: every real slide sits over its own shell, and shows no blank frame, before paint (centred, '5 of 5' at slot -1)", async () => {
+      placementPath(path);
+      addStyle(CENTRED);
+      const { viewport } = renderShells({
+        viewportClassName: 'centred',
+        defaultIndex: 0
+      });
+      await sleep(100);
+      expectPlacementPath(viewport, path);
+      expect(
+        screen.getByRole('group', { name: '5 of 5' }).getBoundingClientRect()
+          .width
+      ).toBeGreaterThan(0);
+
+      // Slide 3 (index 2) is what the engine's own write is triggered by,
+      // so watching it keeps this sampler in the same batch
+      // (`sampleBeforePaint`).
+      const slide3 = slidesIn(viewport)[2];
+      const stopBlanks = countBlankFramesBeforePaint(viewport, false, [slide3]);
+      const stopOffShell = countOffShellFramesBeforePaint(viewport, false, [
+        slide3
+      ]);
+
+      // Slide 3 widening moves L (`refresh` -> `compensateShift` ->
+      // `moveBy`, in slide 3's own `ResizeObserver` callback): slides 1
+      // and 2, still on the slot after, have to move with it.
+      addStyle(
+        '.centred > [data-carouseldeck-slide]:nth-child(3) { width: 120px; }'
+      );
+      await nextFrame();
+      await nextFrame();
+      await sleep(100);
+
+      expect(stopBlanks()).toBe(0);
+      expect(stopOffShell()).toBe(0);
+    });
+
+    test('the mount itself shows no blank frame before paint', async () => {
+      placementPath(path);
+      const { viewport } = renderShells({ defaultIndex: 4 });
+      expectPlacementPath(viewport, path);
+      // The engine's own `resizes` observer watches the viewport from the
+      // mount itself (`createDeck`): watching it too keeps this sampler's
+      // first callback in that very batch (`sampleBeforePaint`).
+      const stopBlanks = countBlankFramesBeforePaint(viewport, false, [
+        viewport
+      ]);
+
+      await nextFrame();
+      await nextFrame();
+      await sleep(100);
+
+      expect(stopBlanks()).toBe(0);
+    });
+
+    // A resize of the viewport itself, not a slide, so that the run no
+    // longer has room beside its own slide (ADR-0013's fallback):
+    // `shapeOf` -- never moved by L alone -- changes along with the kind,
+    // so `refresh` takes `keepPlace`'s own branch, `restOn`, rather than
+    // `compensateShift`'s.
+    test('a viewport resize that leaves shells (keepPlace -> restOn from refresh) shows no blank frame before paint', async () => {
+      placementPath(path);
+      addStyle(
+        '.vresize > [data-carouseldeck-slide] { width: 80px; flex-shrink: 0; }'
+      );
+      const { viewport } = renderShells({
+        slides: 5,
+        viewportClassName: 'vresize',
+        width: 200,
+        defaultIndex: 0
+      });
+      await sleep(100);
+      expect(
+        viewport.querySelectorAll('[data-carouseldeck-shell]').length
+      ).toBeGreaterThan(0);
+      expectPlacementPath(viewport, path);
+
+      // The engine's own `resizes` observer watches the viewport
+      // directly: watching it too keeps this sampler in the same batch
+      // (`sampleBeforePaint`).
+      const stopBlanks = countBlankFramesBeforePaint(viewport, false, [
+        viewport
+      ]);
+
+      // `!important`: the viewport's own width is already inline (React's
+      // `style` prop), which an unmarked external rule cannot override.
+      addStyle('.vresize { width: 360px !important; }');
+      await nextFrame();
+      await nextFrame();
+      await sleep(100);
+
+      expect(
+        viewport.querySelectorAll('[data-carouseldeck-copy]').length
+      ).toBeGreaterThan(0);
+      expect(stopBlanks()).toBe(0);
+    });
+  }
+);
+
+/** Measures, once, in content-coordinate space (ADR-0013, #145): each real
+ * slide's own centre (`centres`), the run's length (`length`), the
+ * viewport's own size (`view`) and the scroll range (`max`) -- the same
+ * quantities `layoutShells` gives the engine, read the same way
+ * (`axisOf`), so a test can predict `nearestSlot` without reading the
+ * engine's own private state. */
+function measureGeometry(
+  viewport: HTMLElement,
+  vertical: boolean,
+  rtl: boolean
+) {
+  const sign = !vertical && rtl ? -1 : 1;
+  const edge = (rect: DOMRect) =>
+    vertical ? rect.top : sign === 1 ? rect.left : -rect.right;
+  const size = (rect: DOMRect) => (vertical ? rect.height : rect.width);
+  const mid = shellsAt(viewport, 0);
+  const after = shellsAt(viewport, 1);
+  const viewRect = viewport.getBoundingClientRect();
+  const viewStart = edge(viewRect);
+  const view = size(viewRect);
+  const position = vertical ? viewport.scrollTop : sign * viewport.scrollLeft;
+  const length =
+    edge(after[0].getBoundingClientRect()) -
+    edge(mid[0].getBoundingClientRect());
+  const centres = mid.map((shell) => {
+    const rect = shell.getBoundingClientRect();
+    return edge(rect) - viewStart + position + size(rect) / 2;
+  });
+  const max = vertical
+    ? viewport.scrollHeight - viewport.clientHeight
+    : viewport.scrollWidth - viewport.clientWidth;
+  return { centres, length, view, max, sign };
+}
+
+/** The boundary positions a slide's own slot changes at (ADR-0013,
+ * #145): `b_k`, `k` from -1 to 2. */
+function boundariesOf(centre: number, length: number, view: number) {
+  return [-1, 0, 1, 2].map((k) => centre - view / 2 + (k - 0.5) * length - 0.5);
+}
+
+describe('one instance: the same placement on both paths', () => {
+  const sweepCases: [string, ShellDeckProps, { css?: string; dir?: 'rtl' }][] =
+    [
+      ['default', {}, {}],
+      ['centred', { viewportClassName: 'centred' }, { css: CENTRED }],
+      ['vertical', { orientation: 'vertical' }, {}],
+      ['rtl', {}, { dir: 'rtl' }]
+    ];
+
+  for (const [name, props, opts] of sweepCases) {
+    test(
+      `matches within half a pixel, across the whole scroll range (${name})`,
+      { timeout: 60_000 },
+      async () => {
+        if (opts.css) addStyle(opts.css);
+        const vertical = props.orientation === 'vertical';
+        const rtl = opts.dir === 'rtl';
+
+        const sweep = async (path: 'css' | 'js') => {
+          placementPath(path);
+          const { viewport, unmount } = renderShells(props, { dir: opts.dir });
+          await sleep(100);
+          expectPlacementPath(viewport, path);
+          viewport.style.scrollSnapType = 'none';
+          const geometry = measureGeometry(viewport, vertical, rtl);
+          const slides = slidesIn(viewport);
+
+          const candidates = new Set<number>();
+          for (let i = 0; i < slides.length; i++) {
+            for (const b of boundariesOf(
+              geometry.centres[i],
+              geometry.length,
+              geometry.view
+            )) {
+              candidates.add(Math.round(b - 1));
+              candidates.add(Math.round(b + 1));
+            }
+          }
+          for (let p = 0; p <= geometry.max; p += 13) candidates.add(p);
+          const sorted = [...candidates]
+            .filter((p) => p >= 0 && p <= geometry.max)
+            .sort((a, b) => a - b);
+
+          const positionsOf = (): number[] =>
+            slides.map((slide) => {
+              const slideRect = slide.getBoundingClientRect();
+              const viewRect = viewport.getBoundingClientRect();
+              return vertical
+                ? slideRect.top - viewRect.top
+                : slideRect.left - viewRect.left;
+            });
+
+          const readings: number[][] = [];
+          for (const p of sorted) {
+            if (vertical) viewport.scrollTop = p;
+            else viewport.scrollLeft = geometry.sign * p;
+            await nextFrame();
+            const after = vertical
+              ? viewport.scrollTop
+              : geometry.sign * viewport.scrollLeft;
+            // A settle's own jump moved this one off the position asked:
+            // no longer a probe of the position meant, so it is dropped.
+            if (Math.abs(after - p) > 0.5) continue;
+            readings.push(positionsOf());
+          }
+          unmount();
+          return readings;
+        };
+
+        const css = await sweep('css');
+        const js = await sweep('js');
+        expect(css.length).toBeGreaterThan(0);
+        expect(css.length).toBe(js.length);
+        for (let i = 0; i < css.length; i++) {
+          for (let s = 0; s < css[i].length; s++) {
+            expect(Math.abs(css[i][s] - js[i][s])).toBeLessThan(0.5);
+          }
+        }
+      }
+    );
+  }
+});
+
+// #145: the same placement, and the same correctness properties, on
+// whichever path placed it.
+describe.each(['css', 'js'] as const)(
+  'one instance: across the seam (%s)',
+  (path) => {
+    test('Next from 5 to 1, then Prev from 1 to 5, each report once and land at offset 0', async () => {
+      placementPath(path);
+      const { root, onIndexChange } = renderShells({ defaultIndex: 4 });
+      const next = screen.getByRole('button', { name: 'Next' });
+      const prev = screen.getByRole('button', { name: 'Previous' });
+      const offsetOf = (label: string) => {
+        const slide = screen.getByRole('group', { name: label });
+        const viewport = viewportOf(root);
+        return Math.round(
+          slide.getBoundingClientRect().left -
+            viewport.getBoundingClientRect().left
+        );
+      };
+      expectPlacementPath(viewportOf(root), path);
+
+      await userEvent.click(next);
+      await expectSettledTo(() => onIndexChange.mock.calls, [[0]]);
+      expect(offsetOf('1 of 5')).toBe(0);
+
+      await userEvent.click(prev);
+      await expectSettledTo(() => onIndexChange.mock.calls, [[0], [4]]);
+      expect(offsetOf('5 of 5')).toBe(0);
+    });
+
+    const seamCases: [
+      string,
+      { viewportClassName?: string; orientation?: Deck.Orientation },
+      { css?: string; dir?: 'rtl' }
+    ][] = [
+      ['default', {}, {}],
+      ['centred', { viewportClassName: 'centred' }, { css: CENTRED }],
+      ['vertical', { orientation: 'vertical' }, {}],
+      ['rtl', {}, { dir: 'rtl' }]
+    ];
+
+    for (const [name, props, opts] of seamCases) {
+      test(`no blank frame crossing the seam, by press, wheel and drag (${name})`, async () => {
+        placementPath(path);
+        if (opts.css) addStyle(opts.css);
+        const vertical = props.orientation === 'vertical';
+        const { viewport } = renderShells(
+          { ...props, defaultIndex: 4 },
+          { dir: opts.dir }
+        );
+        await sleep(100);
+        expectPlacementPath(viewport, path);
+        const blanks = countBlankFrames(viewport, vertical);
+        const next = screen.getByRole('button', { name: 'Next' });
+        const prev = screen.getByRole('button', { name: 'Previous' });
+
+        // A seam crossing each way by press.
+        await userEvent.click(next);
+        await sleep(600);
+        await userEvent.click(prev);
+        await sleep(600);
+
+        // One by wheel, big enough to cross a seam from wherever that left
+        // the deck.
+        const box = viewport.getBoundingClientRect();
+        const midX = box.left + box.width / 2;
+        const midY = box.top + box.height / 2;
+        await mouse(
+          ['move', midX, midY],
+          vertical ? ['wheel', 0, 8 * WIDTH] : ['wheel', 8 * WIDTH, 0]
+        );
+        await sleep(600);
+
+        // One by a mouse drag, same reach.
+        const start = vertical
+          ? { x: midX, y: box.bottom - 10 }
+          : { x: box.right - 10, y: midY };
+        await mouse(
+          ['move', start.x, start.y],
+          ['down'],
+          vertical
+            ? ['move', start.x, start.y - 3 * WIDTH, 10]
+            : ['move', start.x - 3 * WIDTH, start.y, 10],
+          ['up']
+        );
+        await sleep(600);
+
+        expect(blanks()).toBe(0);
+      });
+    }
+
+    // Each real slide must sit exactly over one of its own shells, not just
+    // on the right slot. A slide whose slot is unchanged when L changes, as
+    // a resize changes it, must still move to its shell at the new L, or the
+    // gap it leaves beside the next slide shows as a blank frame as it
+    // crosses the viewport. The mount-time estimate must not set L wrong
+    // either: in WebKit, a centred deck's subpixel slides render it 1.5px
+    // off what the engine records for it.
+    test('each real slide sits over one of its own shells, at rest, across the seam each way, and after a resize (centred)', async () => {
+      placementPath(path);
+      addStyle(CENTRED);
+      const { viewport, onIndexChange } = renderShells({
+        viewportClassName: 'centred',
+        defaultIndex: 4
+      });
+      const offShells = () =>
+        slidesIn(viewport).flatMap((slide, i) => {
+          const off = Math.min(
+            ...[-2, -1, 0, 1, 2].map((set) =>
+              Math.abs(
+                axisStart(slide, false) -
+                  axisStart(shellsAt(viewport, set)[i], false)
+              )
+            )
+          );
+          return off < 0.5 ? [] : [{ slide: i, off }];
+        });
+      await sleep(100);
+      expectPlacementPath(viewport, path);
+      expect(offShells()).toEqual([]);
+
+      await userEvent.click(screen.getByRole('button', { name: 'Next' }));
+      await expectSettledTo(() => onIndexChange.mock.calls, [[0]]);
+      expect(offShells()).toEqual([]);
+
+      await userEvent.click(screen.getByRole('button', { name: 'Previous' }));
+      await expectSettledTo(() => onIndexChange.mock.calls, [[0], [4]]);
+      expect(offShells()).toEqual([]);
+
+      // Slide 3 widening moves L, with slides 1 and 2 still on the slot
+      // after: they have to move with it.
+      addStyle(
+        '.centred > [data-carouseldeck-slide]:nth-child(3) { width: 120px; }'
+      );
+      await nextFrame();
+      await nextFrame();
+      await sleep(100);
+      expect(offShells()).toEqual([]);
+    });
+
+    test(
+      "an iframe's running counter never reloads across the seam, by press, wheel and drag",
+      { timeout: 30_000 },
+      async () => {
+        placementPath(path);
+        let loads = 0;
+        function IframeDeck() {
+          return (
+            <Deck.Root aria-label="Test deck" loop defaultIndex={4}>
+              <Deck.Prev />
+              <Deck.Viewport style={{ width: WIDTH }}>
+                {Array.from({ length: 5 }, (_, i) => (
+                  <Deck.Slide key={i}>
+                    {i === 1 ? (
+                      <iframe
+                        title="counter"
+                        onLoad={() => {
+                          loads++;
+                        }}
+                        srcDoc={
+                          '<!doctype html><script>window.n=0;' +
+                          'setInterval(()=>{window.n++;},20);</script>'
+                        }
+                      />
+                    ) : (
+                      `Slide ${i + 1}`
+                    )}
+                  </Deck.Slide>
+                ))}
+              </Deck.Viewport>
+              <Deck.Next />
+            </Deck.Root>
+          );
+        }
+        render(<IframeDeck />);
+        const root = screen.getByRole('region', { name: 'Test deck' });
+        const viewport = viewportOf(root);
+        await sleep(100);
+        expectPlacementPath(viewport, path);
+
+        const frame = viewport.querySelector('iframe')!;
+        const counterAt = () =>
+          (frame.contentWindow as (Window & { n?: number }) | null)?.n ?? -1;
+        await expect.poll(counterAt, { timeout: 5000 }).toBeGreaterThan(0);
+
+        const next = screen.getByRole('button', { name: 'Next' });
+        const prev = screen.getByRole('button', { name: 'Previous' });
+        const readings: number[] = [];
+        for (let loop = 0; loop < 3; loop++) {
+          for (let i = 0; i < 5; i++) {
+            await userEvent.click(next);
+            await sleep(600);
+          }
+          readings.push(counterAt());
+        }
+        // Three full loops of five presses, with 5 slides: back at the same
+        // index proves it actually went all the way round three times, not
+        // just across one seam.
+        await expectSettledTo(() => root.dataset.index, '4');
+        await sleep(400);
+        for (let loop = 0; loop < 3; loop++) {
+          for (let i = 0; i < 5; i++) {
+            await userEvent.click(prev);
+            await sleep(600);
+          }
+          readings.push(counterAt());
+        }
+        await expectSettledTo(() => root.dataset.index, '4');
+        await sleep(400);
+
+        // Started outside the iframe: a pointer over its own document never
+        // reaches the viewport's listeners.
+        const box = viewport.getBoundingClientRect();
+        const outside = { x: box.right - 10, y: box.bottom - 10 };
+        await mouse(['move', outside.x, outside.y], ['wheel', 8 * WIDTH, 0]);
+        await sleep(400);
+        readings.push(counterAt());
+        await mouse(
+          ['move', outside.x, outside.y],
+          ['down'],
+          ['move', outside.x - 3 * WIDTH, outside.y, 10],
+          ['up']
+        );
+        await sleep(600);
+        readings.push(counterAt());
+
+        expect(loads).toBe(1);
+        expect(viewport.querySelector('iframe')).toBe(frame);
+        for (let i = 1; i < readings.length; i++) {
+          expect(readings[i]).toBeGreaterThanOrEqual(readings[i - 1]);
+        }
+      }
+    );
+
+    test('children stay mounted once, and the ref unchanged, after a seam crossing', async () => {
+      placementPath(path);
+      const mounts: number[] = [];
+      const refs: (HTMLElement | null)[] = [];
+      function Probe({ index }: { index: number }) {
+        const mounted = useRef(false);
+        useEffect(() => {
+          if (mounted.current) return;
+          mounted.current = true;
+          mounts[index] = (mounts[index] ?? 0) + 1;
+        }, [index]);
+        return (
+          <div
+            data-testid={`probe-${index}`}
+            ref={(el) => {
+              refs[index] = el;
+            }}
+          />
+        );
+      }
+      render(
+        <Deck.Root aria-label="Test deck" loop defaultIndex={4}>
+          <Deck.Prev />
+          <Deck.Viewport style={{ width: WIDTH, height: 50 }}>
+            {Array.from({ length: 5 }, (_, i) => (
+              <Deck.Slide key={i}>
+                <Probe index={i} />
+              </Deck.Slide>
+            ))}
+          </Deck.Viewport>
+          <Deck.Next />
+        </Deck.Root>
+      );
+      await sleep(100);
+      const root = screen.getByRole('region', { name: 'Test deck' });
+      expectPlacementPath(viewportOf(root), path);
+      const probesBefore = [
+        ...root.querySelectorAll('[data-testid^="probe-"]')
+      ];
+      const refsBefore = [...refs];
+
+      await userEvent.click(screen.getByRole('button', { name: 'Next' }));
+      await expectSettledTo(() => root.dataset.index, '0');
+
+      expect(mounts).toEqual([1, 1, 1, 1, 1]);
+      const probesAfter = [...root.querySelectorAll('[data-testid^="probe-"]')];
+      expect(probesAfter).toEqual(probesBefore);
+      expect(refs).toEqual(refsBefore);
+    });
+
+    test("progress through a seam crossing stays within a quarter slide of each slide's own offset", async () => {
+      placementPath(path);
+      const { root, viewport } = renderShells({ defaultIndex: 4 });
+      expectPlacementPath(viewport, path);
+      const slides = slidesIn(viewport);
+      const frames: { progress: number; at: number }[][] = [];
+      const stop = sampleEveryFrame(() => {
+        const box = viewport.getBoundingClientRect();
+        frames.push(
+          slides.map((slide) => {
+            const rect = slide.getBoundingClientRect();
+            return {
+              at: (rect.left - box.left) / WIDTH,
+              progress: Number(
+                slide.style.getPropertyValue('--deck-slide-progress')
+              )
+            };
+          })
+        );
+      });
+
+      await userEvent.click(screen.getByRole('button', { name: 'Next' }));
+      await expectSettledTo(() => root.dataset.index, '0');
+      await sleep(300);
+      stop();
+      await nextFrame();
+
+      for (const frame of frames) {
+        for (const { progress, at } of frame) {
+          // Only in or near view: a slide placed well off-screen checks its
+          // own progress elsewhere (the structure describe's geometry
+          // tests), and a seam crossing or a jump can move it between
+          // slots in ways this loose check is not about.
+          if (at <= -1 || at >= 1) continue;
+          // A frame's paint can trail the scroll by one frame's worth.
+          expect(Math.abs(progress - at)).toBeLessThan(0.25);
+        }
+      }
+    });
+
+    test('data-in-view, at rest, matches the real slides with at least 1px visible', async () => {
+      placementPath(path);
+      const { viewport } = renderShells({ defaultIndex: 0, slides: 10 });
+      await sleep(100);
+      expectPlacementPath(viewport, path);
+      const slides = slidesIn(viewport);
+      const box = viewport.getBoundingClientRect();
+      const expected = slides.map((slide) => {
+        const rect = slide.getBoundingClientRect();
+        return (
+          Math.min(rect.right, box.right) - Math.max(rect.left, box.left) >= 1
+        );
+      });
+
+      expect(slides.map((slide) => slide.hasAttribute('data-in-view'))).toEqual(
+        expected
+      );
+      // The visible slide only; the rest, placed nearest the viewport but
+      // off to either side, are not.
+      expect(expected.filter(Boolean)).toHaveLength(1);
+    });
+  }
+);
 
 // ADR-0013 (#144): a deck whose run is too short for a shell to have room
 // beside its own slide -- L less than the viewport plus its widest slide
@@ -847,6 +1427,10 @@ describe('one instance: fallback to copies', () => {
     expect(realSlides).toHaveLength(3);
     for (const slide of realSlides) {
       expect(probeOf(slide).dataset.copy).toBe('none');
+      // #145: the copies fallback never places by a `ScrollTimeline`
+      // either -- `layoutShells` returns null outside shells mode, so
+      // `syncPlacers` has nothing to sync.
+      expect(slide.getAnimations()).toHaveLength(0);
     }
     for (const copy of copies) {
       expect(probeOf(copy).dataset.copy).toBe(
@@ -1048,131 +1632,162 @@ describe('one instance: keeping the picture when L changes', () => {
 // itself wrote on the real slides, so nothing shells wrote leaks into
 // copies' or a plain deck's own layout.
 
-describe('one instance: cleanup leaving shells mode', () => {
-  const realSlidesIn = (viewport: HTMLElement) => [
-    ...viewport.querySelectorAll<HTMLElement>(
-      ':scope > [data-carouseldeck-slide]:not([data-carouseldeck-copy])'
-    )
-  ];
+const realSlidesIn = (viewport: HTMLElement) => [
+  ...viewport.querySelectorAll<HTMLElement>(
+    ':scope > [data-carouseldeck-slide]:not([data-carouseldeck-copy])'
+  )
+];
 
-  const engineStylesOf = (slide: HTMLElement) => ({
-    translate: slide.style.translate,
-    scrollSnapAlign: slide.style.scrollSnapAlign,
-    scrollMargin: slide.style.scrollMargin
-  });
-
-  test('loop turned off on a mounted shells deck leaves no engine-written inline style on any real slide', async () => {
-    function ToggleDeck({ loop }: { loop: boolean }) {
-      return (
-        <Deck.Root aria-label="Test deck" loop={loop} defaultIndex={2}>
-          <Deck.Viewport style={{ width: WIDTH }}>
-            {Array.from({ length: 5 }, (_, i) => (
-              <Deck.Slide key={i}>Slide {i + 1}</Deck.Slide>
-            ))}
-          </Deck.Viewport>
-        </Deck.Root>
-      );
-    }
-    const { rerender } = render(<ToggleDeck loop />);
-    const root = screen.getByRole('region', { name: 'Test deck' });
-    const viewport = viewportOf(root);
-    await sleep(100);
-    expect(viewport.querySelectorAll('[data-carouseldeck-shell]')).toHaveLength(
-      25
-    );
-
-    rerender(<ToggleDeck loop={false} />);
-    await sleep(100);
-
-    const slides = realSlidesIn(viewport);
-    expect(slides).toHaveLength(5);
-    for (const slide of slides) {
-      expect(engineStylesOf(slide)).toEqual({
-        translate: '',
-        scrollSnapAlign: '',
-        scrollMargin: ''
-      });
-    }
-  });
-
-  test('narrowing into copies on a mounted shells deck leaves no engine-written inline style on any real slide', async () => {
-    addStyle('.cleanup > [data-carouseldeck-slide] { width: 60%; }');
-    const { viewport } = renderShells({
-      slides: 3,
-      viewportClassName: 'cleanup'
-    });
-    await sleep(100);
-    expect(viewport.querySelectorAll('[data-carouseldeck-shell]')).toHaveLength(
-      15
-    );
-
-    addStyle('.cleanup > [data-carouseldeck-slide] { width: 40%; }');
-    await nextFrame();
-    await nextFrame();
-    await sleep(100);
-    expect(viewport.querySelectorAll('[data-carouseldeck-copy]')).toHaveLength(
-      6
-    );
-
-    const slides = realSlidesIn(viewport);
-    expect(slides).toHaveLength(3);
-    for (const slide of slides) {
-      expect(engineStylesOf(slide)).toEqual({
-        translate: '',
-        scrollSnapAlign: '',
-        scrollMargin: ''
-      });
-    }
-  });
-
-  // `settle` observes every real slide with the deck's own
-  // `ResizeObserver` in shells mode, but nothing unobserved them on
-  // leaving it, so a slide kept firing `refresh` long after the engine
-  // had stopped caring where it sat.
-  test('loop turned off on a mounted shells deck unobserves every real slide', async () => {
-    const RealResizeObserver = window.ResizeObserver;
-    const observed = new Set<Element>();
-    const unobserved = new Set<Element>();
-    class SpyResizeObserver extends RealResizeObserver {
-      observe(target: Element, options?: ResizeObserverOptions) {
-        observed.add(target);
-        super.observe(target, options);
-      }
-      unobserve(target: Element) {
-        unobserved.add(target);
-        super.unobserve(target);
-      }
-    }
-    window.ResizeObserver =
-      SpyResizeObserver as unknown as typeof ResizeObserver;
-    onTestFinished(() => {
-      window.ResizeObserver = RealResizeObserver;
-    });
-
-    function ToggleDeck({ loop }: { loop: boolean }) {
-      return (
-        <Deck.Root aria-label="Test deck" loop={loop} defaultIndex={2}>
-          <Deck.Viewport style={{ width: WIDTH }}>
-            {Array.from({ length: 5 }, (_, i) => (
-              <Deck.Slide key={i}>Slide {i + 1}</Deck.Slide>
-            ))}
-          </Deck.Viewport>
-        </Deck.Root>
-      );
-    }
-    const { rerender } = render(<ToggleDeck loop />);
-    const root = screen.getByRole('region', { name: 'Test deck' });
-    const viewport = viewportOf(root);
-    await sleep(100);
-
-    const slides = realSlidesIn(viewport);
-    expect(slides).toHaveLength(5);
-    for (const slide of slides) expect(observed.has(slide)).toBe(true);
-    for (const slide of slides) expect(unobserved.has(slide)).toBe(false);
-
-    rerender(<ToggleDeck loop={false} />);
-    await sleep(100);
-
-    for (const slide of slides) expect(unobserved.has(slide)).toBe(true);
-  });
+const engineStylesOf = (slide: HTMLElement) => ({
+  translate: slide.style.translate,
+  scrollSnapAlign: slide.style.scrollSnapAlign,
+  scrollMargin: slide.style.scrollMargin
 });
+
+// #145: a placer and its pin are shells mode's own, on the CSS path, so
+// they must never outlive it either -- torn down wherever `clearShells`
+// already strips the engine's inline styles (`refresh`, leaving shells
+// mode altogether, and `destroy`), not left to a slide's own animation to
+// keep running against a viewport the engine has stopped placing.
+describe.each(['css', 'js'] as const)(
+  'one instance: cleanup leaving shells mode (%s)',
+  (path) => {
+    test('loop turned off on a mounted shells deck leaves no engine-written inline style, or placement animation, on any real slide', async () => {
+      placementPath(path);
+      function ToggleDeck({ loop }: { loop: boolean }) {
+        return (
+          <Deck.Root aria-label="Test deck" loop={loop} defaultIndex={2}>
+            <Deck.Viewport style={{ width: WIDTH }}>
+              {Array.from({ length: 5 }, (_, i) => (
+                <Deck.Slide key={i}>Slide {i + 1}</Deck.Slide>
+              ))}
+            </Deck.Viewport>
+          </Deck.Root>
+        );
+      }
+      const { rerender } = render(<ToggleDeck loop />);
+      const root = screen.getByRole('region', { name: 'Test deck' });
+      const viewport = viewportOf(root);
+      await sleep(100);
+      expectPlacementPath(viewport, path);
+      expect(
+        viewport.querySelectorAll('[data-carouseldeck-shell]')
+      ).toHaveLength(25);
+
+      rerender(<ToggleDeck loop={false} />);
+      await sleep(100);
+
+      const slides = realSlidesIn(viewport);
+      expect(slides).toHaveLength(5);
+      for (const slide of slides) {
+        expect(engineStylesOf(slide)).toEqual({
+          translate: '',
+          scrollSnapAlign: '',
+          scrollMargin: ''
+        });
+        expect(slide.getAnimations()).toHaveLength(0);
+      }
+    });
+
+    test('narrowing into copies on a mounted shells deck leaves no engine-written inline style, or placement animation, on any real slide', async () => {
+      placementPath(path);
+      addStyle('.cleanup > [data-carouseldeck-slide] { width: 60%; }');
+      const { viewport } = renderShells({
+        slides: 3,
+        viewportClassName: 'cleanup'
+      });
+      await sleep(100);
+      expectPlacementPath(viewport, path);
+      expect(
+        viewport.querySelectorAll('[data-carouseldeck-shell]')
+      ).toHaveLength(15);
+
+      addStyle('.cleanup > [data-carouseldeck-slide] { width: 40%; }');
+      await nextFrame();
+      await nextFrame();
+      await sleep(100);
+      expect(
+        viewport.querySelectorAll('[data-carouseldeck-copy]')
+      ).toHaveLength(6);
+
+      const slides = realSlidesIn(viewport);
+      expect(slides).toHaveLength(3);
+      for (const slide of slides) {
+        expect(engineStylesOf(slide)).toEqual({
+          translate: '',
+          scrollSnapAlign: '',
+          scrollMargin: ''
+        });
+        expect(slide.getAnimations()).toHaveLength(0);
+      }
+    });
+
+    test('unmounting a looping shells deck leaves no inline translate, or placement animation, on any real slide', async () => {
+      placementPath(path);
+      const { viewport, unmount } = renderShells();
+      await sleep(100);
+      expectPlacementPath(viewport, path);
+      const slides = realSlidesIn(viewport);
+      expect(slides).toHaveLength(5);
+
+      unmount();
+
+      for (const slide of slides) {
+        expect(slide.style.translate).toBe('');
+        expect(slide.getAnimations()).toHaveLength(0);
+      }
+    });
+
+    // `settle` observes every real slide with the deck's own
+    // `ResizeObserver` in shells mode, but nothing unobserved them on
+    // leaving it, so a slide kept firing `refresh` long after the engine
+    // had stopped caring where it sat.
+    test('loop turned off on a mounted shells deck unobserves every real slide', async () => {
+      placementPath(path);
+      const RealResizeObserver = window.ResizeObserver;
+      const observed = new Set<Element>();
+      const unobserved = new Set<Element>();
+      class SpyResizeObserver extends RealResizeObserver {
+        observe(target: Element, options?: ResizeObserverOptions) {
+          observed.add(target);
+          super.observe(target, options);
+        }
+        unobserve(target: Element) {
+          unobserved.add(target);
+          super.unobserve(target);
+        }
+      }
+      window.ResizeObserver =
+        SpyResizeObserver as unknown as typeof ResizeObserver;
+      onTestFinished(() => {
+        window.ResizeObserver = RealResizeObserver;
+      });
+
+      function ToggleDeck({ loop }: { loop: boolean }) {
+        return (
+          <Deck.Root aria-label="Test deck" loop={loop} defaultIndex={2}>
+            <Deck.Viewport style={{ width: WIDTH }}>
+              {Array.from({ length: 5 }, (_, i) => (
+                <Deck.Slide key={i}>Slide {i + 1}</Deck.Slide>
+              ))}
+            </Deck.Viewport>
+          </Deck.Root>
+        );
+      }
+      const { rerender } = render(<ToggleDeck loop />);
+      const root = screen.getByRole('region', { name: 'Test deck' });
+      const viewport = viewportOf(root);
+      await sleep(100);
+
+      const slides = realSlidesIn(viewport);
+      expect(slides).toHaveLength(5);
+      for (const slide of slides) expect(observed.has(slide)).toBe(true);
+      for (const slide of slides) expect(unobserved.has(slide)).toBe(false);
+
+      rerender(<ToggleDeck loop={false} />);
+      await sleep(100);
+
+      for (const slide of slides) expect(unobserved.has(slide)).toBe(true);
+    });
+  }
+);
