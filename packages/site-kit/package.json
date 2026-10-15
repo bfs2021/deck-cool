@@ -18,8 +18,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@pagedeck/core": "0.2.3",
-    "@pagedeck/markdown-loader": "0.2.3"
+    "@pagedeck/core": "0.3.0",
+    "@pagedeck/markdown-loader": "0.3.0"
   },
   "devDependencies": {
     "playwright": "1.63.0",
