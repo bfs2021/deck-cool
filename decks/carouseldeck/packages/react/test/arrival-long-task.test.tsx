@@ -31,8 +31,9 @@ describe('a long task as the deck arrives', () => {
 
   test(
     'Next twice from the first slide rests on the third',
-    async () => {
+    async (ctx) => {
       await pressTwiceAtEveryDelay(
+        ctx,
         () => <Uncontrolled />,
         '1 of 5',
         'Next',
@@ -45,8 +46,9 @@ describe('a long task as the deck arrives', () => {
 
   test(
     'looping, Next twice from the last slide rests on the second',
-    async () => {
+    async (ctx) => {
       await pressTwiceAtEveryDelay(
+        ctx,
         () => <Uncontrolled loop defaultIndex={4} />,
         '5 of 5',
         'Next',

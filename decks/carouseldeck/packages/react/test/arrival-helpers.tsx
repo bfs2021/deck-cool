@@ -2,6 +2,7 @@ import { createContext, useContext } from 'react';
 import type { ReactNode } from 'react';
 import { render, screen } from '@testing-library/react';
 import { expect, vi } from 'vitest';
+import type { TestContext } from 'vitest';
 import {
   expectRestOnASlide,
   sleep,
@@ -58,13 +59,25 @@ export function busy(ms: number) {
   while (performance.now() < until);
 }
 
+// A starved runner delays `sleep`'s own timer along with everything else
+// (#124): the second press then lands well after `delay` really measures,
+// and past the first's own settle, however short `delay` reads. Whether it
+// held is read back from the clock, not guessed from the deck: `sleep(260)`
+// taking 260ms, give or take a frame, is the precondition every delay in the
+// sweep relies on. A delay whose sleep overran by more than this retries, up
+// to this many tries, and skips rather than fails once every try still has.
+const PRECONDITION_OVERRUN_MS = 60;
+const PRECONDITION_TRIES = 3;
+
 /**
  * Renders `deck`, starting on the slide labelled `start`, and at every delay
  * presses `button` twice that far apart, one deck each: the deck must rest on
- * the page `expected`, of `pageSize` slides, every time. With `busyMs`, a
- * long task holds the main thread that long right after the second press.
+ * the page `expected`, of `pageSize` slides, every time `delay` holds. With
+ * `busyMs`, a long task holds the main thread that long right after the
+ * second press.
  */
 export async function pressTwiceAtEveryDelay(
+  ctx: TestContext,
   deck: () => ReactNode,
   start: string,
   button: 'Next' | 'Previous',
@@ -73,22 +86,47 @@ export async function pressTwiceAtEveryDelay(
 ) {
   let arrived = 0;
   for (const delay of delays) {
-    const onIndexChange = vi.fn();
-    const { unmount } = render(
-      <OnIndexChange.Provider value={onIndexChange}>
-        {deck()}
-      </OnIndexChange.Provider>
-    );
-    const root = screen.getByRole('region', { name: 'Test deck' });
-    const viewport = viewportOf(root);
-    const press = screen.getByRole('button', { name: button });
+    let onIndexChange = vi.fn();
+    let root!: HTMLElement;
+    let viewport!: HTMLElement;
+    let unmount = () => {};
+    let pressedAt = 0;
+    let overran = Infinity;
 
-    press.click();
-    await sleep(delay);
-    press.click();
-    // Read after the press: the new scroll has yet to move.
-    const pressedAt = viewport.scrollLeft;
-    busy(busyMs);
+    for (let tries = 1; tries <= PRECONDITION_TRIES; tries++) {
+      onIndexChange = vi.fn();
+      ({ unmount } = render(
+        <OnIndexChange.Provider value={onIndexChange}>
+          {deck()}
+        </OnIndexChange.Provider>
+      ));
+      root = screen.getByRole('region', { name: 'Test deck' });
+      viewport = viewportOf(root);
+      const press = screen.getByRole('button', { name: button });
+
+      const before = performance.now();
+      press.click();
+      await sleep(delay);
+      // The precondition: `sleep(delay)` took about `delay`, so the second
+      // press still lands where this delay means it to, before the first's
+      // scroll has had the run of a starved runner's extra time to settle.
+      overran = performance.now() - before - delay;
+      press.click();
+      // Read after the press: the new scroll has yet to move.
+      pressedAt = viewport.scrollLeft;
+      busy(busyMs);
+
+      if (overran <= PRECONDITION_OVERRUN_MS || tries === PRECONDITION_TRIES) {
+        break;
+      }
+      unmount();
+    }
+
+    if (overran > PRECONDITION_OVERRUN_MS) {
+      ctx.skip(
+        `delay ${delay}ms: sleep(${delay}) overran by ${Math.round(overran)}ms on every try (a starved runner), so the press landed later than this delay means to`
+      );
+    }
 
     await expectRestOnASlide(viewport, root, onIndexChange, pageSize);
     expect({ delay, index: root.dataset.index }).toEqual({
