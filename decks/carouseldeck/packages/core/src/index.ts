@@ -212,6 +212,16 @@ export function createDeck(
   // style, which cannot tell the engine's own translate apart from a
   // consumer's. A `WeakMap` needs no cleanup as slides come and go.
   const placedAt: PlacedAt = new WeakMap();
+  // The axis `placedAt` was last recorded under (ADR-0013, #154): `null`
+  // before the first measurement. `placedAt`'s own offset runs along
+  // whichever axis was current when `writePlaced` wrote it; an axis change
+  // leaves it there, physically, until a slide's slot next changes
+  // overwrites it. `measureShells` forgets every entry on a mismatch,
+  // right before `layoutShells` reads them, the same way `syncPlacers`
+  // forgets every placer on its own `placersVertical` mismatch: otherwise
+  // `layoutShells` subtracts an old-axis offset along the new axis, as if
+  // it still applied there, corrupting L until that forgotten rewrite.
+  let placedVertical: boolean | null = null;
   // The geometry `place` needs to keep placing every real slide with no
   // further box read, mid-scroll: cached by the last `layoutShells`, null
   // outside shells mode.
@@ -384,6 +394,13 @@ export function createDeck(
   const measureShells = (along: Axis): Placement | null => {
     const max = along.max();
     const { sets, stacked, slides } = slidesOf(viewport);
+    // An axis change leaves `placedAt`'s own offset along the old axis
+    // (ADR-0013, #154): forgotten here, before `layoutShells` reads it
+    // below, so it is never subtracted along the new one.
+    if (placedVertical !== null && placedVertical !== along.vertical) {
+      for (const slide of slides) placedAt.delete(slide);
+    }
+    placedVertical = along.vertical;
     const inShells = timelines && sets === 2 && !stacked;
     const saved = inShells
       ? slides.map((slide) =>

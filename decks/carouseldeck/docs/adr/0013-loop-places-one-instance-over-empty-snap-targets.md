@@ -362,6 +362,46 @@ to correct from. `onKeyDown` needed no change.
 
 **Bundle.** 12.02 KB min+gzip (`compare`), up from 12.01 KB.
 
+## As built (#154)
+
+A looping deck's `setOrientation`, fixed as follows.
+
+**`placedAt` forgets every entry on an axis change, before `layoutShells`
+next reads it.** `Placed` records a slide's slot, offset and the axis'
+`sign` it ran under (above), but never which axis: `layoutShells` reads a
+recorded offset back out as `placed.offset * placed.sign * along.sign`,
+assuming it still runs along `along`, the axis current right now.
+`setOrientation` flips `vertical` and calls `refresh`, which does not
+touch `placedAt`; its next `layoutShells` call then subtracts a slide's
+still-physically-old-axis translate as if it ran along the new one. With a
+square viewport and `defaultIndex: 0` -- two of five slides at slot -1 at
+mount -- this read L as 3000, twice its true 1500.
+
+**`compensateShift` always recovers the true L by the next settle, so
+nothing paints the corrupted one.** It already re-measures whenever a
+settle's `layoutShells` reads a different L than the one before it, the
+same check a genuine resize needs; an axis-corrupted L reads as exactly
+such a change, so the existing resize path reads it again, and whatever it
+writes next -- however corrupted the slot it computes -- is self-consistent
+(an already-applied translate, read back out, always nets to the same
+untranslated home), so a further read recovers the true L regardless. CSS
+placement (`syncPlacers`'s own `placersVertical` check) never corrupts in
+the first place.
+
+**What does reach the screen: each real slide's own `translate` written
+twice, not once.** The wrong read still computes a wrong slot and writes
+it, inline, before the corrected read overwrites it with the true one --
+both within the same task, so neither ever paints, but the JavaScript
+path's whole point (`placedAt`'s "no further box read, mid-scroll") is
+writing a slide's own translate exactly once a settle, matching the CSS
+path's "no script per frame". A new real slide forgets its own placement
+instantly, the same way `syncPlacers` already discards every placer on a
+`placersVertical` mismatch (above): `measureShells` deletes every real
+slide's `placedAt` entry on its own `placedVertical` mismatch, right
+before `layoutShells` reads them, so no old-axis offset is ever read back
+out along the new axis, and a slide whose slot does not change writes no
+translate at all.
+
 ## What is open to the implementation
 
 This records the decided technique, not its code. Left to the stacked PRs
