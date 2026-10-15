@@ -1284,7 +1284,8 @@ for (const { id, slides, last, axis } of [
 }
 
 test('a loop deck steps across the seam with Prev and Next, and no shell is reachable', async ({
-  page
+  page,
+  browserName
 }) => {
   await openStory(page, 'deck--loop');
   const deck = page.getByRole('region', { name: 'Featured slides' });
@@ -1295,6 +1296,28 @@ test('a loop deck steps across the seam with Prev and Next, and no shell is reac
   await expect(deck.locator('[data-carouseldeck-slide]')).toHaveCount(6);
   await expect(deck.locator('[data-carouseldeck-shell]')).toHaveCount(30);
   await expect(deck.getByRole('group', { name: / of 6$/ })).toHaveCount(6);
+
+  // #145: placement runs as one ScrollTimeline animation per real slide
+  // where the browser supports it (Chromium, WebKit), and as a scroll
+  // listener with no animation elsewhere (Firefox). Filtered to
+  // ScrollTimeline animations, since a slide could carry other ones.
+  const placementCounts = await deck
+    .locator('[data-carouseldeck-slide]')
+    .evaluateAll((slides) =>
+      slides.map(
+        (slide) =>
+          slide
+            .getAnimations()
+            .filter(
+              (animation) =>
+                typeof ScrollTimeline !== 'undefined' &&
+                animation.timeline instanceof ScrollTimeline
+            ).length
+      )
+    );
+  expect(placementCounts).toEqual(
+    new Array(6).fill(browserName === 'firefox' ? 0 : 1)
+  );
 
   await expect(prev).toBeEnabled();
   await prev.click();
