@@ -20,3 +20,23 @@ allowBuilds:
 # override once satori stops pinning 0.7.3.
 overrides:
   fflate: 0.7.5
+# Pagedeck 0.3.1 ships the deploy guides, and the maintainer ruled on
+# 2026-10-15 that they go live before the day's hold ends. Remove this once
+# 0.3.1 is a day old (after 15:43 UTC on 2026-10-16).
+minimumReleaseAgeExclude:
+  - "@pagedeck/adapter-cloudflare-pages@0.3.1"
+  - "@pagedeck/adapter-cloudflare-worker@0.3.1"
+  - "@pagedeck/adapter-cloudfront@0.3.1"
+  - "@pagedeck/adapter-netlify@0.3.1"
+  - "@pagedeck/adapter-nginx@0.3.1"
+  - "@pagedeck/adapter-vercel@0.3.1"
+  - "@pagedeck/content@0.3.1"
+  - "@pagedeck/core@0.3.1"
+  - "@pagedeck/docs@0.3.1"
+  - "@pagedeck/edge@0.3.1"
+  - "@pagedeck/font-subset@0.3.1"
+  - "@pagedeck/islands@0.3.1"
+  - "@pagedeck/markdown-loader@0.3.1"
+  - "@pagedeck/preview@0.3.1"
+  - "@pagedeck/search@0.3.1"
+  - "@pagedeck/social-image@0.3.1"
