@@ -82,8 +82,8 @@ Rejected:
 1. Changesets' `select-mode` says `version`, `publish` or `none`. It runs first: most pushes need nothing.
 2. `version`: opens or updates the "Version packages" PR. It opens it with a token from the `deck-cool-releases` App, not the `GITHUB_TOKEN`, because a branch the `GITHUB_TOKEN` pushes runs no workflow and main requires `verify`. The maintainer merges it by hand: that merge is the release.
 3. `publish`: runs the deck's whole `pnpm verify` in one job, packs the tarballs it verified, then publishes them with provenance over OIDC from a job that builds nothing and runs no install script. npm's trusted publisher for each package is `pedrosousa13` / `deck-cool` / `release.yml`. The first publish of a package uses the `NPM_TOKEN` secret (#105, before the move).
-4. `tag`: tags each published version `<name>@<version>` and creates its GitHub release, from slidedeck's `scripts/tag-releases.mjs`.
-5. `deploy`: starts its own run of `deploy-carouseldeck.yml`, `gh workflow run deploy-carouseldeck.yml -f apply=true`, the manual `apply` path. `tag` runs first, so the release's tag exists before the dispatch, and the dispatched run picks it up itself.
+4. `tag`: tags every version npm has that GitHub does not yet, `<name>@<version>`, however that version reached npm, and creates its GitHub release, from slidedeck's `scripts/tag-releases.mjs`.
+5. `deploy`: runs whenever `tag` succeeds, with no condition of its own, and starts its own run of `deploy-carouseldeck.yml`, `gh workflow run deploy-carouseldeck.yml -f apply=true`, the manual `apply` path. `tag` runs first, so the release's tag exists before the dispatch, and the dispatched run picks it up itself.
 
 Each package's `repository.url` points at deck-cool, with `directory` set to its path under `decks/carouseldeck/`. Tags are scoped by package name, so two decks' tags never collide.
 
@@ -118,3 +118,7 @@ Rejected:
 - **AGENTS.md gains a section for the deck**: run its commands with `pnpm --dir decks/carouseldeck`, and `pnpm --dir decks/carouseldeck verify` before landing a change to it.
 - **A deck keeps its own ADRs**, under `decks/<deck>/docs/adr/`, numbered on their own. The root's `docs/adr/` holds the repo's.
 - **playdeck moves the same way**, into `decks/playdeck/`, with its own gate jobs feeding `verify` and its own `fixed` group.
+
+## Amendments
+
+**2026-10-15 (#160).** `deploy` no longer keys on `publish`'s own output. The 1.3.0 release was published by hand, because CI cannot publish over OIDC yet (npm/cli#9969); the re-run of `release.yml` that followed tagged all four `@carouseldeck/*@1.3.0` releases, but `deploy` ran only `if: needs.publish.outputs.published == 'true'`, true only when that same run's `publish` job had uploaded something, so carousel.deck.cool stayed on 1.2.0 until the deploy was started by hand. A first fix gated `deploy` on a `tag` output instead, true only when `tag` gave `@carouseldeck/react` a new tag; review found that still loses a deploy, since a `tag` run that tags react and then fails on another package npm does not show yet leaves a re-run with no new react tag to key on. `deploy` now runs whenever `tag` succeeds, with no condition of its own: `deploy-carouseldeck.yml` deploys the latest `@carouseldeck/react@X.Y.Z` tag regardless of what dispatched it, so a repeat deploy of an already-deployed release changes nothing.

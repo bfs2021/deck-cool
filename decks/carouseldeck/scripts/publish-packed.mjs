@@ -225,7 +225,6 @@ const main = async () => {
 
   const githubOutput = process.env.GITHUB_OUTPUT;
   if (githubOutput) {
-    appendFileSync(githubOutput, `published=${result.published}\n`);
     appendFileSync(
       githubOutput,
       `published-packages=${JSON.stringify(result.publishedPackages)}\n`
