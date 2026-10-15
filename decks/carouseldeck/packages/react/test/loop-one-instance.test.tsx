@@ -751,97 +751,111 @@ function countOffShellFramesBeforePaint(
 // that beat, one frame late. The engine's pins (`pinPlaced`) cover exactly
 // that frame; these tests sample from the one place that can see whether
 // they did -- a `ResizeObserver` callback of their own, run the same beat
-// (`sampleBeforePaint`). Every case is the CSS path, which is the only one
-// a scroll timeline, and so this staleness, applies to.
-describe('one instance: no stale frame before paint (css)', () => {
-  test("a resize that moves L: every real slide sits over its own shell, and shows no blank frame, before paint (centred, '5 of 5' at slot -1)", async () => {
-    addStyle(CENTRED);
-    const { viewport } = renderShells({
-      viewportClassName: 'centred',
-      defaultIndex: 0
+// (`sampleBeforePaint`). Parameterised over both paths: the CSS path is the
+// one this staleness applies to, and the JS path places synchronously in
+// the same task as the write, so it is never stale either, by a different
+// route.
+describe.each(['css', 'js'] as const)(
+  'one instance: no stale frame before paint (%s)',
+  (path) => {
+    test("a resize that moves L: every real slide sits over its own shell, and shows no blank frame, before paint (centred, '5 of 5' at slot -1)", async () => {
+      placementPath(path);
+      addStyle(CENTRED);
+      const { viewport } = renderShells({
+        viewportClassName: 'centred',
+        defaultIndex: 0
+      });
+      await sleep(100);
+      expectPlacementPath(viewport, path);
+      expect(
+        screen.getByRole('group', { name: '5 of 5' }).getBoundingClientRect()
+          .width
+      ).toBeGreaterThan(0);
+
+      // Slide 3 (index 2) is what the engine's own write is triggered by,
+      // so watching it keeps this sampler in the same batch
+      // (`sampleBeforePaint`).
+      const slide3 = slidesIn(viewport)[2];
+      const stopBlanks = countBlankFramesBeforePaint(viewport, false, [slide3]);
+      const stopOffShell = countOffShellFramesBeforePaint(viewport, false, [
+        slide3
+      ]);
+
+      // Slide 3 widening moves L (`refresh` -> `compensateShift` ->
+      // `moveBy`, in slide 3's own `ResizeObserver` callback): slides 1
+      // and 2, still on the slot after, have to move with it.
+      addStyle(
+        '.centred > [data-carouseldeck-slide]:nth-child(3) { width: 120px; }'
+      );
+      await nextFrame();
+      await nextFrame();
+      await sleep(100);
+
+      expect(stopBlanks()).toBe(0);
+      expect(stopOffShell()).toBe(0);
     });
-    await sleep(100);
-    expectPlacementPath(viewport, 'css');
-    expect(
-      screen.getByRole('group', { name: '5 of 5' }).getBoundingClientRect()
-        .width
-    ).toBeGreaterThan(0);
 
-    // Slide 3 (index 2) is what the engine's own write is triggered by, so
-    // watching it keeps this sampler in the same batch (`sampleBeforePaint`).
-    const slide3 = slidesIn(viewport)[2];
-    const stopBlanks = countBlankFramesBeforePaint(viewport, false, [slide3]);
-    const stopOffShell = countOffShellFramesBeforePaint(viewport, false, [
-      slide3
-    ]);
+    test('the mount itself shows no blank frame before paint', async () => {
+      placementPath(path);
+      const { viewport } = renderShells({ defaultIndex: 4 });
+      expectPlacementPath(viewport, path);
+      // The engine's own `resizes` observer watches the viewport from the
+      // mount itself (`createDeck`): watching it too keeps this sampler's
+      // first callback in that very batch (`sampleBeforePaint`).
+      const stopBlanks = countBlankFramesBeforePaint(viewport, false, [
+        viewport
+      ]);
 
-    // Slide 3 widening moves L (`refresh` -> `compensateShift` -> `moveBy`,
-    // in slide 3's own `ResizeObserver` callback): slides 1 and 2, still on
-    // the slot after, have to move with it.
-    addStyle(
-      '.centred > [data-carouseldeck-slide]:nth-child(3) { width: 120px; }'
-    );
-    await nextFrame();
-    await nextFrame();
-    await sleep(100);
+      await nextFrame();
+      await nextFrame();
+      await sleep(100);
 
-    expect(stopBlanks()).toBe(0);
-    expect(stopOffShell()).toBe(0);
-  });
-
-  test('the mount itself shows no blank frame before paint', async () => {
-    const { viewport } = renderShells({ defaultIndex: 4 });
-    expectPlacementPath(viewport, 'css');
-    // The engine's own `resizes` observer watches the viewport from the
-    // mount itself (`createDeck`): watching it too keeps this sampler's
-    // first callback in that very batch (`sampleBeforePaint`).
-    const stopBlanks = countBlankFramesBeforePaint(viewport, false, [viewport]);
-
-    await nextFrame();
-    await nextFrame();
-    await sleep(100);
-
-    expect(stopBlanks()).toBe(0);
-  });
-
-  // A resize of the viewport itself, not a slide, so that the run no longer
-  // has room beside its own slide (ADR-0013's fallback): `shapeOf` -- never
-  // moved by L alone -- changes along with the kind, so `refresh` takes
-  // `keepPlace`'s own branch, `restOn`, rather than `compensateShift`'s.
-  test('a viewport resize that leaves shells (keepPlace -> restOn from refresh) shows no blank frame before paint', async () => {
-    addStyle(
-      '.vresize > [data-carouseldeck-slide] { width: 80px; flex-shrink: 0; }'
-    );
-    const { viewport } = renderShells({
-      slides: 5,
-      viewportClassName: 'vresize',
-      width: 200,
-      defaultIndex: 0
+      expect(stopBlanks()).toBe(0);
     });
-    await sleep(100);
-    expect(
-      viewport.querySelectorAll('[data-carouseldeck-shell]').length
-    ).toBeGreaterThan(0);
-    expectPlacementPath(viewport, 'css');
 
-    // The engine's own `resizes` observer watches the viewport directly:
-    // watching it too keeps this sampler in the same batch
-    // (`sampleBeforePaint`).
-    const stopBlanks = countBlankFramesBeforePaint(viewport, false, [viewport]);
+    // A resize of the viewport itself, not a slide, so that the run no
+    // longer has room beside its own slide (ADR-0013's fallback):
+    // `shapeOf` -- never moved by L alone -- changes along with the kind,
+    // so `refresh` takes `keepPlace`'s own branch, `restOn`, rather than
+    // `compensateShift`'s.
+    test('a viewport resize that leaves shells (keepPlace -> restOn from refresh) shows no blank frame before paint', async () => {
+      placementPath(path);
+      addStyle(
+        '.vresize > [data-carouseldeck-slide] { width: 80px; flex-shrink: 0; }'
+      );
+      const { viewport } = renderShells({
+        slides: 5,
+        viewportClassName: 'vresize',
+        width: 200,
+        defaultIndex: 0
+      });
+      await sleep(100);
+      expect(
+        viewport.querySelectorAll('[data-carouseldeck-shell]').length
+      ).toBeGreaterThan(0);
+      expectPlacementPath(viewport, path);
 
-    // `!important`: the viewport's own width is already inline (React's
-    // `style` prop), which an unmarked external rule cannot override.
-    addStyle('.vresize { width: 360px !important; }');
-    await nextFrame();
-    await nextFrame();
-    await sleep(100);
+      // The engine's own `resizes` observer watches the viewport
+      // directly: watching it too keeps this sampler in the same batch
+      // (`sampleBeforePaint`).
+      const stopBlanks = countBlankFramesBeforePaint(viewport, false, [
+        viewport
+      ]);
 
-    expect(
-      viewport.querySelectorAll('[data-carouseldeck-copy]').length
-    ).toBeGreaterThan(0);
-    expect(stopBlanks()).toBe(0);
-  });
-});
+      // `!important`: the viewport's own width is already inline (React's
+      // `style` prop), which an unmarked external rule cannot override.
+      addStyle('.vresize { width: 360px !important; }');
+      await nextFrame();
+      await nextFrame();
+      await sleep(100);
+
+      expect(
+        viewport.querySelectorAll('[data-carouseldeck-copy]').length
+      ).toBeGreaterThan(0);
+      expect(stopBlanks()).toBe(0);
+    });
+  }
+);
 
 /** Measures, once, in content-coordinate space (ADR-0013, #145): each real
  * slide's own centre (`centres`), the run's length (`length`), the
