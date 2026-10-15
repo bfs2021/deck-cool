@@ -578,6 +578,179 @@ describe('one instance: setOrientation on a mounted looping deck', () => {
   });
 });
 
+// #154: `placedAt` records a real slide's slot, offset and the axis'
+// `sign` it ran under, but not which axis. `layoutShells` reads a slide's
+// recorded offset back out as if it still ran along the current axis, so a
+// translate `setOrientation` leaves along the old axis gets subtracted
+// along the new one, corrupting L (a square viewport, `defaultIndex: 0`:
+// L measured 3000, twice the true 1500) until a slide's slot next changes
+// and overwrites it. The CSS-path test above does not catch it:
+// `syncPlacers` already discards every placer on an axis mismatch, so the
+// CSS path never reads `placedAt` for the truth; the JS path does.
+describe.each(['css', 'js'] as const)(
+  'one instance: setOrientation clears a stale translate (%s)',
+  (path) => {
+    function OrientedDeck({
+      orientation,
+      label = 'Test deck'
+    }: {
+      orientation: 'horizontal' | 'vertical';
+      label?: string;
+    }) {
+      return (
+        <Deck.Root
+          aria-label={label}
+          loop
+          orientation={orientation}
+          defaultIndex={0}
+        >
+          <Deck.Prev />
+          <Deck.Viewport style={{ width: WIDTH, height: WIDTH }}>
+            {Array.from({ length: 5 }, (_, i) => (
+              <Deck.Slide key={i}>Slide {i + 1}</Deck.Slide>
+            ))}
+          </Deck.Viewport>
+          <Deck.Next />
+        </Deck.Root>
+      );
+    }
+
+    // Shell set 1 sits exactly L past shell set 0, for the same slide: the
+    // run's own length, read back from the shells' own geometry rather
+    // than any internal state.
+    const lengthOf = (viewport: HTMLElement, vertical: boolean) =>
+      axisStart(shellsAt(viewport, 1)[0], vertical) -
+      axisStart(shellsAt(viewport, 0)[0], vertical);
+
+    const offShells = (viewport: HTMLElement, vertical: boolean) =>
+      slidesIn(viewport).flatMap((slide, i) => {
+        const off = Math.min(
+          ...[-2, -1, 0, 1, 2].map((set) =>
+            Math.abs(
+              axisStart(slide, vertical) -
+                axisStart(shellsAt(viewport, set)[i], vertical)
+            )
+          )
+        );
+        return off < 0.5 ? [] : [{ slide: i, off }];
+      });
+
+    test('L is measured as a fresh mount would, every real slide sits over its own shell, and a seam crossing shows no blank frame', async () => {
+      placementPath(path);
+      const { rerender } = render(<OrientedDeck orientation="horizontal" />);
+      const root = screen.getByRole('region', { name: 'Test deck' });
+      const viewport = viewportOf(root);
+      await sleep(100);
+      expectPlacementPath(viewport, path);
+
+      rerender(<OrientedDeck orientation="vertical" />);
+      await sleep(100);
+      expectPlacementPath(viewport, path);
+      expect(offShells(viewport, true)).toEqual([]);
+
+      const fresh = render(
+        <OrientedDeck orientation="vertical" label="Fresh deck" />
+      );
+      const freshViewport = viewportOf(
+        screen.getByRole('region', { name: 'Fresh deck' })
+      );
+      await sleep(100);
+      expectPlacementPath(freshViewport, path);
+
+      const switchedLength = lengthOf(viewport, true);
+      const freshLength = lengthOf(freshViewport, true);
+      fresh.unmount();
+      expect(Math.abs(switchedLength - freshLength)).toBeLessThan(1);
+
+      const stopBlanks = countBlankFrames(viewport, true);
+      await userEvent.click(screen.getByRole('button', { name: 'Next' }));
+      await sleep(600);
+      expect(stopBlanks()).toBe(0);
+    });
+  }
+);
+
+// #154, the JS path only: `layoutShells` always recovers the true L in the
+// end, however corrupted its first read -- `compensateShift`'s own re-measure
+// on a length change reads it again, and whatever it writes next is always
+// self-consistent, so a settle never leaves the wrong L on screen. What it
+// does leave, while `placedAt` still disagrees with the new axis: every real
+// slide's inline `translate` written once to a wrong value (computed from
+// the corrupted L) and once more to its true one, both inside the same
+// task, before anything paints -- not the single, direct write a correct
+// axis switch needs. A `MutationObserver`'s `takeRecords`, read synchronously
+// right after the switch, counts both.
+describe('one instance: setOrientation never writes a wrong intermediate translate (js)', () => {
+  test("each real slide's own translate is written at most once across the switch", async () => {
+    placementPath('js');
+    function OrientedDeck({
+      orientation
+    }: {
+      orientation: 'horizontal' | 'vertical';
+    }) {
+      return (
+        <Deck.Root
+          aria-label="Test deck"
+          loop
+          orientation={orientation}
+          defaultIndex={0}
+        >
+          <Deck.Prev />
+          <Deck.Viewport style={{ width: WIDTH, height: WIDTH }}>
+            {Array.from({ length: 5 }, (_, i) => (
+              <Deck.Slide key={i}>Slide {i + 1}</Deck.Slide>
+            ))}
+          </Deck.Viewport>
+          <Deck.Next />
+        </Deck.Root>
+      );
+    }
+    const { rerender } = render(<OrientedDeck orientation="horizontal" />);
+    const root = screen.getByRole('region', { name: 'Test deck' });
+    const viewport = viewportOf(root);
+    await sleep(100);
+    expectPlacementPath(viewport, 'js');
+
+    // A `MutationObserver` cannot see this: every write this test is after
+    // happens inside one synchronous task, with no yield between a wrong
+    // one and its own correction, so by the time any observer callback or
+    // `takeRecords` runs, the attribute already reads its final value --
+    // the churn in between already overwritten. Counting the real
+    // `translate` setter's own calls, shadowed onto each slide's `style`
+    // instance, sees every call as it happens instead; `setProperty` and
+    // `getPropertyValue` reach the same underlying `translate` CSS
+    // property as the shorthand this shadows.
+    const slides = slidesIn(viewport) as HTMLElement[];
+    const writes = new Map<HTMLElement, number>(
+      slides.map((slide) => [slide, 0])
+    );
+    for (const slide of slides) {
+      const { style } = slide;
+      Object.defineProperty(style, 'translate', {
+        configurable: true,
+        get: () => style.getPropertyValue('translate'),
+        set: (value: string) => {
+          writes.set(slide, (writes.get(slide) ?? 0) + 1);
+          style.setProperty('translate', value);
+        }
+      });
+    }
+    onTestFinished(() => {
+      for (const slide of slides)
+        delete (slide.style as { translate?: string }).translate;
+    });
+
+    rerender(<OrientedDeck orientation="vertical" />);
+
+    for (const [slide, count] of writes) {
+      expect(
+        count,
+        `translate writes on "${slide.textContent}"`
+      ).toBeLessThanOrEqual(1);
+    }
+  });
+});
+
 /**
  * Counts how many times a real slide's own inline `translate` changes
  * (ADR-0013, #145's "no script per frame"): a `MutationObserver` on every
