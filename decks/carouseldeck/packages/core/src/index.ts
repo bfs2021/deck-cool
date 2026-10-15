@@ -350,6 +350,25 @@ export function createDeck(
     pinned = [];
   };
 
+  // CSS path only (ADR-0013, #145): torn down wherever `clearShells` itself
+  // runs -- leaving shells mode altogether (`refresh`'s own call, `loop`
+  // turning off or narrowing to copies) and the deck going away
+  // (`destroy`) -- so no placer, pin rAF or pinned inline `translate` ever
+  // outlives shells mode. `syncPlacers` already forgets every placer on
+  // its own, through `measureShells`'s call wherever `placement` goes
+  // null; this also cancels the pin, which nothing else does, and makes
+  // the teardown explicit at `clearShells`'s own call sites rather than a
+  // side effect of them.
+  const forgetPlaced = () => {
+    forgetPlacers();
+    cancelAnimationFrame(unpinFrame);
+    unpinFrame = 0;
+    for (const slide of pinned) {
+      if (slide instanceof HTMLElement) slide.style.removeProperty('translate');
+    }
+    pinned = [];
+  };
+
   // Shells mode only (ADR-0013, #145): wraps `layoutShells` on the CSS
   // path -- translate neutralised with an `!important` pin first, so the
   // measurement reads each slide's untranslated home the same way the JS
@@ -1322,6 +1341,7 @@ export function createDeck(
     });
     if (previous && !placement && slidesOf(viewport).sets !== 2) {
       clearShells(slidesOf(viewport).slides, placedAt);
+      if (timelines) forgetPlaced();
     }
     try {
       alignCopies(viewport);
@@ -1824,8 +1844,10 @@ export function createDeck(
         if (slide instanceof HTMLElement) slide.style.removeProperty(PROGRESS);
       }
       // Shells mode writes onto the real slides, which are never in `run`
-      // there (ADR-0013): removed here too (`clearShells`).
+      // there (ADR-0013): removed here too (`clearShells`), along with
+      // any placer and its pin, on the CSS path (`forgetPlaced`).
       if (atDestroy.sets === 2) clearShells(atDestroy.slides, placedAt);
+      if (timelines) forgetPlaced();
       resizes.disconnect();
       dirs.disconnect();
       window.removeEventListener('resize', refresh);

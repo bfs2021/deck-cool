@@ -539,6 +539,45 @@ describe('one instance: placement path', () => {
   }
 });
 
+// #145: `ScrollTimeline.axis` is read-only once a timeline is made, so a
+// live orientation change on the CSS path has to discard and remake every
+// placer (`syncPlacers`'s own forgetting on a `placersVertical` mismatch),
+// not just update its keyframes.
+describe('one instance: setOrientation on a mounted looping deck', () => {
+  test('the placers switch to the new axis, and a seam crossing in the new orientation shows no blank frame (css)', async () => {
+    function OrientedDeck({
+      orientation
+    }: {
+      orientation: 'horizontal' | 'vertical';
+    }) {
+      return <ShellDeck loop orientation={orientation} defaultIndex={4} />;
+    }
+    const { rerender } = render(<OrientedDeck orientation="horizontal" />);
+    const root = screen.getByRole('region', { name: 'Test deck' });
+    const viewport = viewportOf(root);
+    await sleep(100);
+    expectPlacementPath(viewport, 'css');
+    for (const slide of slidesIn(viewport)) {
+      const [animation] = slide.getAnimations();
+      expect((animation.timeline as ScrollTimeline).axis).toBe('x');
+    }
+
+    rerender(<OrientedDeck orientation="vertical" />);
+    await sleep(100);
+    expectPlacementPath(viewport, 'css');
+    for (const slide of slidesIn(viewport)) {
+      const [animation] = slide.getAnimations();
+      expect((animation.timeline as ScrollTimeline).axis).toBe('y');
+    }
+
+    const stopBlanks = countBlankFrames(viewport, true);
+    await userEvent.click(screen.getByRole('button', { name: 'Next' }));
+    await sleep(600);
+
+    expect(stopBlanks()).toBe(0);
+  });
+});
+
 /**
  * Counts how many times a real slide's own inline `translate` changes
  * (ADR-0013, #145's "no script per frame"): a `MutationObserver` on every
@@ -1388,6 +1427,10 @@ describe('one instance: fallback to copies', () => {
     expect(realSlides).toHaveLength(3);
     for (const slide of realSlides) {
       expect(probeOf(slide).dataset.copy).toBe('none');
+      // #145: the copies fallback never places by a `ScrollTimeline`
+      // either -- `layoutShells` returns null outside shells mode, so
+      // `syncPlacers` has nothing to sync.
+      expect(slide.getAnimations()).toHaveLength(0);
     }
     for (const copy of copies) {
       expect(probeOf(copy).dataset.copy).toBe(
@@ -1589,131 +1632,162 @@ describe('one instance: keeping the picture when L changes', () => {
 // itself wrote on the real slides, so nothing shells wrote leaks into
 // copies' or a plain deck's own layout.
 
-describe('one instance: cleanup leaving shells mode', () => {
-  const realSlidesIn = (viewport: HTMLElement) => [
-    ...viewport.querySelectorAll<HTMLElement>(
-      ':scope > [data-carouseldeck-slide]:not([data-carouseldeck-copy])'
-    )
-  ];
+const realSlidesIn = (viewport: HTMLElement) => [
+  ...viewport.querySelectorAll<HTMLElement>(
+    ':scope > [data-carouseldeck-slide]:not([data-carouseldeck-copy])'
+  )
+];
 
-  const engineStylesOf = (slide: HTMLElement) => ({
-    translate: slide.style.translate,
-    scrollSnapAlign: slide.style.scrollSnapAlign,
-    scrollMargin: slide.style.scrollMargin
-  });
-
-  test('loop turned off on a mounted shells deck leaves no engine-written inline style on any real slide', async () => {
-    function ToggleDeck({ loop }: { loop: boolean }) {
-      return (
-        <Deck.Root aria-label="Test deck" loop={loop} defaultIndex={2}>
-          <Deck.Viewport style={{ width: WIDTH }}>
-            {Array.from({ length: 5 }, (_, i) => (
-              <Deck.Slide key={i}>Slide {i + 1}</Deck.Slide>
-            ))}
-          </Deck.Viewport>
-        </Deck.Root>
-      );
-    }
-    const { rerender } = render(<ToggleDeck loop />);
-    const root = screen.getByRole('region', { name: 'Test deck' });
-    const viewport = viewportOf(root);
-    await sleep(100);
-    expect(viewport.querySelectorAll('[data-carouseldeck-shell]')).toHaveLength(
-      25
-    );
-
-    rerender(<ToggleDeck loop={false} />);
-    await sleep(100);
-
-    const slides = realSlidesIn(viewport);
-    expect(slides).toHaveLength(5);
-    for (const slide of slides) {
-      expect(engineStylesOf(slide)).toEqual({
-        translate: '',
-        scrollSnapAlign: '',
-        scrollMargin: ''
-      });
-    }
-  });
-
-  test('narrowing into copies on a mounted shells deck leaves no engine-written inline style on any real slide', async () => {
-    addStyle('.cleanup > [data-carouseldeck-slide] { width: 60%; }');
-    const { viewport } = renderShells({
-      slides: 3,
-      viewportClassName: 'cleanup'
-    });
-    await sleep(100);
-    expect(viewport.querySelectorAll('[data-carouseldeck-shell]')).toHaveLength(
-      15
-    );
-
-    addStyle('.cleanup > [data-carouseldeck-slide] { width: 40%; }');
-    await nextFrame();
-    await nextFrame();
-    await sleep(100);
-    expect(viewport.querySelectorAll('[data-carouseldeck-copy]')).toHaveLength(
-      6
-    );
-
-    const slides = realSlidesIn(viewport);
-    expect(slides).toHaveLength(3);
-    for (const slide of slides) {
-      expect(engineStylesOf(slide)).toEqual({
-        translate: '',
-        scrollSnapAlign: '',
-        scrollMargin: ''
-      });
-    }
-  });
-
-  // `settle` observes every real slide with the deck's own
-  // `ResizeObserver` in shells mode, but nothing unobserved them on
-  // leaving it, so a slide kept firing `refresh` long after the engine
-  // had stopped caring where it sat.
-  test('loop turned off on a mounted shells deck unobserves every real slide', async () => {
-    const RealResizeObserver = window.ResizeObserver;
-    const observed = new Set<Element>();
-    const unobserved = new Set<Element>();
-    class SpyResizeObserver extends RealResizeObserver {
-      observe(target: Element, options?: ResizeObserverOptions) {
-        observed.add(target);
-        super.observe(target, options);
-      }
-      unobserve(target: Element) {
-        unobserved.add(target);
-        super.unobserve(target);
-      }
-    }
-    window.ResizeObserver =
-      SpyResizeObserver as unknown as typeof ResizeObserver;
-    onTestFinished(() => {
-      window.ResizeObserver = RealResizeObserver;
-    });
-
-    function ToggleDeck({ loop }: { loop: boolean }) {
-      return (
-        <Deck.Root aria-label="Test deck" loop={loop} defaultIndex={2}>
-          <Deck.Viewport style={{ width: WIDTH }}>
-            {Array.from({ length: 5 }, (_, i) => (
-              <Deck.Slide key={i}>Slide {i + 1}</Deck.Slide>
-            ))}
-          </Deck.Viewport>
-        </Deck.Root>
-      );
-    }
-    const { rerender } = render(<ToggleDeck loop />);
-    const root = screen.getByRole('region', { name: 'Test deck' });
-    const viewport = viewportOf(root);
-    await sleep(100);
-
-    const slides = realSlidesIn(viewport);
-    expect(slides).toHaveLength(5);
-    for (const slide of slides) expect(observed.has(slide)).toBe(true);
-    for (const slide of slides) expect(unobserved.has(slide)).toBe(false);
-
-    rerender(<ToggleDeck loop={false} />);
-    await sleep(100);
-
-    for (const slide of slides) expect(unobserved.has(slide)).toBe(true);
-  });
+const engineStylesOf = (slide: HTMLElement) => ({
+  translate: slide.style.translate,
+  scrollSnapAlign: slide.style.scrollSnapAlign,
+  scrollMargin: slide.style.scrollMargin
 });
+
+// #145: a placer and its pin are shells mode's own, on the CSS path, so
+// they must never outlive it either -- torn down wherever `clearShells`
+// already strips the engine's inline styles (`refresh`, leaving shells
+// mode altogether, and `destroy`), not left to a slide's own animation to
+// keep running against a viewport the engine has stopped placing.
+describe.each(['css', 'js'] as const)(
+  'one instance: cleanup leaving shells mode (%s)',
+  (path) => {
+    test('loop turned off on a mounted shells deck leaves no engine-written inline style, or placement animation, on any real slide', async () => {
+      placementPath(path);
+      function ToggleDeck({ loop }: { loop: boolean }) {
+        return (
+          <Deck.Root aria-label="Test deck" loop={loop} defaultIndex={2}>
+            <Deck.Viewport style={{ width: WIDTH }}>
+              {Array.from({ length: 5 }, (_, i) => (
+                <Deck.Slide key={i}>Slide {i + 1}</Deck.Slide>
+              ))}
+            </Deck.Viewport>
+          </Deck.Root>
+        );
+      }
+      const { rerender } = render(<ToggleDeck loop />);
+      const root = screen.getByRole('region', { name: 'Test deck' });
+      const viewport = viewportOf(root);
+      await sleep(100);
+      expectPlacementPath(viewport, path);
+      expect(
+        viewport.querySelectorAll('[data-carouseldeck-shell]')
+      ).toHaveLength(25);
+
+      rerender(<ToggleDeck loop={false} />);
+      await sleep(100);
+
+      const slides = realSlidesIn(viewport);
+      expect(slides).toHaveLength(5);
+      for (const slide of slides) {
+        expect(engineStylesOf(slide)).toEqual({
+          translate: '',
+          scrollSnapAlign: '',
+          scrollMargin: ''
+        });
+        expect(slide.getAnimations()).toHaveLength(0);
+      }
+    });
+
+    test('narrowing into copies on a mounted shells deck leaves no engine-written inline style, or placement animation, on any real slide', async () => {
+      placementPath(path);
+      addStyle('.cleanup > [data-carouseldeck-slide] { width: 60%; }');
+      const { viewport } = renderShells({
+        slides: 3,
+        viewportClassName: 'cleanup'
+      });
+      await sleep(100);
+      expectPlacementPath(viewport, path);
+      expect(
+        viewport.querySelectorAll('[data-carouseldeck-shell]')
+      ).toHaveLength(15);
+
+      addStyle('.cleanup > [data-carouseldeck-slide] { width: 40%; }');
+      await nextFrame();
+      await nextFrame();
+      await sleep(100);
+      expect(
+        viewport.querySelectorAll('[data-carouseldeck-copy]')
+      ).toHaveLength(6);
+
+      const slides = realSlidesIn(viewport);
+      expect(slides).toHaveLength(3);
+      for (const slide of slides) {
+        expect(engineStylesOf(slide)).toEqual({
+          translate: '',
+          scrollSnapAlign: '',
+          scrollMargin: ''
+        });
+        expect(slide.getAnimations()).toHaveLength(0);
+      }
+    });
+
+    test('unmounting a looping shells deck leaves no inline translate, or placement animation, on any real slide', async () => {
+      placementPath(path);
+      const { viewport, unmount } = renderShells();
+      await sleep(100);
+      expectPlacementPath(viewport, path);
+      const slides = realSlidesIn(viewport);
+      expect(slides).toHaveLength(5);
+
+      unmount();
+
+      for (const slide of slides) {
+        expect(slide.style.translate).toBe('');
+        expect(slide.getAnimations()).toHaveLength(0);
+      }
+    });
+
+    // `settle` observes every real slide with the deck's own
+    // `ResizeObserver` in shells mode, but nothing unobserved them on
+    // leaving it, so a slide kept firing `refresh` long after the engine
+    // had stopped caring where it sat.
+    test('loop turned off on a mounted shells deck unobserves every real slide', async () => {
+      placementPath(path);
+      const RealResizeObserver = window.ResizeObserver;
+      const observed = new Set<Element>();
+      const unobserved = new Set<Element>();
+      class SpyResizeObserver extends RealResizeObserver {
+        observe(target: Element, options?: ResizeObserverOptions) {
+          observed.add(target);
+          super.observe(target, options);
+        }
+        unobserve(target: Element) {
+          unobserved.add(target);
+          super.unobserve(target);
+        }
+      }
+      window.ResizeObserver =
+        SpyResizeObserver as unknown as typeof ResizeObserver;
+      onTestFinished(() => {
+        window.ResizeObserver = RealResizeObserver;
+      });
+
+      function ToggleDeck({ loop }: { loop: boolean }) {
+        return (
+          <Deck.Root aria-label="Test deck" loop={loop} defaultIndex={2}>
+            <Deck.Viewport style={{ width: WIDTH }}>
+              {Array.from({ length: 5 }, (_, i) => (
+                <Deck.Slide key={i}>Slide {i + 1}</Deck.Slide>
+              ))}
+            </Deck.Viewport>
+          </Deck.Root>
+        );
+      }
+      const { rerender } = render(<ToggleDeck loop />);
+      const root = screen.getByRole('region', { name: 'Test deck' });
+      const viewport = viewportOf(root);
+      await sleep(100);
+
+      const slides = realSlidesIn(viewport);
+      expect(slides).toHaveLength(5);
+      for (const slide of slides) expect(observed.has(slide)).toBe(true);
+      for (const slide of slides) expect(unobserved.has(slide)).toBe(false);
+
+      rerender(<ToggleDeck loop={false} />);
+      await sleep(100);
+
+      for (const slide of slides) expect(unobserved.has(slide)).toBe(true);
+    });
+  }
+);

@@ -12,6 +12,7 @@ import {
   mouseDrag,
   nextFrame,
   pagesOf,
+  placementPath,
   progressOf,
   serverThenHydrated,
   setReducedMotion,
@@ -571,21 +572,37 @@ describe('curve in server HTML', () => {
 // translated onto it exactly as any non-stacked shells deck's is
 // (ADR-0013): this is a regression check that the translate still composes
 // with curve's own content transform once an effect is in play.
-describe('one instance: curve with shells', () => {
-  test("placed before slide 1, slide '6 of 6' turns the mirror of slide 2's turn", async () => {
-    addStyle(SLIDE_CSS);
-    render(<CurveDeck loop defaultIndex={0} />);
-    const root = screen.getByRole('region', { name: 'Test deck' });
-    const { angles } = readDeck(root);
-    await nextFrame();
-    await nextFrame();
+// #145: the curve effect transforms a slide's content, not the slide
+// itself (`curve.ts`), so it composes the same way over either placement
+// path -- progress follows `slotOf`, the same function a CSS-path placer's
+// own keyframes encode.
+describe.each(['css', 'js'] as const)(
+  'one instance: curve with shells (%s)',
+  (path) => {
+    test("placed before slide 1, slide '6 of 6' turns the mirror of slide 2's turn", async () => {
+      placementPath(path);
+      addStyle(SLIDE_CSS);
+      render(<CurveDeck loop defaultIndex={0} />);
+      const root = screen.getByRole('region', { name: 'Test deck' });
+      const { viewport, angles } = readDeck(root);
+      await nextFrame();
+      await nextFrame();
 
-    const a = angles();
-    expect(a[5]).toBe(-a[1]!);
-    expect(a[5]).not.toBe(0);
-    expect(root.dataset.index).toBe('0');
-  });
-});
+      const [slide] = [
+        ...viewport.querySelectorAll<HTMLElement>('[data-carouseldeck-slide]')
+      ];
+      const animated = slide
+        .getAnimations()
+        .some((animation) => animation.timeline instanceof ScrollTimeline);
+      expect(animated).toBe(path === 'css');
+
+      const a = angles();
+      expect(a[5]).toBe(-a[1]!);
+      expect(a[5]).not.toBe(0);
+      expect(root.dataset.index).toBe('0');
+    });
+  }
+);
 
 describe('curve under reduced motion', () => {
   test('keeps the slides flat, fading with distance only', async () => {
