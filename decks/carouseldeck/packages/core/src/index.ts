@@ -85,10 +85,13 @@ export interface DeckEngine {
  * `aria-hidden` shells -- marked `data-carouseldeck-shell`, `-2` to `2`, `0`
  * the slides' own set -- carry the snap points either side of them, and in
  * their own set's stead: the real slides carry `scroll-snap-align: none`
- * unconditionally instead. A scroll listener moves whichever real slide is
- * nearest the viewport onto its shell by `translate`, in the same task as
- * the scroll event that moved it, so there is never a blank frame at the
- * seam (`place`). A set of slides too narrow for a shell to have room
+ * unconditionally instead. Whichever real slide is nearest the viewport is
+ * moved onto its shell by `translate`, driven by a `ScrollTimeline`
+ * animation on the compositor where the browser supports placing that way
+ * (ADR-0013, as built in #145), or by a scroll listener on the main thread
+ * everywhere else (Firefox today), in the same task as the scroll event
+ * that moved it, so there is never a blank frame at the seam (`place`,
+ * `pinPlaced`). A set of slides too narrow for a shell to have room
  * beside its own slide -- its length less than the viewport plus its widest
  * slide -- falls back to rendering full copies instead (clone and jump,
  * ADR-0006, as built in ADR-0009): a copy of every slide before the slides
