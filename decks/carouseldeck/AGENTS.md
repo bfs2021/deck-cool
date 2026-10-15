@@ -116,19 +116,46 @@ nothing, then:
   verify job packed, then tags every version npm has but GitHub does not yet,
   however it reached npm, and creates its GitHub release. Once that succeeds,
   it dispatches a run of `deploy-carouseldeck.yml` with `apply`, which
-  deploys carousel.deck.cool at the latest `@carouseldeck/react` release. A
-  version published by hand, such as 1.3.0 on 2026-10-15 (npm/cli#9969), is
-  tagged and deployed the same way on the next push to `main` that reruns the
-  release workflow. A re-run that tags nothing new still deploys: it deploys
-  the same release again, which changes nothing.
+  deploys carousel.deck.cool at the latest `@carouseldeck/react` release.
+  Once npm has every version in the tree, `select` picks "none" on the next
+  push, and nothing after it runs: a version published by hand is not tagged
+  or deployed by a later push to `main`. What tags and deploys it is
+  re-running the failed Release run's failed jobs, `gh run rerun <run-id> -R
+pedrosousa13/deck-cool --failed`: `publish` then finds every version
+  already on npm and skips them, `tag` tags them, and `deploy` deploys. A
+  re-run that tags nothing new still deploys: it deploys the same release
+  again, which changes nothing.
 
 **The first publish**, 1.2.0, used the `NPM_TOKEN` secret: npm sets a trusted
 publisher per package, so a package has to exist first. Each of the four
 packages now has a trusted publisher on npmjs.com: GitHub Actions,
-`pedrosousa13` / `deck-cool` / `release.yml`, no environment. The
-`NPM_TOKEN` secret is gone; releases publish over OIDC. A run that would
-publish a package not yet on npm still fails at "Check a credential can
-publish", before anything is published.
+`pedrosousa13` / `deck-cool` / `release.yml`, no environment, and the
+`NPM_TOKEN` secret is gone. But CI cannot publish over OIDC yet: deck-cool
+was created after GitHub's 2026-07-15 cutoff, so its OIDC tokens use the
+immutable subject format (`repo:pedrosousa13@4235827/deck-cool@1410811933:…`),
+and npm's trusted-publishing exchange rejects it with "OIDC token exchange
+error - package not found" (npm/cli#9969, open; tracked in #161). Until it is
+fixed, the `publish` job fails and a release is published by hand, without
+provenance, as 1.2.0 and 1.3.0 were. A run that would publish a package not
+yet on npm still fails at "Check a credential can publish", before anything
+is published.
+
+**Publishing by hand**, when the `publish` job fails on OIDC:
+
+1. Download the tarballs the run's `verify` job packed and checked: `gh run
+download <run-id> -R pedrosousa13/deck-cool -D <dir>` (the artifact holds
+   `publish-plan.json` and `packages/*.tgz`).
+2. From `<dir>/<artifact>/packages`, publish in the plan's order, core and
+   docs first, then react and react-18, each with `npm publish ./<file>.tgz
+--access public --tag latest --provenance=false`, run in a real terminal
+   so npm can wait for its browser 2FA approval (from a non-interactive
+   shell npm prints the approval link and exits).
+3. npm's registry can take a few minutes to show every version: check with
+   `npm view @carouseldeck/<pkg>@<version> version` for all four before
+   going on.
+4. Re-run the failed jobs of that Release run: `gh run rerun <run-id> -R
+pedrosousa13/deck-cool --failed`. It tags the release and deploys
+   carousel.deck.cool.
 
 ## Docs
 
