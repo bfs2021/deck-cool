@@ -12,9 +12,9 @@ name: Release
 #   the deck's whole `pnpm verify` and packs the tarballs it checked,
 #   `publish` publishes what it can, `tag` tags every version npm has but
 #   GitHub does not yet, however it got there, and `deploy` starts a run of
-#   `deploy-carouseldeck.yml` that publishes carousel.deck.cool, but only when
-#   `tag` gave `@carouseldeck/react` a new tag: most re-runs tag nothing new,
-#   and deploy nothing.
+#   `deploy-carouseldeck.yml` that publishes carousel.deck.cool whenever
+#   `tag` succeeds: a hand-published version, or a re-run after `tag` partly
+#   failed, still deploys that way.
 # - "none": nothing runs after `select`. Most pushes end here.
 #
 # Every action is pinned to a full commit SHA, its version in a comment.
@@ -155,9 +155,8 @@ jobs:
     # publish step.
     env:
       HAS_NPM_TOKEN: ${{ secrets.NPM_TOKEN != '' }}
-    # What this run published, for `tag` to wait for and `deploy` to check.
+    # What this run published, for `tag` to wait for.
     outputs:
-      published: ${{ steps.publish.outputs.published }}
       published-packages: ${{ steps.publish.outputs.published-packages }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -246,10 +245,6 @@ jobs:
     timeout-minutes: 20
     permissions:
       contents: write # create the tags and the GitHub releases
-    # Whether this run gave `@carouseldeck/react` a new tag, however its
-    # version reached npm, for `deploy` to run on.
-    outputs:
-      react-tagged: ${{ steps.tag.outputs.react-tagged }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -259,7 +254,6 @@ jobs:
       # tagged `<name>@<version>` at this commit, with its changelog section
       # as the notes. It waits for npm to show the versions `publish` names.
       - name: Tag and release what npm has
-        id: tag
         env:
           GH_TOKEN: ${{ github.token }}
           PUBLISHED_PACKAGES: ${{ needs.publish.outputs.published-packages }}
@@ -268,22 +262,20 @@ jobs:
   # A release deploys its site (ADR 0002). This job starts
   # deploy-carouseldeck.yml as its own run: the same apply run a manual
   # dispatch starts, not a manual one itself. It picks the latest
-  # @carouseldeck/react@X.Y.Z tag itself, the one `tag` just made, and checks
-  # that tag's commit is on main before publishing it. `tag` runs first, so
-  # the tag exists before this dispatches. That run reads
-  # CLOUDFLARE_API_TOKEN from its own production environment, so this job
-  # passes no secret.
+  # @carouseldeck/react@X.Y.Z tag itself, the one `tag` just made or left in
+  # place, and checks that tag's commit is on main before publishing it.
+  # `tag` runs first, so the tag exists before this dispatches. That run
+  # reads CLOUDFLARE_API_TOKEN from its own production environment, so this
+  # job passes no secret.
   #
-  # Runs on `tag`'s own output, not on whether this run's `publish` uploaded
-  # anything: a version that reached npm some other way, such as a hand
-  # publish, is tagged but never published by this run, and still needs a
-  # deploy. A run that tags no new `@carouseldeck/react`, which is most
-  # re-runs, deploys nothing. `needs: publish` stays: when `publish` fails,
-  # `tag` does not run, and this job is skipped with it, so a half-published
-  # release never deploys.
+  # Runs whenever `tag` succeeds, with no condition of its own: a
+  # hand-published version, or a re-run after `tag` partly failed, still
+  # deploys. `deploy-carouseldeck.yml` deploys the latest tag regardless, so
+  # a repeat deploy of the same release changes nothing. `needs: publish`
+  # stays: when `publish` fails, `tag` does not run, and this job is skipped
+  # with it, so a half-published release never deploys.
   deploy:
     needs: [publish, tag]
-    if: needs.tag.outputs.react-tagged == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
