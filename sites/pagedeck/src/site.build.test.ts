@@ -63,7 +63,7 @@ const OWN_PAGES = [PATHS.home, PATHS.search, PATHS.features, PATHS.interactive, 
 
 /**
  * Two docs pages, the first and one with tables, which the tests of every page
- * cover too. @pagedeck/docs 0.2.3 marks no demo, so neither has one.
+ * cover too. @pagedeck/docs 0.3.0 marks no demo, so neither has one.
  */
 const DOCS_PAGES = [DOCS.start, DOCS_WITH_TABLES];
 
@@ -85,9 +85,9 @@ describe("budgets, measured and pinned", () => {
   const PINNED: Record<string, string> = {
     [PATHS.home]: "0b",
     [PATHS.interactive]: "60kb",
-    [PATHS.features]: "60kb",
-    [PATHS.cmsDemo]: "59kb",
-    [PATHS.search]: "59kb",
+    [PATHS.features]: "61kb",
+    [PATHS.cmsDemo]: "60kb",
+    [PATHS.search]: "60kb",
     [DOCS.start]: "0b",
     [DOCS_WITH_TABLES]: "0b",
   };
@@ -708,10 +708,10 @@ describe("the docs, from @pagedeck/docs", () => {
   /** The demos a built page renders, by component, in order. */
   const demosOn = (doc: Document) => [...doc.querySelectorAll("article [data-fw-component]")].map((island) => island.getAttribute("data-fw-component"));
 
-  test("takes the docs from npm at 0.2.3, the version of every @pagedeck package", () => {
+  test("takes the docs from npm at 0.3.0, the version of every @pagedeck package", () => {
     const pkg = JSON.parse(readFileSync(`${SITE}package.json`, "utf8")) as { dependencies: Record<string, string> };
-    expect(pkg.dependencies["@pagedeck/docs"]).toBe("0.2.3");
-    for (const [name, version] of Object.entries(pkg.dependencies)) if (name.startsWith("@pagedeck/")) expect(version, name).toBe("0.2.3");
+    expect(pkg.dependencies["@pagedeck/docs"]).toBe("0.3.0");
+    for (const [name, version] of Object.entries(pkg.dependencies)) if (name.startsWith("@pagedeck/")) expect(version, name).toBe("0.3.0");
   });
 
   test.each(DOCS_NAV)("$href renders with each demo it marks, in order", ({ href, demos }) => {
