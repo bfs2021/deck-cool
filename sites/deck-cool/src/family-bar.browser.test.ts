@@ -2,6 +2,7 @@ import { AxeBuilder } from "@axe-core/playwright";
 import { fileURLToPath } from "node:url";
 import type { Page } from "playwright";
 import { describe, expect, test } from "vitest";
+import { decks } from "@deck-cool/brand/decks";
 import { browserHarness } from "@deck-cool/site-kit/browser-test";
 
 // Drives the built site (build.global-setup.ts) in Chromium, served with the
@@ -11,10 +12,13 @@ import { browserHarness } from "@deck-cool/site-kit/browser-test";
 const site = browserHarness(fileURLToPath(new URL("..", import.meta.url)));
 const { visit } = site;
 
-const BUTTON = 'header button[aria-label="Switch deck"]';
-const PANEL = "header [popover]";
-/** The sheet of decks, inside the panel. Below it, the panel is the shade. */
-const SHEET = ".family-bar__sheet";
+const SWITCH_BUTTON = 'header button[aria-label="Switch deck"]';
+const SWITCH_PANEL = "#family-bar-decks";
+const MENU_BUTTON = 'header button[aria-label="Menu"]';
+const MENU_PANEL = "#family-bar-links";
+
+const sheetOf = (panel: string) => `${panel} .family-bar__sheet`;
+const shadeOf = (panel: string) => `${panel} .family-bar__shade`;
 
 async function box(page: Page, selector: string) {
   const found = await page.locator(selector).first().boundingBox();
@@ -22,7 +26,7 @@ async function box(page: Page, selector: string) {
   return found;
 }
 
-const isOpen = (page: Page) => page.locator(PANEL).evaluate((panel) => panel.matches(":popover-open"));
+const isOpen = (page: Page, panel: string) => page.locator(panel).evaluate((element) => element.matches(":popover-open"));
 const focused = (page: Page) =>
   page.evaluate(() => {
     const active = document.activeElement;
@@ -43,8 +47,8 @@ const running = (page: Page) =>
   );
 /**
  * Waits until nothing moves, such as the name rolling in on load. A
- * scroll-driven animation, such as the links' fade, counts as running for as
- * long as it is there, and moves only as its element scrolls, so it is left out.
+ * scroll-driven animation counts as running for as long as it is there, and
+ * moves only as its element scrolls, so it is left out.
  */
 const settled = (page: Page) =>
   page.waitForFunction(() =>
@@ -67,7 +71,7 @@ declare global {
   }
 }
 
-/** Records the time and the sheet's and the shade's boxes on every frame, from now until the panel is hidden. */
+/** Records the time and the switcher's sheet's and shade's boxes on every frame, from now until its panel is hidden. */
 const recordClose = (page: Page) =>
   page.evaluate(() => {
     window.closeFrames = new Promise((resolve) => {
@@ -78,10 +82,14 @@ const recordClose = (page: Page) =>
         const { top, left, width, height } = element.getBoundingClientRect();
         return { top, left, width, height };
       };
-      const panel = document.querySelector("header [popover]");
+      const panel = document.querySelector("#family-bar-decks");
       const look = () => {
         if (panel === null || getComputedStyle(panel).display === "none") return resolve(frames);
-        frames.push({ at: performance.now(), sheet: rect(".family-bar__sheet"), shade: rect(".family-bar__shade") });
+        frames.push({
+          at: performance.now(),
+          sheet: rect("#family-bar-decks .family-bar__sheet"),
+          shade: rect("#family-bar-decks .family-bar__shade"),
+        });
         requestAnimationFrame(look);
       };
       requestAnimationFrame(look);
@@ -92,23 +100,23 @@ describe("the Family bar's switcher in a browser", () => {
   test.each([390, 1280])("at %ipx, axe finds no violations and the CSP holds, closed or open", async (width) => {
     const { page } = await visit("/", { width, reducedMotion: "reduce" });
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
-    await page.locator(BUTTON).click();
-    expect(await isOpen(page)).toBe(true);
+    await page.locator(SWITCH_BUTTON).click();
+    expect(await isOpen(page, SWITCH_PANEL)).toBe(true);
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
     expect(await page.evaluate(() => window.cspViolations)).toEqual([]);
   });
 
   test("the button opens the panel with Enter and with Space, and toggles it", async () => {
     const { page } = await visit("/", { reducedMotion: "reduce" });
-    await page.locator(BUTTON).focus();
+    await page.locator(SWITCH_BUTTON).focus();
     await page.keyboard.press("Enter");
-    expect(await isOpen(page)).toBe(true);
+    expect(await isOpen(page, SWITCH_PANEL)).toBe(true);
     await page.keyboard.press("Enter");
-    expect(await isOpen(page)).toBe(false);
+    expect(await isOpen(page, SWITCH_PANEL)).toBe(false);
     await page.keyboard.press("Space");
-    expect(await isOpen(page)).toBe(true);
-    await page.locator(BUTTON).click();
-    expect(await isOpen(page)).toBe(false);
+    expect(await isOpen(page, SWITCH_PANEL)).toBe(true);
+    await page.locator(SWITCH_BUTTON).click();
+    expect(await isOpen(page, SWITCH_PANEL)).toBe(false);
   });
 
   test("Tab moves from the button through every deck link, in order", async () => {
@@ -117,9 +125,11 @@ describe("the Family bar's switcher in a browser", () => {
     expect(await focused(page)).toBe("Switch deck");
     await page.keyboard.press("Enter");
 
-    const decks = await page.locator(`${PANEL} a`).evaluateAll((links) => links.map((a) => a.getAttribute("href")));
-    expect(decks).toHaveLength(3);
-    for (const href of decks) {
+    const decksLinked = await page
+      .locator(`${SWITCH_PANEL} a`)
+      .evaluateAll((links) => links.map((a) => a.getAttribute("href")));
+    expect(decksLinked).toHaveLength(3);
+    for (const href of decksLinked) {
       await page.keyboard.press("Tab");
       expect(await focused(page)).toBe(href);
     }
@@ -127,37 +137,37 @@ describe("the Family bar's switcher in a browser", () => {
 
   test("Escape closes the panel and focus returns to the button", async () => {
     const { page } = await visit("/", { reducedMotion: "reduce" });
-    await page.locator(BUTTON).focus();
+    await page.locator(SWITCH_BUTTON).focus();
     await page.keyboard.press("Enter");
     await page.keyboard.press("Tab");
     expect(await focused(page)).not.toBe("Switch deck");
     await page.keyboard.press("Escape");
-    expect(await isOpen(page)).toBe(false);
+    expect(await isOpen(page, SWITCH_PANEL)).toBe(false);
     expect(await focused(page)).toBe("Switch deck");
   });
 
   test("a click on the shade closes the panel and does not reach the page under it", async () => {
     const { page } = await visit("/", { width: 1280, reducedMotion: "reduce" });
     const browse = await box(page, 'main a[href="#decks"]');
-    await page.locator(BUTTON).click();
-    expect((await box(page, SHEET)).y + (await box(page, SHEET)).height).toBeLessThan(browse.y);
+    await page.locator(SWITCH_BUTTON).click();
+    expect((await box(page, sheetOf(SWITCH_PANEL))).y + (await box(page, sheetOf(SWITCH_PANEL))).height).toBeLessThan(browse.y);
     await page.mouse.click(browse.x + browse.width / 2, browse.y + browse.height / 2);
-    expect(await isOpen(page)).toBe(false);
+    expect(await isOpen(page, SWITCH_PANEL)).toBe(false);
     expect(new URL(page.url()).hash).toBe("");
   });
 
   test("a click on the bar closes the panel, and the bar's links still work", async () => {
     const { page } = await visit("/", { width: 1280, reducedMotion: "reduce" });
-    await page.locator(BUTTON).click();
-    await page.locator('header nav a[href="#playdeck"]').click();
-    expect(await isOpen(page)).toBe(false);
+    await page.locator(SWITCH_BUTTON).click();
+    await page.locator('.family-bar__links a[href="#playdeck"]').click();
+    expect(await isOpen(page, SWITCH_PANEL)).toBe(false);
     expect(new URL(page.url()).hash).toBe("#playdeck");
   });
 
   test("a click on a deck link follows it", async () => {
     const { page, offOrigin } = await visit("/", { reducedMotion: "reduce" });
-    await page.locator(BUTTON).click();
-    const link = page.locator(`${PANEL} a`).nth(1);
+    await page.locator(SWITCH_BUTTON).click();
+    const link = page.locator(`${SWITCH_PANEL} a`).nth(1);
     const href = await link.getAttribute("href");
     if (href === null) throw new Error("the deck link has no href");
     await link.click();
@@ -166,11 +176,11 @@ describe("the Family bar's switcher in a browser", () => {
 
   test("the sheet sits under the bar, on the 980px measure", async () => {
     const { page } = await visit("/", { width: 1280, reducedMotion: "reduce" });
-    await page.locator(BUTTON).click();
+    await page.locator(SWITCH_BUTTON).click();
     const bar = await box(page, "header");
     const row = await box(page, "header nav");
-    const sheet = await box(page, SHEET);
-    const list = await box(page, `${SHEET} ul`);
+    const sheet = await box(page, sheetOf(SWITCH_PANEL));
+    const list = await box(page, `${sheetOf(SWITCH_PANEL)} ul`);
     expect(sheet.y).toBe(bar.y + bar.height);
     expect(list.x).toBe(row.x + 22);
     expect(list.width).toBe(980 - 2 * 22);
@@ -181,9 +191,9 @@ describe("the Family bar's switcher in a browser", () => {
     [1280, 3],
   ])("at %ipx, the decks sit in %i column(s)", async (width, columns) => {
     const { page } = await visit("/", { width, reducedMotion: "reduce" });
-    await page.locator(BUTTON).click();
+    await page.locator(SWITCH_BUTTON).click();
     const lefts = await page
-      .locator(`${SHEET} li`)
+      .locator(`${sheetOf(SWITCH_PANEL)} li`)
       .evaluateAll((items) => new Set(items.map((item) => item.getBoundingClientRect().x)).size);
     expect(lefts).toBe(columns);
   });
@@ -193,7 +203,7 @@ describe("the Family bar's switcher in a browser", () => {
     const atFirstSight = await page.evaluate(
       () =>
         new Promise<boolean[]>((resolve) => {
-          const panel = document.querySelector<HTMLElement>("header [popover]");
+          const panel = document.querySelector<HTMLElement>("#family-bar-decks");
           const first = panel?.querySelector("li");
           if (!panel || !first) throw new Error("no panel or no tile");
           panel.showPopover();
@@ -212,7 +222,7 @@ describe("the Family bar's switcher in a browser", () => {
     const { page } = await visit("/", { reducedMotion: "no-preference" });
     await settled(page);
 
-    await page.locator(BUTTON).click();
+    await page.locator(SWITCH_BUTTON).click();
     expect(await running(page)).toEqual(expect.arrayContaining(["clip-path", "opacity", "transform", "background-color"]));
     const fan = () =>
       page.locator(".family-bar__fan-left").evaluate((rect) => getComputedStyle(rect).transform);
@@ -220,20 +230,20 @@ describe("the Family bar's switcher in a browser", () => {
     const open = await fan();
 
     await page.keyboard.press("Escape");
-    expect(await isOpen(page)).toBe(false);
+    expect(await isOpen(page, SWITCH_PANEL)).toBe(false);
     // The panel stays on screen while it animates closed.
     expect(await running(page)).toEqual(expect.arrayContaining(["clip-path", "display", "overlay"]));
-    expect(await page.locator(PANEL).isVisible()).toBe(true);
+    expect(await page.locator(SWITCH_PANEL).isVisible()).toBe(true);
     await settled(page);
-    expect(await page.locator(PANEL).isVisible()).toBe(false);
+    expect(await page.locator(SWITCH_PANEL).isVisible()).toBe(false);
     expect(await fan()).not.toBe(open);
   });
 
   test("with prefers-reduced-motion: reduce, nothing animates, opening or closing", async () => {
     const { page } = await visit("/", { reducedMotion: "reduce" });
     expect(await running(page)).toEqual([]);
-    await page.locator(BUTTON).click();
-    expect(await isOpen(page)).toBe(true);
+    await page.locator(SWITCH_BUTTON).click();
+    expect(await isOpen(page, SWITCH_PANEL)).toBe(true);
     expect(await running(page)).toEqual([]);
 
     const timings = await page.locator("header, header *").evaluateAll((elements) =>
@@ -250,9 +260,9 @@ describe("the Family bar's switcher in a browser", () => {
     }
 
     await page.keyboard.press("Escape");
-    expect(await isOpen(page)).toBe(false);
+    expect(await isOpen(page, SWITCH_PANEL)).toBe(false);
     expect(await running(page)).toEqual([]);
-    expect(await page.locator(PANEL).isVisible()).toBe(false);
+    expect(await page.locator(SWITCH_PANEL).isVisible()).toBe(false);
   });
 
   // Closing is the opening played backwards: the sheet and the shade keep their
@@ -264,11 +274,11 @@ describe("the Family bar's switcher in a browser", () => {
     [390, "a click on the shade"],
   ])("at %ipx, the sheet keeps its place under the bar while it closes on %s", async (width, how) => {
     const { page } = await visit("/", { width, reducedMotion: "no-preference" });
-    await page.locator(BUTTON).click();
+    await page.locator(SWITCH_BUTTON).click();
     await settled(page);
     const bar = await box(page, "header");
-    const sheet = await box(page, SHEET);
-    const shade = await box(page, ".family-bar__shade");
+    const sheet = await box(page, sheetOf(SWITCH_PANEL));
+    const shade = await box(page, shadeOf(SWITCH_PANEL));
     expect(sheet).toMatchObject({ x: 0, y: bar.y + bar.height, width });
 
     await recordClose(page);
@@ -288,115 +298,113 @@ describe("the Family bar's switcher in a browser", () => {
   });
 });
 
-const LINKS = ".family-bar__links";
-
-/**
- * How far in from each edge the links' mask fades, in px: 0 where that edge
- * does not fade, and null when the links carry no mask at all.
- */
-const fades = (page: Page) =>
-  page.locator(LINKS).evaluate((links) => {
-    const { maskImage, maskPosition } = getComputedStyle(links);
-    if (maskImage === "none") return null;
-    // Only the right edge fades, by the gradient's width.
-    if (maskImage.split("linear-gradient").length === 2) {
-      const width = /rgb\(0, 0, 0\) ([\d.]+)px/.exec(maskImage);
-      if (width === null) throw new Error(`unexpected mask: ${maskImage}`);
-      return { start: 0, end: Number(width[1]) };
-    }
-    // A fade per edge, each in a layer 24px wider than the links, moved by up
-    // to 24px to bring its fade into view.
-    const [start = NaN, end = NaN] = maskPosition.split(", ").map((position) => parseFloat(position));
-    return { start: 24 + start, end: 0 - end };
-  });
-const overflows = (page: Page) => page.locator(LINKS).evaluate((links) => links.scrollWidth > links.clientWidth);
-const toEnd = (page: Page) => page.locator(LINKS).evaluate((links) => links.scrollTo({ left: links.scrollWidth }));
-/** Whether the link's focus ring, 4px around it, lies inside the links' box and clear of either fade. */
-const clearOfFades = async (page: Page, link: string) => {
-  const { start, end } = (await fades(page)) ?? { start: 0, end: 0 };
-  const box = await page.locator(LINKS).evaluate((links) => links.getBoundingClientRect().toJSON() as DOMRect);
-  const ring = await page.locator(link).evaluate((a) => a.getBoundingClientRect().toJSON() as DOMRect);
-  return ring.left - 4 >= box.left + start && ring.right + 4 <= box.right - end;
-};
-
-/**
- * Whether the focused link's whole focus ring, its outline and the offset
- * inside it, lies inside the box the links scroll in.
- */
-const ringShows = (page: Page) =>
-  page.locator(LINKS).evaluate((links) => {
-    const a = document.activeElement;
-    if (a === null || !links.contains(a)) throw new Error("no link has focus");
-    const { outlineWidth, outlineOffset } = getComputedStyle(a);
-    const ring = parseFloat(outlineWidth) + parseFloat(outlineOffset);
-    const link = a.getBoundingClientRect();
-    const left = links.getBoundingClientRect().left + links.clientLeft;
-    const right = left + links.clientWidth;
-    return ring > 0 && link.left - ring >= left && link.right + ring <= right;
+// At the phone breakpoint the links leave the row for a menu panel of their
+// own, opened by a button last in the row (#156). Above it the bar is
+// unchanged: the links stay inline and no menu button shows. The menu is a
+// popover its button toggles, the same way the switcher is, so only one of
+// the two is ever open, and its look and motion follow the switcher's panel.
+describe("the Family bar's links menu", () => {
+  test("on a phone at 390px, the menu button opens every link, each tappable", async () => {
+    const { page } = await visit("/", { width: 390, isMobile: true, reducedMotion: "reduce" });
+    await page.locator(MENU_BUTTON).click();
+    expect(await isOpen(page, MENU_PANEL)).toBe(true);
+    const items = await page
+      .locator(`${MENU_PANEL} a`)
+      .evaluateAll((links) => links.map((a) => [a.textContent, a.getAttribute("href")]));
+    expect(items).toEqual(decks.map((deck) => [deck.name, `#${deck.name}`]));
+    for (const link of await page.locator(`${MENU_PANEL} a`).all()) expect(await link.isEnabled()).toBe(true);
   });
 
-// On a phone the links scroll sideways. The edge they scroll toward fades out,
-// so a link cut off at the edge reads as more to scroll, not as a layout bug
-// (#55). With motion allowed the fades follow the scroll; under reduced
-// motion only the right edge fades, and the last link scrolls clear of it.
-describe("the Family bar's links", () => {
-  const motions = ["no-preference", "reduce"] as const;
-
-  test.each(motions)("on a phone at 390px, with %s motion, they overflow and the right edge fades", async (motion) => {
-    const { page } = await visit("/", { width: 390, isMobile: true, reducedMotion: motion });
-    expect(await overflows(page)).toBe(true);
-    // A scroll-driven fade can take a frame after load to apply its mask.
-    await expect.poll(() => fades(page)).toEqual({ start: 0, end: 24 });
+  test("at 1024px, the bar renders as now: the links stay in the row and no menu button shows", async () => {
+    const { page } = await visit("/", { width: 1024, reducedMotion: "reduce" });
+    expect(await page.locator(MENU_BUTTON).isVisible()).toBe(false);
+    expect(await page.locator(".family-bar__links").isVisible()).toBe(true);
+    expect(await page.locator(".family-bar__links a").count()).toBe(decks.length);
   });
 
-  test.each(motions)("at 1280px, with %s motion, they fit and carry no mask", async (motion) => {
-    const { page } = await visit("/", { width: 1280, reducedMotion: motion });
-    expect(await overflows(page)).toBe(false);
-    expect(await fades(page)).toBeNull();
-  });
-
-  test("on a phone with motion allowed, scrolled to the end, the end fade is gone and the start fades", async ({ skip }) => {
-    const { page } = await visit("/", { width: 390, isMobile: true, reducedMotion: "no-preference" });
-    if (!(await page.evaluate(() => CSS.supports("animation-timeline", "scroll()")))) {
-      skip("this browser has no scroll-driven animations");
-    }
-    await toEnd(page);
-    await expect.poll(() => fades(page)).toEqual({ start: 24, end: 0 });
-  });
-
-  test.each(motions)("on a phone with %s motion, scrolled to the end, the last link is clear of the fade", async (motion) => {
-    const { page } = await visit("/", { width: 390, isMobile: true, reducedMotion: motion });
-    await toEnd(page);
-    await expect.poll(() => clearOfFades(page, `${LINKS} li:last-child a`)).toBe(true);
-  });
-
-  // Chromium does not scroll a focused link that is mostly in view, so the
-  // fade gives way to the ring instead.
-  test.each(motions)("on a phone with %s motion, a link focused from the keyboard drops the fade", async (motion) => {
-    const { page } = await visit("/", { width: 390, isMobile: true, reducedMotion: motion });
-    const links = page.locator(`${LINKS} a`);
-    await links.first().focus();
-    await page.keyboard.press("Shift+Tab");
+  test("Escape closes the menu and focus returns to the button", async () => {
+    const { page } = await visit("/", { width: 390, isMobile: true, reducedMotion: "reduce" });
+    await page.locator(MENU_BUTTON).focus();
+    await page.keyboard.press("Enter");
+    expect(await isOpen(page, MENU_PANEL)).toBe(true);
     await page.keyboard.press("Tab");
-    expect(await fades(page)).toBeNull();
-    for (let n = 1; n < (await links.count()); n++) await page.keyboard.press("Tab");
-    expect(await links.last().evaluate((a) => a.matches(":focus-visible"))).toBe(true);
-    expect(await fades(page)).toBeNull();
-    await page.keyboard.press("Tab");
-    await expect.poll(() => fades(page)).not.toBeNull();
+    expect(await focused(page)).not.toBe("Menu");
+    await page.keyboard.press("Escape");
+    expect(await isOpen(page, MENU_PANEL)).toBe(false);
+    expect(await focused(page)).toBe("Menu");
   });
 
-  // Chromium does not scroll a focused link that is partly in view, so the
-  // last link, cut off at the right edge before any scroll, would keep its
-  // ring cut off too.
-  test.each(motions)("on a phone with %s motion, each link Tab reaches shows its whole focus ring", async (motion) => {
-    const { page } = await visit("/", { width: 390, isMobile: true, reducedMotion: motion });
-    const links = page.locator(`${LINKS} a`);
-    await page.locator(".family-bar__name").focus();
-    for (let n = 0; n < (await links.count()); n++) {
+  test("a click on the shade closes the menu and does not reach the page under it", async () => {
+    const { page } = await visit("/", { width: 390, isMobile: true, reducedMotion: "reduce" });
+    await page.locator(MENU_BUTTON).click();
+    const shade = await box(page, shadeOf(MENU_PANEL));
+    await page.mouse.click(shade.x + shade.width / 2, shade.y + shade.height / 2);
+    expect(await isOpen(page, MENU_PANEL)).toBe(false);
+    expect(new URL(page.url()).hash).toBe("");
+  });
+
+  test("opening the switcher closes the menu, and the reverse", async () => {
+    const { page } = await visit("/", { width: 390, isMobile: true, reducedMotion: "reduce" });
+    await page.locator(MENU_BUTTON).click();
+    expect(await isOpen(page, MENU_PANEL)).toBe(true);
+    await page.locator(SWITCH_BUTTON).click();
+    expect(await isOpen(page, MENU_PANEL)).toBe(false);
+    expect(await isOpen(page, SWITCH_PANEL)).toBe(true);
+    await page.locator(MENU_BUTTON).click();
+    expect(await isOpen(page, SWITCH_PANEL)).toBe(false);
+    expect(await isOpen(page, MENU_PANEL)).toBe(true);
+  });
+
+  test("Tab moves from the menu button through every link, in order", async () => {
+    const { page } = await visit("/", { width: 390, isMobile: true, reducedMotion: "reduce" });
+    await page.locator(MENU_BUTTON).focus();
+    await page.keyboard.press("Enter");
+    const hrefs = await page.locator(`${MENU_PANEL} a`).evaluateAll((links) => links.map((a) => a.getAttribute("href")));
+    for (const href of hrefs) {
       await page.keyboard.press("Tab");
-      expect(await links.nth(n).evaluate((a) => a === document.activeElement)).toBe(true);
-      await expect.poll(() => ringShows(page)).toBe(true);
+      expect(await focused(page)).toBe(href);
     }
+  });
+
+  test("with motion allowed, opening and closing the menu both animate, following the switcher's panel", async () => {
+    const { page } = await visit("/", { width: 390, isMobile: true, reducedMotion: "no-preference" });
+    await settled(page);
+
+    await page.locator(MENU_BUTTON).click();
+    expect(await running(page)).toEqual(expect.arrayContaining(["clip-path", "opacity", "transform", "background-color"]));
+    await settled(page);
+
+    await page.keyboard.press("Escape");
+    expect(await isOpen(page, MENU_PANEL)).toBe(false);
+    expect(await running(page)).toEqual(expect.arrayContaining(["clip-path", "display", "overlay"]));
+    expect(await page.locator(MENU_PANEL).isVisible()).toBe(true);
+    await settled(page);
+    expect(await page.locator(MENU_PANEL).isVisible()).toBe(false);
+  });
+
+  test("at 390px, with prefers-reduced-motion: reduce, nothing animates, opening or closing", async () => {
+    const { page } = await visit("/", { width: 390, isMobile: true, reducedMotion: "reduce" });
+    expect(await running(page)).toEqual([]);
+    await page.locator(MENU_BUTTON).click();
+    expect(await isOpen(page, MENU_PANEL)).toBe(true);
+    expect(await running(page)).toEqual([]);
+
+    const timings = await page.locator("header, header *").evaluateAll((elements) =>
+      elements.flatMap((element) =>
+        ["", "::before", "::after", "::backdrop"].map((pseudo) => {
+          const style = getComputedStyle(element, pseudo || null);
+          return [style.animationName, style.transitionDuration];
+        }),
+      ),
+    );
+    for (const [animation, transition] of timings) {
+      expect(animation).toBe("none");
+      expect(transition?.split(", ").every((duration) => duration === "0s")).toBe(true);
+    }
+
+    await page.keyboard.press("Escape");
+    expect(await isOpen(page, MENU_PANEL)).toBe(false);
+    expect(await running(page)).toEqual([]);
+    expect(await page.locator(MENU_PANEL).isVisible()).toBe(false);
   });
 });

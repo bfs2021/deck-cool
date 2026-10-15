@@ -45,7 +45,7 @@ describe("the Family bar", () => {
 
   test("the panel links every deck with its still icon, name and kind", () => {
     const doc = render(<FamilyBar current={carouseldeck} links={links} />);
-    const tiles = [...doc.querySelectorAll("header [popover] a")];
+    const tiles = [...doc.querySelectorAll("header #family-bar-decks a")];
     expect(tiles.map((a) => a.getAttribute("href"))).toEqual(decks.map((deck) => deck.url));
     tiles.forEach((tile, at) => {
       const deck = present(decks[at], `deck ${at}`);
@@ -94,13 +94,43 @@ describe("the Family bar", () => {
     expect(pills[0]?.getAttribute("href")).toBe("/docs/install");
   });
 
-  test("renders its children, such as a search box, last in the row", () => {
+  test("renders its children, such as a search box, after the Install pill and before the menu", () => {
     const doc = render(
       <FamilyBar current={carouseldeck} links={links} install="/docs/install">
         <input type="search" aria-label="Search" />
       </FamilyBar>,
     );
     const row = present(doc.querySelector("header nav"), "the row");
-    expect(row.lastElementChild?.matches('input[type="search"]')).toBe(true);
+    const [searchBox, button, panel] = [...row.children].slice(-3);
+    expect(searchBox?.matches('input[type="search"]')).toBe(true);
+    expect(button?.getAttribute("aria-label")).toBe("Menu");
+    expect(panel?.getAttribute("popover")).toBe("auto");
+  });
+
+  test("the menu is a button, labelled Menu, that toggles its own auto popover, last in the row", () => {
+    const doc = render(<FamilyBar current={carouseldeck} links={links} />);
+    const row = present(doc.querySelector("header nav"), "the row");
+    const button = present(doc.querySelector('header button[aria-label="Menu"]'), "the menu button");
+    expect(button.getAttribute("type")).toBe("button");
+    const panel = present(doc.getElementById(button.getAttribute("popovertarget") ?? ""), "the menu panel");
+    expect(panel.getAttribute("popover")).toBe("auto");
+    expect(panel.id).not.toBe("family-bar-decks");
+    expect(row.lastElementChild).toBe(panel);
+  });
+
+  test("the menu panel links every one of the site's own links", () => {
+    const doc = render(<FamilyBar current={carouseldeck} links={links} />);
+    const panelId = present(
+      doc.querySelector('header button[aria-label="Menu"]')?.getAttribute("popovertarget"),
+      "the menu's popover id",
+    );
+    const panel = present(doc.getElementById(panelId), "the menu panel");
+    const items = [...panel.querySelectorAll("a")];
+    expect(items.map((a) => [a.textContent, a.getAttribute("href")])).toEqual(links.map(({ label, href }) => [label, href]));
+  });
+
+  test("renders no menu when the site has no links", () => {
+    const doc = render(<FamilyBar current={carouseldeck} links={[]} />);
+    expect(doc.querySelector('header button[aria-label="Menu"]')).toBeNull();
   });
 });

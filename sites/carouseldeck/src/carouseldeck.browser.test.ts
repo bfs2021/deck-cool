@@ -3,6 +3,7 @@ import { fileURLToPath } from "node:url";
 import type { Page } from "playwright";
 import { describe, expect, test, vi } from "vitest";
 import { browserHarness, islandsHydrated } from "@deck-cool/site-kit/browser-test";
+import { REPOSITORY } from "../components/links.ts";
 import { CONTENT_SECURITY_POLICY } from "./csp.ts";
 import { DEMOS } from "./demos.ts";
 import { DOCS_NAV } from "./docs-pages.ts";
@@ -277,5 +278,31 @@ describe("the docs' demos in a browser", () => {
     };
     expect(await nextLook("/docs/guides/theme/", ".example-theme")).toEqual(["solid", "rgb(0, 0, 0)"]);
     expect(await nextLook("/docs/quickstart/", "article")).toEqual(["none", "rgba(66, 66, 69, 0.72)"]);
+  });
+});
+
+// At the bar's phone breakpoint the links fold into a menu button, last in
+// the row (#156).
+describe("the Family bar's links menu", () => {
+  const LINKS = [
+    ["Docs", "/docs/"],
+    ["Examples", "/examples/"],
+    ["GitHub", REPOSITORY],
+  ];
+
+  test("at 390px, the menu button opens every link, each tappable", async () => {
+    const { page } = await visit("/", { width: 390, isMobile: true, reducedMotion: "reduce" });
+    await page.locator('header button[aria-label="Menu"]').click();
+    const items = await page
+      .locator("header #family-bar-links a")
+      .evaluateAll((items) => items.map((a) => [a.textContent, a.getAttribute("href")]));
+    expect(items).toEqual(LINKS);
+    for (const link of await page.locator("header #family-bar-links a").all()) expect(await link.isEnabled()).toBe(true);
+  });
+
+  test("at 1024px, no menu button shows and the links stay in the row", async () => {
+    const { page } = await visit("/", { width: 1024, reducedMotion: "reduce" });
+    expect(await page.locator('header button[aria-label="Menu"]').isVisible()).toBe(false);
+    expect(await page.locator("header .family-bar__links").isVisible()).toBe(true);
   });
 });

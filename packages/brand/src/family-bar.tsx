@@ -19,12 +19,15 @@ export interface FamilyBarProps {
 
 /** The switcher's panel. One bar per page, so a fixed id. */
 const PANEL = "family-bar-decks";
+/** The links menu's panel, folded in at the phone breakpoint (#156). One bar per page, so a fixed id. */
+const LINKS_PANEL = "family-bar-links";
 
 /**
  * The top bar every deck.cool site shares (design direction C). The switcher
- * is a popover its button toggles, which closes on Escape and on a click
- * outside it. Every motion is CSS in `styles/family-bar.css`, which a site
- * lists in its `build.css`, so the bar ships no JavaScript.
+ * and, at the phone breakpoint, the links menu are each a popover its own
+ * button toggles, which closes on Escape and on a click outside it. Every
+ * motion is CSS in `styles/family-bar.css`, which a site lists in its
+ * `build.css`, so the bar ships no JavaScript.
  */
 export function FamilyBar({ current, links, install, children }: FamilyBarProps) {
   const deck = "kind" in current ? current : undefined;
@@ -96,6 +99,38 @@ export function FamilyBar({ current, links, install, children }: FamilyBarProps)
           </a>
         )}
         {children}
+        {links.length > 0 && (
+          <>
+            <button type="button" className="family-bar__menu" popoverTarget={LINKS_PANEL} aria-label="Menu">
+              <svg className="family-bar__burger" width="18" height="12" viewBox="0 0 18 12" aria-hidden="true">
+                <line x1="1" y1="1" x2="17" y2="1" />
+                <line x1="1" y1="6" x2="17" y2="6" />
+                <line x1="1" y1="11" x2="17" y2="11" />
+              </svg>
+            </button>
+            {/* Below the bar, like the switcher's panel: the sheet of links, then
+                the shade, which closes the menu and keeps the click from the page. */}
+            <div id={LINKS_PANEL} popover="auto" className="family-bar__panel">
+              <div className="family-bar__sheet">
+                <ul className="family-bar__menu-list" aria-label="Links">
+                  {links.map(({ label, href }) => (
+                    <li key={href}>
+                      <a href={href}>{label}</a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <button
+                type="button"
+                className="family-bar__shade"
+                popoverTarget={LINKS_PANEL}
+                popoverTargetAction="hide"
+                tabIndex={-1}
+                aria-hidden="true"
+              />
+            </div>
+          </>
+        )}
       </nav>
     </header>
   );
