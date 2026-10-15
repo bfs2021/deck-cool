@@ -11,10 +11,10 @@
   "dependencies": {
     "@deck-cool/brand": "workspace:*",
     "@deck-cool/site-kit": "workspace:*",
-    "@pagedeck/adapter-cloudflare-pages": "0.2.3",
-    "@pagedeck/content": "0.2.3",
-    "@pagedeck/core": "0.2.3",
-    "@pagedeck/markdown-loader": "0.2.3",
+    "@pagedeck/adapter-cloudflare-pages": "0.3.0",
+    "@pagedeck/content": "0.3.0",
+    "@pagedeck/core": "0.3.0",
+    "@pagedeck/markdown-loader": "0.3.0",
     "@carouseldeck/react": "workspace:*",
     "react": "19.3.0",
     "react-dom": "19.3.0"

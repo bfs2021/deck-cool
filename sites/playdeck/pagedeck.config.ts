@@ -96,7 +96,7 @@ const DOCS_DEMO_PAGES = ["/docs/examples/"];
 // maintainer ruled the budget is not a constraint on that page.
 const BUDGET = {
   "/**": "0b",
-  [PATHS.home]: "59kb",
+  [PATHS.home]: "60kb",
   [PATHS.examples]: "89kb",
   [PATHS.search]: "60kb",
   // A docs page with no demo ships nothing: search is a page of its own.
@@ -105,7 +105,7 @@ const BUDGET = {
   // pick out the pages with a demo, so each is listed. They share one budget,
   // the largest one's, so a release that moves or adds a demo among these pages
   // still builds; a demo on another page needs it listed.
-  ...Object.fromEntries(DOCS_DEMO_PAGES.map((path) => [path, "85kb"])),
+  ...Object.fromEntries(DOCS_DEMO_PAGES.map((path) => [path, "89kb"])),
 };
 
 /**

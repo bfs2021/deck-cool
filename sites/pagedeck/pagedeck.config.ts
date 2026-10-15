@@ -59,11 +59,11 @@ const BAR_LINKS = [
 const BUDGET = {
   "/**": "0b",
   [PATHS.interactive]: "60kb",
-  [PATHS.features]: "60kb",
-  [PATHS.cmsDemo]: "59kb",
-  [PATHS.search]: "59kb",
+  [PATHS.features]: "61kb",
+  [PATHS.cmsDemo]: "60kb",
+  [PATHS.search]: "60kb",
   // A docs page ships nothing: search is a page of its own. @pagedeck/docs
-  // 0.2.3 marks no demo; a page that marks one needs its own budget here.
+  // 0.3.0 marks no demo; a page that marks one needs its own budget here.
   "/docs/**": "0b",
 } as const;
 

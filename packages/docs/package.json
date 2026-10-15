@@ -10,14 +10,14 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@pagedeck/content": "0.2.3",
-    "@pagedeck/core": "0.2.3",
-    "@pagedeck/markdown-loader": "0.2.3",
+    "@pagedeck/content": "0.3.0",
+    "@pagedeck/core": "0.3.0",
+    "@pagedeck/markdown-loader": "0.3.0",
     "marked": "18.1.0"
   },
   "devDependencies": {
     "@example/docs": "workspace:*",
-    "@pagedeck/islands": "0.2.3",
+    "@pagedeck/islands": "0.3.0",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
     "happy-dom": "20.14.5",

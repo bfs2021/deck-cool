@@ -135,15 +135,15 @@ export default defineConfig({
     // Re-measure rather than raise one.
     budget: {
       "/**": "0b",
-      "/": "61kb",
-      "/examples/": "61kb",
+      "/": "60kb",
+      "/examples/": "60kb",
       // A docs page with no demo ships the search island alone.
-      "/docs/**": "61kb",
+      "/docs/**": "60kb",
       // A docs page with demos ships carouseldeck and its demos too. Budget globs
       // cannot pick out the pages with a demo, so each is listed. They share
       // one budget, the largest one's, so a release that moves or adds a demo
       // among these pages still builds; a demo on another page needs it listed.
-      ...Object.fromEntries(DOCS_DEMO_PAGES.map((path) => [path, "74kb"])),
+      ...Object.fromEntries(DOCS_DEMO_PAGES.map((path) => [path, "73kb"])),
     },
     adapter: cloudflarePages(),
   },

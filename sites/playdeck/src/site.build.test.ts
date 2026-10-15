@@ -94,7 +94,7 @@ describe("the package", () => {
     }
   });
 
-  test("takes @playdeck/react, every provider and the docs from npm at 1.3.0, and Pagedeck at 0.2.3", () => {
+  test("takes @playdeck/react, every provider and the docs from npm at 1.3.0, and Pagedeck at 0.3.0", () => {
     const playdeckPackages = Object.entries(all).filter(([name]) => name.startsWith("@playdeck/"));
     expect(Object.fromEntries(playdeckPackages)).toEqual({
       "@playdeck/core": "1.3.0",
@@ -106,7 +106,7 @@ describe("the package", () => {
       "@playdeck/provider-youtube": "1.3.0",
       "@playdeck/react": "1.3.0",
     });
-    for (const [name, version] of Object.entries(all)) if (name.startsWith("@pagedeck/")) expect(version, name).toBe("0.2.3");
+    for (const [name, version] of Object.entries(all)) if (name.startsWith("@pagedeck/")) expect(version, name).toBe("0.3.0");
   });
 
   test("depends on none of the old site's styling", () => {
@@ -119,10 +119,10 @@ describe("budgets, measured and pinned", () => {
   // Spelled again rather than imported, so a limit raised in the config fails here.
   // Each is the page's measured size rounded up to a whole kilobyte.
   const PINNED: Record<string, string> = {
-    [PATHS.home]: "59kb",
+    [PATHS.home]: "60kb",
     [PATHS.examples]: "89kb",
     [PATHS.search]: "60kb",
-    "/docs/examples/": "85kb",
+    "/docs/examples/": "89kb",
     "/docs/start/": "0b",
     [PATHS.comparison]: "0b",
   };
