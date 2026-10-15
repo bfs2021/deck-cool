@@ -20,8 +20,10 @@ on:
     branches: [main]
 
 # Read-only. Each job widens its own copy only as far as it needs. The npm
-# credential (`id-token: write`, `NPM_TOKEN`) is only in `publish`, which runs
-# no code from the repo and cannot write to it.
+# credential (`id-token: write`, `NPM_TOKEN`) is only in `publish`, which
+# cannot write to the repo and runs none of it but `publish-packed.mjs`:
+# Node's built-ins, no install, nothing from a lockfile. The tarballs it
+# publishes are the ones `verify`'s whole `pnpm verify` already checked.
 permissions:
   contents: read
 
@@ -158,23 +160,18 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      # Puts the pnpm named in package.json's packageManager on the path.
-      - run: corepack enable
       # No `registry-url`: it writes an `.npmrc` holding `${NODE_AUTH_TOKEN}`,
-      # which `pnpm publish` can send unresolved as a bearer token, and fail a
+      # which npm publish can send unresolved as a bearer token, and fail a
       # publish OIDC would have carried.
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
           package-manager-cache: false
-      # The root's dev dependencies only, for the Changesets CLI: this job
-      # builds nothing, and no dependency's install script runs in the job
-      # that holds the credential.
-      - run: pnpm install --frozen-lockfile --ignore-scripts --filter deck-cool
 
-      # Trusted publishing needs npm 11.5.1 or later. `pnpm publish` spawns
-      # the `npm` on the path, so this is the npm that publishes. Pinned: this
-      # step is on the credential path.
+      # Trusted publishing needs npm 11.5.1 or later. This job builds nothing
+      # and installs no dependency, so this is the only npm on the path: the
+      # one `publish-packed.mjs` runs below. Pinned: this step is on the
+      # credential path.
       - run: npm install -g npm@11.19.0
       - run: npm --version
 
@@ -208,7 +205,7 @@ jobs:
           echo "Publishing over trusted publishing (OIDC)."
 
       # Only when the secret is set: an unresolved placeholder must not reach
-      # `pnpm publish`, for the reason at `setup-node` above. The file holds
+      # npm publish, for the reason at `setup-node` above. The file holds
       # the placeholder, not the token.
       - name: Use the NPM_TOKEN secret, if set
         if: env.HAS_NPM_TOKEN == 'true'
@@ -216,18 +213,28 @@ jobs:
           # shellcheck disable=SC2016 # npm expands the placeholder, not the shell.
           echo '//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}' >> ~/.npmrc
 
-      # `changeset publish --from-pack-dir` publishes core before the packages
-      # that depend on it, and stops at the first failure. Provenance comes
-      # from each manifest's `publishConfig.provenance`. Tags and releases are
-      # `tag`'s, so this job needs no `contents: write`.
+      # The tarballs and the publish plan `verify` packed, so this job builds
+      # and packs nothing itself.
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          artifact-ids: ${{ needs.verify.outputs.pack-dir-artifact-id }}
+          path: pack-dir
+          merge-multiple: true
+
+      # Publishes core before the packages that depend on it, over npm 11,
+      # which still negotiates trusted publishing's OIDC exchange the way
+      # this workflow is built for. pnpm 11 publishes natively instead: a
+      # failed OIDC exchange is only a warning there, and the publish that
+      # follows it is an anonymous one, which fails with E404. Stops at the
+      # first failure, skips any name@version npm already has, and sends
+      # `--provenance` explicitly: npm does not read a tarball's own
+      # `publishConfig.provenance` on its own. Tags and releases are `tag`'s,
+      # so this job needs no `contents: write`.
       - id: publish
-        uses: changesets/action/publish@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        with:
-          pack-dir-artifact-id: ${{ needs.verify.outputs.pack-dir-artifact-id }}
-          push-git-tags: false
-          create-github-releases: false
+          PACK_DIR: pack-dir
+        run: node decks/carouseldeck/scripts/publish-packed.mjs
 
   tag:
     needs: publish
