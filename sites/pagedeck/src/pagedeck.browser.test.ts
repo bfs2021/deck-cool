@@ -2,7 +2,7 @@ import { AxeBuilder } from "@axe-core/playwright";
 import { fileURLToPath } from "node:url";
 import { describe, expect, test } from "vitest";
 import { browserHarness, islandsHydrated } from "@deck-cool/site-kit/browser-test";
-import { DOCS, PATHS } from "../components/links.ts";
+import { DOCS, PATHS, REPO } from "../components/links.ts";
 import { DOCS_NAV } from "./docs-pages.ts";
 import { RESPONSE_HEADERS } from "./headers.ts";
 import { DOCS_WITH_TABLES } from "./live-check.ts";
@@ -164,5 +164,34 @@ describe("the pagedeck site in a browser", () => {
     await page.getByRole("button", { name: "Load the embed" }).click();
     await expect.poll(() => loaded.count()).toBe(1);
     expect(await violations()).toEqual([]);
+  });
+});
+
+// At the bar's phone breakpoint the links fold into a menu button, last in
+// the row (#156).
+describe("the Family bar's links menu", () => {
+  const LINKS = [
+    ["Docs", DOCS.start],
+    ["Features", PATHS.features],
+    ["Interactive demo", PATHS.interactive],
+    ["Content demo", PATHS.cmsDemo],
+    ["Search", PATHS.search],
+    ["GitHub", REPO],
+  ];
+
+  test("at 390px, the menu button opens every link, each tappable", async () => {
+    const { page } = await visit(PATHS.home, { width: 390, isMobile: true, reducedMotion: "reduce" });
+    await page.locator('header button[aria-label="Menu"]').click();
+    const items = await page
+      .locator("header #family-bar-links a")
+      .evaluateAll((items) => items.map((a) => [a.textContent, a.getAttribute("href")]));
+    expect(items).toEqual(LINKS);
+    for (const link of await page.locator("header #family-bar-links a").all()) expect(await link.isEnabled()).toBe(true);
+  });
+
+  test("at 1024px, no menu button shows and the links stay in the row", async () => {
+    const { page } = await visit(PATHS.home, { width: 1024, reducedMotion: "reduce" });
+    expect(await page.locator('header button[aria-label="Menu"]').isVisible()).toBe(false);
+    expect(await page.locator("header .family-bar__links").isVisible()).toBe(true);
   });
 });
