@@ -658,10 +658,15 @@ export function createDeck(
   // copy's own rest to its slide's, as `jumpOffCopies` measures: WebKit can
   // rest a copy a pixel or two off its slide's rest plus a set's length.
   // Returns where the shift put the deck, or null if it did not shift.
-  const shiftOffCopies = () => {
+  // `force` skips the guard on a move in flight: a step from Next or Prev
+  // (#146) never waits for one to settle before it steps again, unlike a
+  // tap or a wheel event, so it must correct the position into the middle
+  // set itself, synchronously, before every step, whether or not a move is
+  // going -- the same shift, just not held for a move to finish first.
+  const shiftOffCopies = (force = false) => {
     const { points, length, sets } = known;
     const count = points.length;
-    if (move || length === 0 || count === 0) return null;
+    if ((move && !force) || length === 0 || count === 0) return null;
     const along = axis();
     const at = along.position;
     let nearest = 0;
@@ -1776,6 +1781,13 @@ export function createDeck(
   // a step from a copy the deck could not jump off still goes the way it is
   // pressed.
   const step = (delta: number) => {
+    // #146: presses faster than the deck settles never let a move reach a
+    // rest to jump off a copy or shell at (`jumpOffCopies`), and could run
+    // it past the sets the scroll range reaches, where the browser clamps
+    // the write and fires no event to correct at, pinning the deck there
+    // for good. Correcting the position first, synchronously, before every
+    // step keeps a full set of room ahead of it regardless.
+    shiftOffCopies(true);
     if (move) {
       // Since a new layout, the target counts the old snap points: go on
       // from the slides' snap point it stands for.

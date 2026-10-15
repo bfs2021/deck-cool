@@ -1,10 +1,10 @@
 # Loop places one real slide by translate over empty snap targets
 
-This decision is accepted, on 2026-10-13. **Status: built in #144 with
-JavaScript placement and in #145 with CSS placement where supported; #146 to
-come.** Three issues build it: #144 places each slide once, in JavaScript;
-#145 moves that placement to CSS, where the browser supports it; #146
-corrects a press at the seam.
+This decision is accepted, on 2026-10-13. **Status: built, in #144
+(JavaScript placement), #145 (CSS placement where supported) and #146 (a
+press corrects at the seam).** Three issues build it: #144 places each slide
+once, in JavaScript; #145 moves that placement to CSS, where the browser
+supports it; #146 corrects a press at the seam.
 
 ADR-0009 built loop as clone and jump: a full set of copies on each side of
 the slides, each a `Deck.Slide` rendered again, so its state, effects, ids
@@ -316,6 +316,51 @@ placer on its own, as a side effect of `measureShells`, wherever
 **Bundle.** 11.26 KB to 11.99 KB min+gzip for placement itself, 12.01 KB
 min+gzip once #145 is complete (`compare`); #144's own growth was still
 unreleased when #145 landed.
+
+## As built (#146)
+
+Press correction, decided above ("No waiting at the seam"), built as
+follows.
+
+**`shiftOffCopies` runs unguarded from a step.** The shift it already made
+for a press or a wheel event on the copies (ADR-0009, amended for #48 and
+#96) is the same correction a step from Next or Prev needs, so `step` calls
+it too, with its guard on a move already in flight lifted (`force`): a tap
+or a wheel event leaves a move going, to jump off its copy or shell at rest
+as ever, but a step from Next or Prev never waits for one, each press
+superseding the last before it settles, so it must correct the position
+itself, synchronously, before every step. The correction reads the live
+scroll position, not `move.target`: a target far out in index space still
+names the same slide once wrapped, so correcting the position alone is
+enough to give `scrollTo`'s own reachability check room again; no target
+bookkeeping to keep in step with it.
+
+**Measured with a deck of 7 slides, 40 Next presses 50 ms apart, then 40
+Prev.** In Chromium, the existing per-press and per-settle corrections
+already kept the deck off the scroll range's edge before this, in both
+placement paths. In WebKit, both paths pinned it at the edge partway
+through the run, dropping every press after: a `scrollTo` already clamped
+there is a no-op the browser fires no event for (above), so nothing ever
+corrected it back. With `shiftOffCopies` run unguarded, neither browser
+pins, in either path, and the deck lands on the slide 40 presses from where
+it started, each way.
+
+**Scope: Next and Prev alone.** Next and Prev step through `step`, so both
+read the correction above. Dots and arrow keys do not step, and needed their
+own check. A dot's `scrollTo` goes the direct way, within the slides
+(ADR-0009): it is already clamped into the middle set, so it never reaches
+the shells or the scroll range's edge, and was never at risk. An arrow key
+scrolls the viewport by the browser's own native, unsnapped increment per
+keydown, through neither `step` nor `scrollTo`, so the same test run against
+it, 40 ArrowRight presses 50 ms apart then 40 ArrowLeft: in Chromium and
+WebKit, on both placement paths, the position never pinned at either end of
+the scroll range for longer than a frame or two, and the deck kept
+answering a press after. A native key scroll moves in small steps, each one
+its own `scroll` event, so the engine's own settle keeps correcting it the
+whole way, where a `scrollTo` clamped outright at the edge gives it nothing
+to correct from. `onKeyDown` needed no change.
+
+**Bundle.** 12.02 KB min+gzip (`compare`), up from 12.01 KB.
 
 ## What is open to the implementation
 

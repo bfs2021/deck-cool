@@ -1791,3 +1791,214 @@ describe.each(['css', 'js'] as const)(
     });
   }
 );
+
+// #146: a `scrollTo` clamped to the track's physical end is a no-op the
+// browser fires no `scroll` event for, so the jump that would move the
+// deck back into the middle set never runs again, and presses in one
+// direction pin it there for good (measured in #140's prototype,
+// ADR-0013). Every Next and Prev press corrects the position into the
+// middle set first, synchronously, before it steps, so a press always has
+// a full set of room ahead of it whether or not a settle got the chance to
+// jump. Not covered here: a dot's `scrollTo` goes the direct way, within
+// the slides, and never reaches the shells (ADR-0009); an arrow key scrolls
+// the viewport by the browser's own native, unsnapped increment per
+// keydown, far short of a slide, so "N presses land on slide N on" is not
+// a meaningful claim for it the way it is for a press of Next or Prev.
+describe.each(['css', 'js'] as const)(
+  'one instance: 40 presses 50 ms apart, never stalled at rest (%s)',
+  (path) => {
+    // 7 slides: 40 is not a multiple of 7, so landing on the wrong slide
+    // would show.
+    const SLIDES = 7;
+
+    /**
+     * Fires `press` every 50 ms, `times` times, with no wait for any of
+     * them to settle; tracks the scroll position throughout and returns how
+     * close it ever came to either end of the scroll range. A deck pinned
+     * at the seam sits exactly at one end from the press that pinned it
+     * onward; a deck that corrects first never comes within a pixel of
+     * either end.
+     */
+    async function press50ms(
+      viewport: HTMLElement,
+      max: number,
+      press: () => void,
+      times: number
+    ) {
+      let nearestEnd = Math.min(viewport.scrollLeft, max - viewport.scrollLeft);
+      const onScroll = () => {
+        const at = viewport.scrollLeft;
+        nearestEnd = Math.min(nearestEnd, at, max - at);
+      };
+      viewport.addEventListener('scroll', onScroll);
+      for (let i = 0; i < times; i++) {
+        press();
+        await sleep(50);
+      }
+      viewport.removeEventListener('scroll', onScroll);
+      return nearestEnd;
+    }
+
+    test('Next then Prev, by button: never stalls at the edge, and lands on the right slide', async () => {
+      placementPath(path);
+      const { root, viewport } = renderShells({ slides: SLIDES });
+      const next = screen.getByRole('button', { name: 'Next' });
+      const prev = screen.getByRole('button', { name: 'Previous' });
+      const max = viewport.scrollWidth - viewport.clientWidth;
+
+      const nearestOnNext = await press50ms(
+        viewport,
+        max,
+        () => next.click(),
+        40
+      );
+      expect(nearestOnNext).toBeGreaterThan(1);
+      await expectSettledTo(() => root.dataset.index, String(40 % SLIDES));
+
+      const nearestOnPrev = await press50ms(
+        viewport,
+        max,
+        () => prev.click(),
+        40
+      );
+      expect(nearestOnPrev).toBeGreaterThan(1);
+      await expectSettledTo(() => root.dataset.index, '0');
+    });
+  }
+);
+
+// #146: an arrow key, unlike Next and Prev, scrolls the viewport natively
+// rather than through `step`, so it is not settled by the fix above: this
+// checks whether rapid arrow-key presses can pin a looping deck at the
+// scroll range's edge the same way rapid Next presses did in WebKit. A key
+// scrolls by the browser's own, unsnapped increment per keydown, far short
+// of a slide, so "N presses land on slide N on" is not a meaningful claim
+// for it the way it is for a press of Next or Prev: this only checks that
+// the position never pins at an edge, that it rests on a real slide once
+// the run stops, and that the deck still answers a press after.
+//
+// Deliberately not `expectRestOnASlide` (fixtures.tsx): that also checks
+// the rest against the engine's own current-index bookkeeping
+// (`data-current`, `root.dataset.index`), and a burst of rapid native key
+// scrolls in Chromium can desync that bookkeeping by exactly one slide from
+// where the browser actually rests, with no loop involved at all -- the
+// same desync reproduces on a deck with `loop` left off, pinned at its
+// plain scroll range's own hard edge. That is a pre-existing bug of its
+// own, outside what #146 corrects; this test checks the loop seam alone, by
+// the viewport's own geometry.
+describe.each(['css', 'js'] as const)(
+  'one instance: 40 arrow-key presses 50 ms apart, never stalled at rest (%s)',
+  (path) => {
+    const SLIDES = 7;
+
+    /** Polls `viewport.scrollLeft` every 20 ms while `run` is in flight, and
+     * returns the longest span, in ms, that the position stayed within 1px
+     * of either end of the scroll range. A deck pinned at the seam reads an
+     * unbounded span, from the press that pinned it onward; a deck that
+     * corrects first never holds an edge for more than a frame or two. */
+    async function longestEdgeSpan(
+      viewport: HTMLElement,
+      max: number,
+      run: () => Promise<void>
+    ) {
+      let polling = true;
+      const start = Date.now();
+      let longest = 0;
+      let edgeSince: number | null = null;
+      const poll = (async () => {
+        while (polling) {
+          const at = viewport.scrollLeft;
+          const now = Date.now() - start;
+          if (Math.min(at, max - at) <= 1) {
+            if (edgeSince === null) edgeSince = now;
+            longest = Math.max(longest, now - edgeSince);
+          } else {
+            edgeSince = null;
+          }
+          await sleep(20);
+        }
+      })();
+      await run();
+      polling = false;
+      await poll;
+      return longest;
+    }
+
+    async function pressKeys(key: string, times: number) {
+      for (let i = 0; i < times; i++) {
+        await userEvent.keyboard(key);
+        await sleep(50);
+      }
+    }
+
+    /** Waits for `viewport.scrollLeft` to stop moving, the same rest
+     * `expectRestOnASlide` waits for, without its further checks against
+     * the engine's own current-index bookkeeping (see the comment above). */
+    async function waitForRest(viewport: HTMLElement) {
+      let last = NaN;
+      await expect
+        .poll(
+          async () => {
+            const at = viewport.scrollLeft;
+            await sleep(300);
+            const still = at === last && at === viewport.scrollLeft;
+            last = viewport.scrollLeft;
+            return still;
+          },
+          { timeout: 8000 }
+        )
+        .toBe(true);
+    }
+
+    /** Whether some real slide's own box sits flush with the viewport's
+     * start, as a slide at rest, start-aligned (`renderShells` sets no
+     * `centred`), always does: a deck pinned at the seam, or resting
+     * between shells with no real slide placed over the visible one, has
+     * none. */
+    function restsOnARealSlide(viewport: HTMLElement) {
+      const view = viewport.getBoundingClientRect();
+      return slidesIn(viewport).some(
+        (slide) => Math.abs(slide.getBoundingClientRect().left - view.left) < 1
+      );
+    }
+
+    test('ArrowRight then ArrowLeft: never pins at the edge, and keeps answering a press', async () => {
+      placementPath(path);
+      const { viewport } = renderShells({ slides: SLIDES });
+      expectPlacementPath(viewport, path);
+      const next = screen.getByRole('button', { name: 'Next' });
+      viewport.focus();
+      const max = viewport.scrollWidth - viewport.clientWidth;
+
+      const rightSpan = await longestEdgeSpan(viewport, max, () =>
+        pressKeys('{ArrowRight}', 40)
+      );
+      expect(rightSpan).toBeLessThan(500);
+      await waitForRest(viewport);
+      expect(
+        Math.min(viewport.scrollLeft, max - viewport.scrollLeft)
+      ).toBeGreaterThan(1);
+      expect(restsOnARealSlide(viewport)).toBe(true);
+
+      const leftSpan = await longestEdgeSpan(viewport, max, () =>
+        pressKeys('{ArrowLeft}', 40)
+      );
+      expect(leftSpan).toBeLessThan(500);
+      await waitForRest(viewport);
+      expect(
+        Math.min(viewport.scrollLeft, max - viewport.scrollLeft)
+      ).toBeGreaterThan(1);
+      expect(restsOnARealSlide(viewport)).toBe(true);
+
+      // The deck still answers a press after the run: one more key, settled,
+      // then Next, settled, and the position moved on.
+      await pressKeys('{ArrowRight}', 1);
+      await waitForRest(viewport);
+      const before = viewport.scrollLeft;
+      next.click();
+      await waitForRest(viewport);
+      expect(viewport.scrollLeft).not.toBe(before);
+      expect(restsOnARealSlide(viewport)).toBe(true);
+    });
+  }
+);
