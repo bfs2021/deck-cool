@@ -640,6 +640,209 @@ describe('one instance: no script per frame', () => {
   });
 });
 
+/**
+ * Runs `sample` from a `ResizeObserver` callback on a sentinel element this
+ * resizes every rAF, plus `watch` -- the same element or elements the
+ * engine's own `resizes` observer watches for whatever write is under test
+ * (a slide, or the viewport) -- so this callback is in the same batch as
+ * the engine's own, and so runs after it: a `ResizeObserver`'s callbacks
+ * run in the order their observers were created, and the engine's is made
+ * first, in `createDeck` (decision 4 and 6, #145). That beat runs after
+ * layout, before paint -- the same one a late `ResizeObserver` write (a
+ * `refresh` or `compensateShift`) or a newly created placer's own first,
+ * still-`pending` frame lands in, in WebKit, where a rAF sampler
+ * (`sampleEveryFrame`) only ever reads the timeline's next, already
+ * re-sampled frame and so never catches it. `watch` also gives a mount's
+ * own first sample a beat to run at, since a `ResizeObserver` reports a
+ * target's size once as soon as it is observed, whether or not it has
+ * changed. Returns a function that stops sampling.
+ */
+function sampleBeforePaint(sample: () => void, watch: Element[] = []) {
+  const sentinel = document.createElement('div');
+  sentinel.style.cssText = 'position:fixed;top:-9999px;left:-9999px;';
+  document.body.append(sentinel);
+  const observer = new ResizeObserver(sample);
+  for (const el of watch) observer.observe(el);
+  observer.observe(sentinel);
+  let done = false;
+  let wide = false;
+  const tick = () => {
+    if (done) return;
+    wide = !wide;
+    sentinel.style.width = wide ? '2px' : '1px';
+    requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+  return () => {
+    done = true;
+    observer.disconnect();
+    sentinel.remove();
+  };
+}
+
+/** `countBlankFrames`, before paint rather than on the next rAF (decision
+ * 4 and 6, #145): see `sampleBeforePaint`. */
+function countBlankFramesBeforePaint(
+  viewport: HTMLElement,
+  vertical: boolean,
+  watch: Element[] = []
+) {
+  let blanks = 0;
+  const stop = sampleBeforePaint(() => {
+    const rect = viewport.getBoundingClientRect();
+    const across = vertical
+      ? rect.left + rect.width / 2
+      : rect.top + rect.height / 2;
+    const points = vertical
+      ? [
+          { x: across, y: rect.top + 1 },
+          { x: across, y: (rect.top + rect.bottom) / 2 },
+          { x: across, y: rect.bottom - 1 }
+        ]
+      : [
+          { x: rect.left + 1, y: across },
+          { x: (rect.left + rect.right) / 2, y: across },
+          { x: rect.right - 1, y: across }
+        ];
+    for (const { x, y } of points) {
+      const el = document.elementFromPoint(x, y);
+      if (!el?.closest('[data-carouseldeck-slide]')) blanks++;
+    }
+  }, watch);
+  return () => {
+    stop();
+    return blanks;
+  };
+}
+
+/** The df7bbf2 "each real slide sits over one of its own shells" assertion,
+ * before paint rather than at rest (decision 4 and 6, #145): see
+ * `sampleBeforePaint`. A sample taken once the deck has left shells mode --
+ * no shell left to check against -- counts nothing. */
+function countOffShellFramesBeforePaint(
+  viewport: HTMLElement,
+  vertical: boolean,
+  watch: Element[] = []
+) {
+  let offs = 0;
+  const stop = sampleBeforePaint(() => {
+    if (viewport.querySelector('[data-carouseldeck-shell]') === null) return;
+    slidesIn(viewport).forEach((slide, i) => {
+      const off = Math.min(
+        ...[-2, -1, 0, 1, 2].map((set) =>
+          Math.abs(
+            axisStart(slide, vertical) -
+              axisStart(shellsAt(viewport, set)[i], vertical)
+          )
+        )
+      );
+      if (off >= 0.5) offs++;
+    });
+  }, watch);
+  return () => {
+    stop();
+    return offs;
+  };
+}
+
+// #145, decision 4: a scroll-progress timeline samples the scroll position
+// once a frame, during the HTML Processing Model's step 7.10 -- not when a
+// `ResizeObserver` callback or a rAF writes it, which in WebKit lands after
+// that beat, one frame late. The engine's pins (`pinPlaced`) cover exactly
+// that frame; these tests sample from the one place that can see whether
+// they did -- a `ResizeObserver` callback of their own, run the same beat
+// (`sampleBeforePaint`). Every case is the CSS path, which is the only one
+// a scroll timeline, and so this staleness, applies to.
+describe('one instance: no stale frame before paint (css)', () => {
+  test("a resize that moves L: every real slide sits over its own shell, and shows no blank frame, before paint (centred, '5 of 5' at slot -1)", async () => {
+    addStyle(CENTRED);
+    const { viewport } = renderShells({
+      viewportClassName: 'centred',
+      defaultIndex: 0
+    });
+    await sleep(100);
+    expectPlacementPath(viewport, 'css');
+    expect(
+      screen.getByRole('group', { name: '5 of 5' }).getBoundingClientRect()
+        .width
+    ).toBeGreaterThan(0);
+
+    // Slide 3 (index 2) is what the engine's own write is triggered by, so
+    // watching it keeps this sampler in the same batch (`sampleBeforePaint`).
+    const slide3 = slidesIn(viewport)[2];
+    const stopBlanks = countBlankFramesBeforePaint(viewport, false, [slide3]);
+    const stopOffShell = countOffShellFramesBeforePaint(viewport, false, [
+      slide3
+    ]);
+
+    // Slide 3 widening moves L (`refresh` -> `compensateShift` -> `moveBy`,
+    // in slide 3's own `ResizeObserver` callback): slides 1 and 2, still on
+    // the slot after, have to move with it.
+    addStyle(
+      '.centred > [data-carouseldeck-slide]:nth-child(3) { width: 120px; }'
+    );
+    await nextFrame();
+    await nextFrame();
+    await sleep(100);
+
+    expect(stopBlanks()).toBe(0);
+    expect(stopOffShell()).toBe(0);
+  });
+
+  test('the mount itself shows no blank frame before paint', async () => {
+    const { viewport } = renderShells({ defaultIndex: 4 });
+    expectPlacementPath(viewport, 'css');
+    // The engine's own `resizes` observer watches the viewport from the
+    // mount itself (`createDeck`): watching it too keeps this sampler's
+    // first callback in that very batch (`sampleBeforePaint`).
+    const stopBlanks = countBlankFramesBeforePaint(viewport, false, [viewport]);
+
+    await nextFrame();
+    await nextFrame();
+    await sleep(100);
+
+    expect(stopBlanks()).toBe(0);
+  });
+
+  // A resize of the viewport itself, not a slide, so that the run no longer
+  // has room beside its own slide (ADR-0013's fallback): `shapeOf` -- never
+  // moved by L alone -- changes along with the kind, so `refresh` takes
+  // `keepPlace`'s own branch, `restOn`, rather than `compensateShift`'s.
+  test('a viewport resize that leaves shells (keepPlace -> restOn from refresh) shows no blank frame before paint', async () => {
+    addStyle(
+      '.vresize > [data-carouseldeck-slide] { width: 80px; flex-shrink: 0; }'
+    );
+    const { viewport } = renderShells({
+      slides: 5,
+      viewportClassName: 'vresize',
+      width: 200,
+      defaultIndex: 0
+    });
+    await sleep(100);
+    expect(
+      viewport.querySelectorAll('[data-carouseldeck-shell]').length
+    ).toBeGreaterThan(0);
+    expectPlacementPath(viewport, 'css');
+
+    // The engine's own `resizes` observer watches the viewport directly:
+    // watching it too keeps this sampler in the same batch
+    // (`sampleBeforePaint`).
+    const stopBlanks = countBlankFramesBeforePaint(viewport, false, [viewport]);
+
+    // `!important`: the viewport's own width is already inline (React's
+    // `style` prop), which an unmarked external rule cannot override.
+    addStyle('.vresize { width: 360px !important; }');
+    await nextFrame();
+    await nextFrame();
+    await sleep(100);
+
+    expect(
+      viewport.querySelectorAll('[data-carouseldeck-copy]').length
+    ).toBeGreaterThan(0);
+    expect(stopBlanks()).toBe(0);
+  });
+});
+
 /** Measures, once, in content-coordinate space (ADR-0013, #145): each real
  * slide's own centre (`centres`), the run's length (`length`), the
  * viewport's own size (`view`) and the scroll range (`max`) -- the same
