@@ -1791,3 +1791,78 @@ describe.each(['css', 'js'] as const)(
     });
   }
 );
+
+// #146: a `scrollTo` clamped to the track's physical end is a no-op the
+// browser fires no `scroll` event for, so the jump that would move the
+// deck back into the middle set never runs again, and presses in one
+// direction pin it there for good (measured in #140's prototype,
+// ADR-0013). Every Next and Prev press corrects the position into the
+// middle set first, synchronously, before it steps, so a press always has
+// a full set of room ahead of it whether or not a settle got the chance to
+// jump. Not covered here: a dot's `scrollTo` goes the direct way, within
+// the slides, and never reaches the shells (ADR-0009); an arrow key scrolls
+// the viewport by the browser's own native, unsnapped increment per
+// keydown, far short of a slide, so "N presses land on slide N on" is not
+// a meaningful claim for it the way it is for a press of Next or Prev.
+describe.each(['css', 'js'] as const)(
+  'one instance: 40 presses 50 ms apart, never stalled at rest (%s)',
+  (path) => {
+    // 7 slides: 40 is not a multiple of 7, so landing on the wrong slide
+    // would show.
+    const SLIDES = 7;
+
+    /**
+     * Fires `press` every 50 ms, `times` times, with no wait for any of
+     * them to settle; tracks the scroll position throughout and returns how
+     * close it ever came to either end of the scroll range. A deck pinned
+     * at the seam sits exactly at one end from the press that pinned it
+     * onward; a deck that corrects first never comes within a pixel of
+     * either end.
+     */
+    async function press50ms(
+      viewport: HTMLElement,
+      max: number,
+      press: () => void,
+      times: number
+    ) {
+      let nearestEnd = Math.min(viewport.scrollLeft, max - viewport.scrollLeft);
+      const onScroll = () => {
+        const at = viewport.scrollLeft;
+        nearestEnd = Math.min(nearestEnd, at, max - at);
+      };
+      viewport.addEventListener('scroll', onScroll);
+      for (let i = 0; i < times; i++) {
+        press();
+        await sleep(50);
+      }
+      viewport.removeEventListener('scroll', onScroll);
+      return nearestEnd;
+    }
+
+    test('Next then Prev, by button: never stalls at the edge, and lands on the right slide', async () => {
+      placementPath(path);
+      const { root, viewport } = renderShells({ slides: SLIDES });
+      const next = screen.getByRole('button', { name: 'Next' });
+      const prev = screen.getByRole('button', { name: 'Previous' });
+      const max = viewport.scrollWidth - viewport.clientWidth;
+
+      const nearestOnNext = await press50ms(
+        viewport,
+        max,
+        () => next.click(),
+        40
+      );
+      expect(nearestOnNext).toBeGreaterThan(1);
+      await expectSettledTo(() => root.dataset.index, String(40 % SLIDES));
+
+      const nearestOnPrev = await press50ms(
+        viewport,
+        max,
+        () => prev.click(),
+        40
+      );
+      expect(nearestOnPrev).toBeGreaterThan(1);
+      await expectSettledTo(() => root.dataset.index, '0');
+    });
+  }
+);
