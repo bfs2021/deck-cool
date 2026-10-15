@@ -108,9 +108,16 @@ for (const id of stories) {
     await expect(
       deck.getByRole('group', { name: /^1 of \d+$/ })
     ).toBeAttached();
-    // A story's entry animation, mid-fade, would read as low contrast.
+    // A story's entry animation, mid-fade, would read as low contrast. A
+    // looping slide's placement runs on a scroll timeline and never
+    // finishes (#145), so only document-timeline animations are awaited.
     await page.evaluate(() =>
-      Promise.all(document.getAnimations().map((a) => a.finished))
+      Promise.all(
+        document
+          .getAnimations()
+          .filter((a) => a.timeline instanceof DocumentTimeline)
+          .map((a) => a.finished)
+      )
     );
 
     // Axe's default rule set, scoped to the deck rather than Storybook's own
