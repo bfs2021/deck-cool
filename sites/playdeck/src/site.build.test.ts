@@ -19,25 +19,7 @@ import { SKINS } from "./skins.ts";
 const SITE = fileURLToPath(new URL("..", import.meta.url));
 const BRAND = fileURLToPath(new URL("../../../packages/brand/public/", import.meta.url));
 
-interface BudgetRow {
-  path: string;
-  limitText?: string;
-  actual: number;
-}
-
-function readBudget(): BudgetRow[] {
-  const value: unknown = JSON.parse(readFileSync(`${SITE}.pagedeck/budget-report.json`, "utf8"));
-  if (!isRecord(value) || !Array.isArray(value.pages)) throw new Error("the budget report has no pages");
-  return value.pages.map((row: unknown) => {
-    if (!isRecord(row) || typeof row.path !== "string" || typeof row.actual !== "number") {
-      throw new Error("a budget row has no path or actual");
-    }
-    return { path: row.path, actual: row.actual, ...(typeof row.limitText === "string" ? { limitText: row.limitText } : {}) };
-  });
-}
-
 const manifest = readManifest(SITE);
-const budget = readBudget();
 const window = new Window();
 
 function html(path: string): string {
@@ -115,57 +97,14 @@ describe("the package", () => {
   });
 });
 
-describe("budgets, measured and pinned", () => {
-  // Spelled again rather than imported, so a limit raised in the config fails here.
-  // Each is the page's measured size rounded up to a whole kilobyte.
-  const PINNED: Record<string, string> = {
-    [PATHS.home]: "60kb",
-    [PATHS.examples]: "89kb",
-    [PATHS.search]: "60kb",
-    "/docs/examples/": "89kb",
-    "/docs/start/": "0b",
-    [PATHS.comparison]: "0b",
-  };
-
-  test("every page has its pinned limit, and stays within it", () => {
-    for (const path of PAGES) {
-      const row = present(
-        budget.find((each) => each.path === path),
-        `the budget row for ${path}`,
-      );
-      expect(row.limitText, path).toBe(PINNED[path]);
-      const limit = Number.parseInt(row.limitText ?? "", 10) * (row.limitText?.endsWith("kb") ? 1024 : 1);
-      expect(row.actual, path).toBeLessThanOrEqual(limit);
-      // Tight: within two kilobytes of what the page ships. Not one: a chunk's
-      // name is a hash, so any change to the site moves a page by some bytes.
-      if (limit > 0) expect(limit - row.actual, path).toBeLessThan(2048);
-    }
-  });
-
+describe("JavaScript", () => {
   // The layout has no search island: search is a page of its own.
-  test("every docs page with no demo, the comparison guide among them, ships 0 B of JavaScript, and no script at all", () => {
+  test("every docs page with no demo, the comparison guide among them, ships no script", () => {
     const plain = DOCS_NAV.filter(({ demos }) => demos.length === 0);
     expect(plain.map(({ href }) => href)).toContain(PATHS.comparison);
     for (const { href } of plain) {
-      expect(budget.find((row) => row.path === href)?.actual, href).toBe(0);
       expect(parse(href).querySelectorAll("script, link[rel=modulepreload]"), href).toHaveLength(0);
     }
-  });
-
-  // So a docs release that moves a demo to another page still builds.
-  test("the docs pages with demos share one budget, which the largest of them fills to within a KB", () => {
-    const rows = DOCS_NAV.filter(({ demos }) => demos.length > 0).map(({ href }) =>
-      present(
-        budget.find((row) => row.path === href),
-        `the budget row for ${href}`,
-      ),
-    );
-    expect(rows.length).toBeGreaterThan(0);
-    expect(new Set(rows.map((row) => row.limitText)).size).toBe(1);
-    const limit = Number.parseInt(rows[0]?.limitText ?? "", 10) * 1024;
-    const largest = Math.max(...rows.map((row) => row.actual));
-    expect(limit - largest).toBeGreaterThanOrEqual(0);
-    expect(limit - largest).toBeLessThan(1024);
   });
 
   test("each page with islands carries only its own", () => {

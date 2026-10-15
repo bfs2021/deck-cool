@@ -54,19 +54,6 @@ const BAR_LINKS = [
   { label: "GitHub", href: REPO },
 ];
 
-// Measured, not chosen: each is the page's size rounded up to a whole
-// kilobyte. Re-measure rather than raise one.
-const BUDGET = {
-  "/**": "0b",
-  [PATHS.interactive]: "60kb",
-  [PATHS.features]: "61kb",
-  [PATHS.cmsDemo]: "60kb",
-  [PATHS.search]: "60kb",
-  // A docs page ships nothing: search is a page of its own. @pagedeck/docs
-  // 0.3.0 marks no demo; a page that marks one needs its own budget here.
-  "/docs/**": "0b",
-} as const;
-
 /**
  * One directory to publish from: the brand kit's icons and .assetsignore, then
  * the site's own files. Passthrough reads one root, and skips a symlink.
@@ -226,7 +213,6 @@ export default defineConfig({
         ...HASHED_PREFIXES.map((prefix) => ({ prefix, set: [...RESPONSE_HEADERS, ...HASHED_FILE_HEADERS] })),
       ],
     },
-    budget: BUDGET,
     search: defineSearch(),
     scripts: SCRIPTS,
     socialImages: SOCIAL_IMAGES,

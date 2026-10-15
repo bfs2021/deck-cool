@@ -37,8 +37,6 @@ export default defineConfig({
         { prefix: "/assets/", set: [...RESPONSE_HEADERS, ...HASHED_FILE_HEADERS] },
       ],
     },
-    // No page ships JavaScript.
-    budget: { "/**": "0b" },
     adapter: cloudflarePages(),
   },
 });

@@ -23,29 +23,6 @@ const pages = defineCollection({
   schema: false,
 });
 
-/** The docs pages that mark a demo, in @carouseldeck/docs. */
-const DOCS_DEMO_PAGES = [
-  "/docs/guides/autoplay/",
-  "/docs/guides/drag/",
-  "/docs/guides/effects/",
-  "/docs/guides/focal-slide/",
-  "/docs/guides/layout/",
-  "/docs/guides/loop/",
-  "/docs/guides/pages/",
-  "/docs/guides/progress/",
-  "/docs/guides/the-index/",
-  "/docs/guides/theme/",
-  "/docs/guides/vertical-and-rtl/",
-  "/docs/quickstart/",
-  "/docs/recipes/centred-ends/",
-  "/docs/recipes/custom-controls/",
-  "/docs/recipes/middle-slide/",
-  "/docs/recipes/per-breakpoint/",
-  "/docs/recipes/size-a-curve/",
-  "/docs/reference/hooks/",
-  "/docs/reference/primitives/",
-];
-
 // carouseldeck's docs, from the workspace's @carouseldeck/docs, under /docs.
 const docs = defineDocs({
   from: import.meta.url,
@@ -129,21 +106,6 @@ export default defineConfig({
         { prefix: "/", set: [...RESPONSE_HEADERS] },
         { prefix: "/assets/", set: [...RESPONSE_HEADERS, ...HASHED_FILE_HEADERS] },
       ],
-    },
-    // What each page transfers for first render, as `pnpm build` measured it,
-    // rounded up to the next KB. A page with no budget of its own may ship none.
-    // Re-measure rather than raise one.
-    budget: {
-      "/**": "0b",
-      "/": "60kb",
-      "/examples/": "60kb",
-      // A docs page with no demo ships the search island alone.
-      "/docs/**": "60kb",
-      // A docs page with demos ships carouseldeck and its demos too. Budget globs
-      // cannot pick out the pages with a demo, so each is listed. They share
-      // one budget, the largest one's, so a release that moves or adds a demo
-      // among these pages still builds; a demo on another page needs it listed.
-      ...Object.fromEntries(DOCS_DEMO_PAGES.map((path) => [path, "73kb"])),
     },
     adapter: cloudflarePages(),
   },

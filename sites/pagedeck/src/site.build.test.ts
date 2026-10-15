@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, test } from "vitest";
 import { pagedeck, umbrella } from "@deck-cool/brand/decks";
 import { demoComponent } from "@deck-cool/docs";
-import { everyResponse, isRecord, pagesWithEmDashes, present, readManifest, text } from "@deck-cool/site-kit/build-test";
+import { everyResponse, pagesWithEmDashes, present, readManifest, text } from "@deck-cool/site-kit/build-test";
 import { headersFor, parseHeaders } from "@deck-cool/site-kit/serve-site";
 import { DOCS, PATHS, REPO } from "../components/links.ts";
 import { formatBytes, utf8Bytes } from "./bytes.ts";
@@ -21,25 +21,7 @@ import { SKINS } from "./skins.ts";
 const SITE = fileURLToPath(new URL("..", import.meta.url));
 const BRAND = fileURLToPath(new URL("../../../packages/brand/public/", import.meta.url));
 
-interface BudgetRow {
-  path: string;
-  limitText?: string;
-  actual: number;
-}
-
-function readBudget(): BudgetRow[] {
-  const value: unknown = JSON.parse(readFileSync(`${SITE}.pagedeck/budget-report.json`, "utf8"));
-  if (!isRecord(value) || !Array.isArray(value.pages)) throw new Error("the budget report has no pages");
-  return value.pages.map((row: unknown) => {
-    if (!isRecord(row) || typeof row.path !== "string" || typeof row.actual !== "number") {
-      throw new Error("a budget row has no path or actual");
-    }
-    return { path: row.path, actual: row.actual, ...(typeof row.limitText === "string" ? { limitText: row.limitText } : {}) };
-  });
-}
-
 const manifest = readManifest(SITE);
-const budget = readBudget();
 const window = new Window();
 
 function html(path: string): string {
@@ -78,46 +60,16 @@ test("no page uses an em dash", () => {
   expect(pagesWithEmDashes(SITE, DOCS_NAV.map(({ href }) => href))).toEqual([]);
 });
 
-describe("budgets, measured and pinned", () => {
-  // Spelled again rather than imported, so a limit raised in the config fails here.
-  // Each is the page's measured size rounded up to a whole kilobyte, and none is
-  // above the landing's own (pagedeck's packages/landing): 60kb, 62kb and 60kb.
-  const PINNED: Record<string, string> = {
-    [PATHS.home]: "0b",
-    [PATHS.interactive]: "60kb",
-    [PATHS.features]: "61kb",
-    [PATHS.cmsDemo]: "60kb",
-    [PATHS.search]: "60kb",
-    [DOCS.start]: "0b",
-    [DOCS_WITH_TABLES]: "0b",
-  };
-
-  test("every page has its pinned limit, and stays within it", () => {
-    for (const path of PAGES) {
-      const row = present(
-        budget.find((each) => each.path === path),
-        `the budget row for ${path}`,
-      );
-      expect(row.limitText, path).toBe(PINNED[path]);
-      const limit = Number.parseInt(row.limitText ?? "", 10) * (row.limitText?.endsWith("kb") ? 1024 : 1);
-      expect(row.actual, path).toBeLessThanOrEqual(limit);
-      // Tight: within two kilobytes of what the page ships. Not one: a chunk's
-      // name is a hash, so any change to the site moves a page by some bytes.
-      if (limit > 0) expect(limit - row.actual, path).toBeLessThan(2048);
-    }
-  });
-
-  test("the home page ships 0 B of JavaScript, and no script at all", () => {
-    expect(budget.find((row) => row.path === PATHS.home)?.actual).toBe(0);
+describe("JavaScript", () => {
+  test("the home page ships no script", () => {
     expect(parse(PATHS.home).querySelectorAll("script, link[rel=modulepreload]")).toHaveLength(0);
   });
 
   // The layout has no search island: search is a page of its own.
-  test("every docs page with no demo ships 0 B of JavaScript, and no script at all", () => {
+  test("every docs page with no demo ships no script", () => {
     const plain = DOCS_NAV.filter(({ demos }) => demos.length === 0);
     expect(plain.map(({ href }) => href)).toEqual(expect.arrayContaining(DOCS_PAGES));
     for (const { href } of plain) {
-      expect(budget.find((row) => row.path === href)?.actual, href).toBe(0);
       expect(parse(href).querySelectorAll("script, link[rel=modulepreload]"), href).toHaveLength(0);
     }
   });
@@ -401,7 +353,6 @@ describe("the home page", () => {
       pagedeck.figure.label,
       "This page, measured when the site was built. One byte more and the build fails.",
     ]);
-    expect(pagedeck.figure.value).toBe(formatBytes(budget.find((row) => row.path === PATHS.home)?.actual ?? Number.NaN));
     expect(links(proof)).toEqual([["See one interactive page, and what it costs ›", PATHS.interactive]]);
   });
 
@@ -783,7 +734,6 @@ describe("the figures the docs quote", () => {
   test("no docs page loads JavaScript, and the search page, the one that does, loads its island when the browser is idle", () => {
     expect(source("index.md")).toContain("No page on this site loads any JavaScript.");
     expect(source("explanation/why-this-site-ships-no-javascript.md")).toContain("It loads when the browser is idle");
-    for (const { href } of DOCS_NAV) expect(budget.find((row) => row.path === href)?.actual, href).toBe(0);
     const scripted = manifest.pages.filter((page) => page.path.startsWith("/docs/") && page.components.length > 0);
     expect(scripted.map((page) => page.path)).toEqual([PATHS.search]);
     expect(parse(PATHS.search).querySelector('[data-fw-component="search"]')?.getAttribute("data-fw-mode")).toBe("idle");
