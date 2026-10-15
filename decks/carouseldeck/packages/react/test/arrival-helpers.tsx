@@ -65,16 +65,64 @@ export function busy(ms: number) {
 // held is read back from the clock, not guessed from the deck: `sleep(260)`
 // taking 260ms, give or take a frame, is the precondition every delay in the
 // sweep relies on. A delay whose sleep overran by more than this retries, up
-// to this many tries, and skips rather than fails once every try still has.
+// to this many tries, and is skipped, on its own, rather than failed, once
+// every try still has.
 const PRECONDITION_OVERRUN_MS = 60;
 const PRECONDITION_TRIES = 3;
+
+/**
+ * One attempt at `delay`: renders `deck`, presses `button`, waits `delay`
+ * (through `wait`, `sleep`'s own stand-in), presses `button` again, then
+ * holds the main thread `busyMs`. Reports whether `wait(delay)` held: the
+ * precondition the caller retries or skips on.
+ */
+async function pressTwiceOnce(
+  deck: () => ReactNode,
+  button: 'Next' | 'Previous',
+  delay: number,
+  busyMs: number,
+  wait: (ms: number) => Promise<unknown>
+) {
+  const onIndexChange = vi.fn();
+  const { unmount } = render(
+    <OnIndexChange.Provider value={onIndexChange}>
+      {deck()}
+    </OnIndexChange.Provider>
+  );
+  const root = screen.getByRole('region', { name: 'Test deck' });
+  const viewport = viewportOf(root);
+  const press = screen.getByRole('button', { name: button });
+
+  const before = performance.now();
+  press.click();
+  await wait(delay);
+  // The precondition: `wait(delay)` took about `delay`, so the second press
+  // still lands where this delay means it to, before the first's scroll has
+  // had the run of a starved runner's extra time to settle.
+  const overran = performance.now() - before - delay;
+  press.click();
+  // Read after the press: the new scroll has yet to move.
+  const pressedAt = viewport.scrollLeft;
+  busy(busyMs);
+
+  return { root, viewport, onIndexChange, unmount, pressedAt, overran };
+}
 
 /**
  * Renders `deck`, starting on the slide labelled `start`, and at every delay
  * presses `button` twice that far apart, one deck each: the deck must rest on
  * the page `expected`, of `pageSize` slides, every time `delay` holds. With
  * `busyMs`, a long task holds the main thread that long right after the
- * second press.
+ * second press. With `sleep`, used in place of the module's own to wait out
+ * each delay: a test gives one that runs long for the delays it chooses, to
+ * start the starvation this sweep otherwise waits on a loaded runner for
+ * (#124).
+ *
+ * A delay whose `sleep` overran on every try (see `PRECONDITION_TRIES`)
+ * never reached the case it means to test, so it is skipped, on its own,
+ * rather than failed: the sweep goes on to the next delay instead of
+ * aborting. Only once every delay has been skipped this way does the whole
+ * case skip, with a message listing them.
  */
 export async function pressTwiceAtEveryDelay(
   ctx: TestContext,
@@ -82,52 +130,32 @@ export async function pressTwiceAtEveryDelay(
   start: string,
   button: 'Next' | 'Previous',
   expected: string,
-  { pageSize = 1, delays = DELAYS, busyMs = 0 } = {}
+  { pageSize = 1, delays = DELAYS, busyMs = 0, sleep: wait = sleep } = {}
 ) {
   let arrived = 0;
+  const skipped: number[] = [];
+
   for (const delay of delays) {
-    let onIndexChange = vi.fn();
-    let root!: HTMLElement;
-    let viewport!: HTMLElement;
-    let unmount = () => {};
-    let pressedAt = 0;
-    let overran = Infinity;
-
-    for (let tries = 1; tries <= PRECONDITION_TRIES; tries++) {
-      onIndexChange = vi.fn();
-      ({ unmount } = render(
-        <OnIndexChange.Provider value={onIndexChange}>
-          {deck()}
-        </OnIndexChange.Provider>
-      ));
-      root = screen.getByRole('region', { name: 'Test deck' });
-      viewport = viewportOf(root);
-      const press = screen.getByRole('button', { name: button });
-
-      const before = performance.now();
-      press.click();
-      await sleep(delay);
-      // The precondition: `sleep(delay)` took about `delay`, so the second
-      // press still lands where this delay means it to, before the first's
-      // scroll has had the run of a starved runner's extra time to settle.
-      overran = performance.now() - before - delay;
-      press.click();
-      // Read after the press: the new scroll has yet to move.
-      pressedAt = viewport.scrollLeft;
-      busy(busyMs);
-
-      if (overran <= PRECONDITION_OVERRUN_MS || tries === PRECONDITION_TRIES) {
-        break;
-      }
-      unmount();
+    let attempt = await pressTwiceOnce(deck, button, delay, busyMs, wait);
+    for (
+      let tries = 1;
+      attempt.overran > PRECONDITION_OVERRUN_MS && tries < PRECONDITION_TRIES;
+      tries++
+    ) {
+      attempt.unmount();
+      attempt = await pressTwiceOnce(deck, button, delay, busyMs, wait);
     }
 
-    if (overran > PRECONDITION_OVERRUN_MS) {
-      ctx.skip(
-        `delay ${delay}ms: sleep(${delay}) overran by ${Math.round(overran)}ms on every try (a starved runner), so the press landed later than this delay means to`
+    if (attempt.overran > PRECONDITION_OVERRUN_MS) {
+      await ctx.annotate(
+        `delay ${delay}ms: sleep(${delay}) overran by ${Math.round(attempt.overran)}ms on every try (a starved runner), so the press landed later than this delay means to; skipped`
       );
+      skipped.push(delay);
+      attempt.unmount();
+      continue;
     }
 
+    const { root, viewport, onIndexChange, unmount, pressedAt } = attempt;
     await expectRestOnASlide(viewport, root, onIndexChange, pageSize);
     expect({ delay, index: root.dataset.index }).toEqual({
       delay,
@@ -138,5 +166,16 @@ export async function pressTwiceAtEveryDelay(
     }
     unmount();
   }
+
+  if (skipped.length === delays.length) {
+    ctx.skip(
+      `every delay's sleep overran by more than ${PRECONDITION_OVERRUN_MS}ms on every try (a starved runner): ${skipped.join('ms, ')}ms`
+    );
+  }
+
+  // Counts only the delays that ran: one skipped for its precondition never
+  // holding adds neither a hit nor a miss, so skipping delays alone never
+  // fails this. It still fails if every delay that did run missed the race
+  // the sweep exists to catch.
   expect(arrived).toBeGreaterThan(0);
 }

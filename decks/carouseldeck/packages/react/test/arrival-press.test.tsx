@@ -1,8 +1,16 @@
-import { beforeEach, describe, expect, test } from 'vitest';
-import { addStyle, pagesOf, parkMouse, withoutScrollEnd } from './fixtures';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 import {
+  addStyle,
+  pagesOf,
+  parkMouse,
+  sleep,
+  withoutScrollEnd
+} from './fixtures';
+import {
+  DELAYS,
   SWEEP_MS,
   Uncontrolled,
+  busy,
   pressTwiceAtEveryDelay
 } from './arrival-helpers';
 
@@ -101,6 +109,44 @@ describe('a press as the deck arrives, before its scroll ends', () => {
         '3',
         { pageSize: 3 }
       );
+    },
+    SWEEP_MS
+  );
+});
+
+// Local CPU load never starved this suite's own runner (#124): proved
+// instead, by starving it on purpose. `sleep` stands in for three delays,
+// holding the main thread 300ms past each, well past the sweep's own
+// PRECONDITION_OVERRUN_MS -- the same shape of overrun a starved CI runner
+// hit (519s for this file, `expected 300 to be less than 1`).
+describe('a delay whose own sleep overran, as a starved runner steals it (#124)', () => {
+  test(
+    'is skipped, not failed, and the sweep goes on to the rest',
+    async (ctx) => {
+      const late = new Set([DELAYS[0], DELAYS[10], DELAYS[20]]);
+      const annotate = vi.spyOn(ctx, 'annotate');
+
+      await pressTwiceAtEveryDelay(
+        ctx,
+        () => <Uncontrolled />,
+        '1 of 5',
+        'Next',
+        '2',
+        {
+          sleep: async (ms) => {
+            await sleep(ms);
+            if (late.has(ms)) busy(300);
+          }
+        }
+      );
+
+      const skippedDelays = new Set(
+        annotate.mock.calls
+          .map(([message]) => String(message))
+          .filter((message) => message.endsWith('skipped'))
+          .map((message) => Number(message.match(/^delay (\d+)ms:/)?.[1]))
+      );
+      expect(skippedDelays).toEqual(late);
     },
     SWEEP_MS
   );
