@@ -747,6 +747,23 @@ export function createDeck(
   let resnapFrom: number | null = null;
   // Waiting for quiet to confirm a re-snap, then due once it has.
   let confirm: 'waiting' | 'due' | null = null;
+  // Whether the viewport is already resting on a snap point -- a slide's
+  // own, or with loop a copy's -- within a pixel (#163): used both to skip
+  // `resnap` below and to tell quiet a scroll clamped there, with no
+  // `scrollend` or `scrollsnapchange` of its own to confirm it, has nowhere
+  // left to be cut short from.
+  const restsOnSnapPoint = (along: Axis) => {
+    const at = along.position;
+    const restOf = snapRest(viewport, along);
+    const copyRestOf = snapRest(viewport, along, false);
+    const { slides, boxes, first } = slidesOf(viewport);
+    return boxes.some((box, i) => {
+      const own = i >= first && i < first + slides.length;
+      const rest = (own ? restOf : copyRestOf)(box);
+      return rest !== null && Math.abs(rest - at) <= 1;
+    });
+  };
+
   const resnap = (along: Axis, geometry: Geometry) => {
     const at = along.position;
     const count = geometry.points.length;
@@ -762,16 +779,7 @@ export function createDeck(
     // is no rest: the browser rests it at the end, but the deck could not
     // jump off it, as its slide a set back would rest on no snap point
     // (#48). So a deck there re-snaps to one within the scroll range.
-    const restOf = snapRest(viewport, along);
-    const copyRestOf = snapRest(viewport, along, false);
-    const { slides, boxes, first } = slidesOf(viewport);
-    if (
-      boxes.some((box, i) => {
-        const own = i >= first && i < first + slides.length;
-        const rest = (own ? restOf : copyRestOf)(box);
-        return rest !== null && Math.abs(rest - at) <= 1;
-      })
-    ) {
+    if (restsOnSnapPoint(along)) {
       resnapFrom = null;
       taken = null;
       confirm = null;
@@ -955,11 +963,22 @@ export function createDeck(
     // Nothing scrolled since the last end, or a scroll the engine did not
     // start, which ends at its own end event: but one a refresh found going
     // ends here, unless it is the user's (see `refreshOwed`), and so does
-    // one whose end a wheel's shift took for its own (see `shifted`).
+    // one whose end a wheel's shift took for its own (see `shifted`). A
+    // key scroll already resting on a snap point is the one exception
+    // (#163): unlike a wheel or pointer gesture, which can always still be
+    // going -- a finger yet to lift -- a key has nothing left to wait on
+    // once it is quiet, so settling it here never cuts it short, where a
+    // rapid run of presses can otherwise end clamped on a point with no
+    // `scrollend` or `scrollsnapchange` of its own to confirm it. `onScroll`
+    // re-arms this quiet for as long as the key scroll keeps scrolling, so
+    // it only checks the rest once the viewport has actually gone still.
     else if (
       !move &&
       !shifted?.ended &&
-      (!scrolling || (hasScrollEnd && (!refreshOwed || userScroll)))
+      (!scrolling ||
+        (hasScrollEnd &&
+          (!refreshOwed || userScroll) &&
+          !(keyScroll && restsOnSnapPoint(axis()))))
     ) {
       refreshOwed = false;
       return;
@@ -992,7 +1011,12 @@ export function createDeck(
     // The user's scroll goes on from the shift: its end is to come.
     if (shifted && Math.abs(axis().position - shifted.at) >= 1) shifted = null;
     if (move) move.stalled = false;
-    if (!hasScrollEnd || move || confirm || refreshOwed) awaitQuiet();
+    // A key scroll re-arms quiet on every scroll event too (#163): its rest
+    // check above only means something once the scroll itself has stopped,
+    // not merely 100ms after the key that started it.
+    if (!hasScrollEnd || move || confirm || refreshOwed || keyScroll) {
+      awaitQuiet();
+    }
   };
   // A scroll whose end event never comes must not leave `scrolling` set for
   // good: a refresh would then only paint, a settle owed to a pointer would
@@ -1020,6 +1044,16 @@ export function createDeck(
   // at quiet, and makes no later scroll the user's.
   let userInput = false;
   let userScroll = false;
+  // Whether the user's current input is a keyboard key, not a wheel or
+  // pointer gesture (#163): a key has no finger left resting on it once it
+  // stops, unlike those, so once a key scroll is quiet and already on a
+  // snap point, quiet may settle it with no `scrollend` or
+  // `scrollsnapchange` of its own to confirm it -- a rapid run of key
+  // presses can leave its last one clamped with neither. Set by every
+  // `takeOver`, so a later wheel or pointer gesture clears it as surely as
+  // a key sets it, and cleared once it settles (`scrollEnded`), so a later
+  // scroll of the engine's own does not inherit its re-arming of quiet.
+  let keyScroll = false;
   // Whether the engine's own jump off a copy (`jumpOffCopies`) has a scroll
   // still pending with the browser: set where it starts that scroll,
   // cleared once it ends (`scrollEnded`) or the user takes the deck over
@@ -1053,15 +1087,21 @@ export function createDeck(
   // where the input says. It also ends the wait for a re-snap, and its way
   // is the one a re-snap then goes: the user's scroll settles at its own
   // end.
-  const takeOver = (way = 0) => {
+  const takeOver = (way = 0, key = false) => {
     if (move || confirm) taken = { at: axis().position, way };
     confirm = null;
     userInput = true;
+    keyScroll = key;
     jumping = false;
     endMove();
     // Quiet still ends what a refresh is owed, if this input scrolls
-    // nothing, and ends the input.
-    if (!userScroll) awaitQuiet();
+    // nothing, and ends the input. A key re-arms it on every press, not
+    // only the gesture's first (#163): `endMove` just stopped whatever
+    // quiet an already-going scroll was relying on, and a rapid run of key
+    // presses keeps `userScroll` true throughout, so only re-arming here
+    // ever gives it another chance to confirm a scroll `restsOnSnapPoint`
+    // left with no end event of its own.
+    if (!userScroll || key) awaitQuiet();
   };
 
   // Pointers pressed on the viewport, by id, with their type, until they
@@ -1191,6 +1231,10 @@ export function createDeck(
     }
     scrolling = false;
     jumping = false;
+    // The key scroll this settles, if any, is over: a later scroll with
+    // nothing to do with it, the engine's own included, must not inherit
+    // its re-arming of quiet (#163).
+    keyScroll = false;
     // A new layout may have moved the snap points under a move or the jump
     // still going (`relaidOut`): rest on the move's target, or the jump's,
     // the current index.
@@ -1271,7 +1315,7 @@ export function createDeck(
     ) {
       return;
     }
-    takeOver();
+    takeOver(0, true);
     followViewport(USER_SCROLL_MS);
   };
   const onPointerCancel = (event: PointerEvent) => {
