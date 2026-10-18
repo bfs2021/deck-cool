@@ -25,6 +25,32 @@ const RADIUS = 4;
 // progress at: there, every slide but the focal one has turned a quarter.
 const MIN_RADIUS = 0.001;
 
+// abs() spelled with max() for older browsers: shared by both fades.
+const abs = (v: string) => `max(${v},-1*${v})`;
+const absP = abs(p);
+// The radius-based fade, today's: 1 at the focal position, 0 a radius away.
+const radiusFade = `(1 - ${abs(x)})`;
+// Opt into a fade that follows the viewport instead of the radius with
+// `--deck-curve-fade-view: 1` (#179); a keyword switch would need style
+// queries, which Firefox lacks, so the switch is a plain number. 0, its
+// default, keeps the radius-based fade.
+const fadeSwitch = 'clamp(0,var(--deck-curve-fade-view,0),1)';
+// 1 once `--deck-viewport-span` has been measured, 0 before: span is never
+// negative, so a sentinel of -1 reads as "unset" through the same step
+// trick the stack effect uses, a clamp with a large multiplier, rather than
+// sign(): older Chromium (before 138) lacks sign(), which would make the
+// whole opacity declaration invalid at computed-value time and leave every
+// curve slide at opacity 1, switch off included.
+const spanMeasured = 'clamp(0,(var(--deck-viewport-span,-1) + 1)*1000000,1)';
+const fadeByView = 'var(--carouseldeck-curve-fade-by-view)';
+// A slide is approximated as one step wide (--deck-viewport-step), the gap
+// left out: its own half-width is then always 0.5, the same unit
+// --deck-viewport-span counts in, and the viewport's own half-width is
+// --deck-viewport-span / 2. Fully opaque while at least half the slide is in
+// view (its centre within half-view of the focal position), 0 once it is
+// fully out (half-view + 0.5 away): clamp(0, span + 1 - 2·|progress|, 1).
+const viewFade = `clamp(0,calc(var(--deck-viewport-span,0) + 1 - 2*${absP}),1)`;
+
 const css =
   `:where(${slide}){` +
   '--carouseldeck-curve-progress:var(--deck-slide-progress,0);' +
@@ -33,8 +59,12 @@ const css =
   `--carouseldeck-curve-turn:asin(${x});` +
   `--carouseldeck-curve-drop:calc(${r}*(1 - sqrt(1 - ${x}*${x})));` +
   '--carouseldeck-curve-sign:1;' +
-  // abs() spelled with max() for older browsers.
-  `opacity:calc(1 - max(${x},-1*${x}))}` +
+  `--carouseldeck-curve-fade-by-view:calc(${fadeSwitch}*${spanMeasured});` +
+  `opacity:calc(${fadeByView}*(${viewFade}) + (1 - ${fadeByView})*${radiusFade});` +
+  // Highest at the focal position, lower as the distance from it grows, the
+  // same on both sides (#179), following the stack effect's shape
+  // (ADR-0012).
+  `z-index:calc(1000 - ${absP}*10)}` +
   `:where(${slide}:dir(rtl)){--carouseldeck-curve-sign:-1}` +
   // Rotation is about the content's centre, and the drop is across the axis.
   // A drop in slides is a percentage of the content's width, a slide's where
@@ -76,6 +106,15 @@ const css =
  * vertical deck's arc bends toward the inline end, and a right-to-left deck's
  * mirrors. Under reduced motion the content stays flat
  * and the slides only fade.
+ *
+ * The slides paint by distance from the focal slide, highest on top, the
+ * same on both sides, in the same zero-specificity rules as the rest of its
+ * CSS: your CSS overrides it.
+ *
+ * Set `--deck-curve-fade-view: 1` to fade a slide by how much of it is in
+ * the viewport instead of its distance from the focal slide: fully opaque
+ * while at least half of it is in view, 0 once it is fully out. Before
+ * the deck has measured, the radius-based fade stands.
  */
 export const curve: Effect = {
   name: 'curve',
