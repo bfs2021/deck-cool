@@ -1,12 +1,16 @@
-// `react/jsx-runtime` for @carouseldeck/react's source, built for React 18:
-// the host elements React 19 renders differently, rendered as it does.
+// `react/jsx-runtime` for @carouseldeck/react's source, built for React 18
+// and 19: a host element each version renders differently, rendered as that
+// version needs.
 import {
   Fragment,
   jsx as reactJsx,
   jsxs as reactJsxs
 } from 'react/jsx-runtime';
+import { isReact18 as isReact18Version, version } from './react-version';
 
 export { Fragment };
+
+const isReact18 = isReact18Version(version);
 
 type Props = Record<string, unknown> & { children?: unknown };
 type Jsx = typeof reactJsx;
@@ -21,8 +25,9 @@ function adapt(create: Jsx): Jsx {
     if (typeof type !== 'string') return create(type, config, key);
     let props = config as Props;
     // React 18 does not know `inert`: it sets a string, and drops a boolean.
-    // A consumer's `inert=""`, as React 18 writes it, stays inert.
-    if ('inert' in props) {
+    // A consumer's `inert=""`, as React 18 writes it, stays inert. React 19
+    // knows it as a boolean already, so this is left alone there.
+    if (isReact18 && 'inert' in props) {
       const inert = props.inert === '' || Boolean(props.inert);
       props = { ...props, inert: inert ? '' : undefined };
     }
