@@ -1,9 +1,11 @@
-import { useEffect, useRef, type ComponentProps } from 'react';
+import { Profiler, useEffect, useRef, type ComponentProps } from 'react';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, onTestFinished, test, vi } from 'vitest';
 import { userEvent } from 'vitest/browser';
 import * as Deck from '@carouseldeck/react';
-import { createDeck } from '@carouseldeck/core';
+import { fade } from '@carouseldeck/react/fade';
+import { stack } from '@carouseldeck/react/stack';
+import { createDeck, type DeckState } from '@carouseldeck/core';
 import {
   addStyle,
   CENTRED,
@@ -1702,6 +1704,479 @@ describe('one instance: fallback to copies', () => {
       expect(probe.dataset.copy).toBe('none');
     }
   });
+});
+
+// #196: at the boundary where a looping deck's run is about as wide as its
+// viewport, `snapPoints` finds nothing to loop (ADR-0009) from whichever of
+// shells, copies or neither is currently mounted. Before this, the "nothing
+// to loop" check only read the DOM it was called against: the slide-to-its-
+// copy distance where shells or copies are mounted, 0 otherwise. So a
+// settle against a plain DOM (reached because a settle a moment before
+// already dropped loop's own markup) read the run's length differently, and
+// `fallbackToCopies` published `copies: true` from a still-mounted shells
+// placement even where `snapPoints`, in the very same settle, already found
+// nothing to loop. A bled viewport (the padding recipe, #177) can leave a
+// plain deck with real, if small, scrollable room the shells-mounted
+// measurement never sees, so the two never agreed there, and `copies`
+// alternated every settle, forever: React's own nested-update limit then
+// throws "Maximum update depth exceeded".
+describe('one instance: nothing to loop never oscillates (#196)', () => {
+  // The bleed recipe (#177, prototypes/viewport-bleed/FINDINGS.md question
+  // 4): a full-width page holding a narrower centred column, the viewport's
+  // own `--inset` bleeding it to the page while keeping the slides where
+  // they would be without it. The page is a literal width, not `100%`, so
+  // the test is independent of the real browser window's own size; 1011px
+  // and a 400px column, 6 slides, reproduces the exact boundary
+  // `prototypes/viewport-bleed/width-sweep.mjs` found against `bleed--loop`.
+  const bleedCss = `
+    .bleed196-page { width: 1011px; container-type: inline-size; }
+    .bleed196-column { width: 400px; margin-inline: auto; }
+    .bleed196-column .bleed196-viewport {
+      --inset: calc((100cqi - 400px) / 2);
+      margin-inline: calc(-1 * var(--inset));
+      padding-inline: var(--inset);
+      scroll-padding-inline: var(--inset);
+      gap: 16px;
+    }
+    .bleed196-slide {
+      width: calc((100% - 2 * 16px) / 2.5);
+      scroll-snap-align: start;
+    }
+  `;
+
+  /** Re-renders whenever the deck does, so `onRender` sees every settle a
+   * runaway would cascade through, even one React never paints (ADR-0013's
+   * "no script per frame" tests use the same `Deck.useDeck` subscription to
+   * read a settle's own effect, never a scroll). */
+  function RenderProbe() {
+    Deck.useDeck();
+    return null;
+  }
+
+  test('a looping deck bled past its column, past the boundary, settles with no "Maximum update depth exceeded"', async () => {
+    addStyle(bleedCss);
+    const consoleError = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => {});
+    onTestFinished(() => consoleError.mockRestore());
+    let renders = 0;
+
+    render(
+      <div className="bleed196-page">
+        <div className="bleed196-column">
+          <Deck.Root aria-label="Test deck" loop>
+            <Deck.Viewport className="bleed196-viewport">
+              {Array.from({ length: 6 }, (_, i) => (
+                <Deck.Slide key={i} className="bleed196-slide">
+                  Slide {i + 1}
+                </Deck.Slide>
+              ))}
+            </Deck.Viewport>
+            <Deck.Prev />
+            <Deck.Next />
+            <Profiler id="probe-196" onRender={() => renders++}>
+              <RenderProbe />
+            </Profiler>
+          </Deck.Root>
+        </div>
+      </div>
+    );
+    await sleep(1000);
+
+    // A runaway settle loop reports this message, from `keepPlace` ->
+    // `restOn` -> `settle` -> `publish`, every time React's own
+    // nested-update limit catches it; a genuine settle needs only a
+    // handful of renders, nowhere near that limit.
+    expect(
+      consoleError.mock.calls.some(([message]) =>
+        /maximum update depth exceeded/i.test(String(message))
+      )
+    ).toBe(false);
+    expect(renders).toBeLessThan(20);
+    const root = screen.getByRole('region', { name: 'Test deck' });
+    expect(root.dataset.index).toBe('0');
+  });
+
+  test('the unbled control deck at the same boundary publishes one count and one copies value from the first settle on', async () => {
+    // Built directly on `@carouseldeck/core` (as "the start re-check is
+    // scoped to shells", above), so the engine's own `onChange` is read
+    // directly rather than through `loop`'s React-side gate, which drops
+    // both `shells` and `copies` once `count` is 1 regardless of `copies`
+    // itself (`everySlideFits`): the one place `copies`'s own disagreement
+    // would otherwise go unobserved. Mounted already carrying shells, the
+    // same guess a real `Deck.Viewport` renders first (`copies: false`
+    // unmeasured); 6 slides at 145px with a 16px gap, a run of 950px, under
+    // a 1011px viewport with no bleed CSS at all, comfortably past the
+    // "nothing to loop" boundary (ADR-0009), and nowhere near ADR-0013's own
+    // shells-or-copies one, so this is `snapPoints`'s own stability, not
+    // `fallbackToCopies`'s.
+    // A real stylesheet rule, not an inline style: shells mode's own
+    // `alignCopies` clears a real slide's inline `scroll-snap-align` and
+    // rereads its computed value to copy onto its shells, so an inline
+    // value here would only ever be cleared, never read.
+    addStyle('[data-carouseldeck-slide] { scroll-snap-align: start; }');
+    const viewport = document.createElement('div');
+    Object.assign(viewport.style, {
+      display: 'flex',
+      overflowX: 'auto',
+      scrollSnapType: 'x mandatory',
+      width: '1011px',
+      gap: '16px'
+    });
+    const slides: HTMLElement[] = [];
+    for (let i = 0; i < 6; i++) {
+      const slide = document.createElement('div');
+      slide.setAttribute('data-carouseldeck-slide', '');
+      Object.assign(slide.style, {
+        flexShrink: '0',
+        width: '145px',
+        height: '10px'
+      });
+      slides.push(slide);
+      viewport.append(slide);
+    }
+    for (const set of [-2, -1, 0, 1, 2]) {
+      for (let i = 0; i < slides.length; i++) {
+        const shell = document.createElement('div');
+        shell.setAttribute('data-carouseldeck-shell', String(set));
+        Object.assign(shell.style, {
+          position: 'absolute',
+          insetInlineStart: '0',
+          width: '145px',
+          height: '10px',
+          scrollSnapAlign: 'start'
+        });
+        viewport.append(shell);
+      }
+    }
+    document.body.append(viewport);
+    onTestFinished(() => viewport.remove());
+
+    const states: DeckState[] = [];
+    const engine = createDeck(viewport, {
+      index: 0,
+      // This deck's own loop never turns off (only its DOM, as `Viewport`
+      // would once `count` drops shells): `loop` itself says so
+      // throughout (#196 code review), the same way a mounted `loop`
+      // prop would.
+      loop: true,
+      onChange: (state) => states.push({ ...state })
+    });
+    onTestFinished(() => engine.destroy());
+    await nextFrame();
+    await nextFrame();
+    await sleep(300);
+
+    expect(states.length).toBeGreaterThan(0);
+    expect(states[0].count).toBe(1);
+    expect(states[0].copies).toBe(false);
+
+    // Drop the shells, as `Deck.Viewport` would once `count` turns `loop`
+    // off, and let the engine re-measure the plain slides alone.
+    for (const shell of [
+      ...viewport.querySelectorAll('[data-carouseldeck-shell]')
+    ]) {
+      shell.remove();
+    }
+    engine.refresh();
+    await nextFrame();
+    await sleep(300);
+
+    expect(new Set(states.map((state) => state.count))).toEqual(new Set([1]));
+    expect(new Set(states.map((state) => state.copies))).toEqual(
+      new Set([false])
+    );
+  });
+});
+
+// Code review on #196: the fix above kept a sticky `hasLooped` flag, set
+// once a looping deck's own DOM had shown shells or copies, and never
+// cleared. React keeps the same engine across a `loop` change (the
+// `createDeck` effect depends only on `initialIndex`), so a deck that
+// looped once and then turns `loop` off kept measuring with the real
+// slides' own run length anyway: under bleed, where that run comfortably
+// fits the viewport's own bled, padded width, this collapsed its snap
+// points to one, where a deck that never looped reports several (the
+// padding alone gives it real, if small, room to rest at more than one
+// place). The engine now takes `loop` itself, kept by `setLoop`, the same
+// pattern `orientation` and `setOrientation` already have: "is there room
+// to loop" depends on that alone, never on what is currently mounted.
+
+describe('one instance: loop reads from the `loop` prop, not from what is mounted (#196 code review)', () => {
+  /** Reports `useDeck()`'s own `count` on every change it sees, including
+   * one a parent never re-renders for. */
+  function CountProbe({
+    onCount
+  }: {
+    onCount: (count: number | null) => void;
+  }) {
+    const { count } = Deck.useDeck();
+    useEffect(() => onCount(count), [count, onCount]);
+    return null;
+  }
+
+  function CountedDeck({
+    loop,
+    viewportClassName,
+    slideClassName,
+    slides = 6,
+    onCount
+  }: {
+    loop: boolean;
+    viewportClassName: string;
+    slideClassName: string;
+    slides?: number;
+    onCount: (count: number | null) => void;
+  }) {
+    return (
+      <Deck.Root aria-label="Test deck" loop={loop}>
+        <Deck.Viewport className={viewportClassName}>
+          {Array.from({ length: slides }, (_, i) => (
+            <Deck.Slide key={i} className={slideClassName}>
+              Slide {i + 1}
+            </Deck.Slide>
+          ))}
+        </Deck.Viewport>
+        <CountProbe onCount={onCount} />
+      </Deck.Root>
+    );
+  }
+
+  test('turning loop off settles like a deck that never looped, under bleed padding', async () => {
+    // The bleed recipe (#177): a 1011px page holding a 400px centred
+    // column, the viewport bled to the page's own width while the slides
+    // stay where they would be without it. `scroll-padding-inline` gives
+    // a plain, non-looping deck here real, if small, room to rest at more
+    // than one place -- "several" below -- which `runLength`'s own
+    // formula, reading only the real slides' boxes, never sees: the bug
+    // this guards against mistook that padding-given room for "nothing to
+    // loop" once a deck had ever looped.
+    addStyle(`
+      .loopprop196-page { width: 1011px; container-type: inline-size; }
+      .loopprop196-column { width: 400px; margin-inline: auto; }
+      .loopprop196-column .loopprop196-viewport {
+        --inset: calc((100cqi - 400px) / 2);
+        margin-inline: calc(-1 * var(--inset));
+        padding-inline: var(--inset);
+        scroll-padding-inline: var(--inset);
+        gap: 16px;
+      }
+      .loopprop196-slide {
+        width: calc((100% - 2 * 16px) / 2.5);
+        scroll-snap-align: start;
+      }
+    `);
+
+    let turnedOffCount: number | null = null;
+    const { rerender } = render(
+      <div className="loopprop196-page">
+        <div className="loopprop196-column">
+          <CountedDeck
+            loop
+            viewportClassName="loopprop196-viewport"
+            slideClassName="loopprop196-slide"
+            onCount={(count) => {
+              turnedOffCount = count;
+            }}
+          />
+        </div>
+      </div>
+    );
+    await sleep(500);
+    rerender(
+      <div className="loopprop196-page">
+        <div className="loopprop196-column">
+          <CountedDeck
+            loop={false}
+            viewportClassName="loopprop196-viewport"
+            slideClassName="loopprop196-slide"
+            onCount={(count) => {
+              turnedOffCount = count;
+            }}
+          />
+        </div>
+      </div>
+    );
+    await sleep(500);
+
+    let neverLoopedCount: number | null = null;
+    render(
+      <div className="loopprop196-page">
+        <div className="loopprop196-column">
+          <CountedDeck
+            loop={false}
+            viewportClassName="loopprop196-viewport"
+            slideClassName="loopprop196-slide"
+            onCount={(count) => {
+              neverLoopedCount = count;
+            }}
+          />
+        </div>
+      </div>
+    );
+    await sleep(500);
+
+    expect(neverLoopedCount).toBeGreaterThan(1);
+    expect(turnedOffCount).toBe(neverLoopedCount);
+  });
+
+  test('turning loop off settles like a deck that never looped, without bleed padding', async () => {
+    // No bled padding, so no real room beyond the slides themselves: the
+    // genuinely correct count is 1 either way. A guard that the fix above
+    // does not disturb the plain case.
+    addStyle(`
+      .loopprop196b-viewport { width: 1011px; gap: 16px; }
+      .loopprop196b-slide { width: 145px; flex-shrink: 0; }
+    `);
+
+    let turnedOffCount: number | null = null;
+    const { rerender } = render(
+      <CountedDeck
+        loop
+        viewportClassName="loopprop196b-viewport"
+        slideClassName="loopprop196b-slide"
+        onCount={(count) => {
+          turnedOffCount = count;
+        }}
+      />
+    );
+    await sleep(500);
+    rerender(
+      <CountedDeck
+        loop={false}
+        viewportClassName="loopprop196b-viewport"
+        slideClassName="loopprop196b-slide"
+        onCount={(count) => {
+          turnedOffCount = count;
+        }}
+      />
+    );
+    await sleep(500);
+
+    let neverLoopedCount: number | null = null;
+    render(
+      <CountedDeck
+        loop={false}
+        viewportClassName="loopprop196b-viewport"
+        slideClassName="loopprop196b-slide"
+        onCount={(count) => {
+          neverLoopedCount = count;
+        }}
+      />
+    );
+    await sleep(500);
+
+    expect(turnedOffCount).toBe(neverLoopedCount);
+  });
+
+  test('narrow, then wide past "nothing to loop", then narrow again: it loops again', async () => {
+    addStyle(`
+      .resize196 > [data-carouseldeck-slide] { width: 140px; flex-shrink: 0; }
+      .resize196 { gap: 16px; }
+    `);
+    // 5 slides at 140px plus 4 gaps at 16px: a run of 764px.
+    const { viewport } = renderShells({
+      slides: 5,
+      viewportClassName: 'resize196',
+      width: 300
+    });
+    await sleep(200);
+    expect(viewport.querySelectorAll('[data-carouseldeck-shell]')).toHaveLength(
+      25
+    );
+
+    viewport.style.width = '900px';
+    await expect
+      .poll(() => viewport.querySelectorAll('[data-carouseldeck-shell]').length)
+      .toBe(0);
+    await sleep(200);
+    expect(viewport.querySelectorAll('[data-carouseldeck-shell]')).toHaveLength(
+      0
+    );
+
+    viewport.style.width = '300px';
+    await expect
+      .poll(() => viewport.querySelectorAll('[data-carouseldeck-shell]').length)
+      .toBe(25);
+    await sleep(200);
+    expect(viewport.querySelectorAll('[data-carouseldeck-shell]')).toHaveLength(
+      25
+    );
+  });
+
+  function RenderProbeStacked() {
+    Deck.useDeck();
+    return null;
+  }
+
+  // A stacking effect's own run never comes near this boundary at all
+  // (checked directly: a Profiler-counted render stays at 2, with no
+  // "Maximum update depth exceeded", in Chromium and WebKit, at this exact
+  // bled boundary, for both effects). `stackedLayout` gives every snap
+  // target its own full grid track, one viewport wide, so `loopLength`'s
+  // `targeted` reading of a set's own length is always `n` viewport
+  // widths for `n` real slides -- `length - view` is then `(n - 1) *
+  // view`, under 1 only at `n <= 1`, already a trivial "nothing to loop"
+  // ADR-0009 already has right. A stacked, looping deck of two or more
+  // slides can never reach the narrow margin the rest of this file
+  // guards against, whatever a consumer's own slide CSS or the viewport's
+  // own padding does: kept here as a guard against that changing, not
+  // because today's run showed any instability.
+  for (const [name, effect] of [
+    ['fade', fade],
+    ['stack', stack]
+  ] as const) {
+    test(`a looping deck with effect={${name}}, under the bleed padding at the boundary, settles with no "Maximum update depth exceeded"`, async () => {
+      addStyle(`
+        .stacked196-page { width: 1011px; container-type: inline-size; }
+        .stacked196-column { width: 400px; margin-inline: auto; }
+        .stacked196-column .stacked196-viewport {
+          --inset: calc((100cqi - 400px) / 2);
+          margin-inline: calc(-1 * var(--inset));
+          padding-inline: var(--inset);
+          scroll-padding-inline: var(--inset);
+          gap: 16px;
+        }
+        .stacked196-slide {
+          width: calc((100% - 2 * 16px) / 2.5);
+        }
+      `);
+      const consoleError = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
+      onTestFinished(() => consoleError.mockRestore());
+      let renders = 0;
+
+      render(
+        <div className="stacked196-page">
+          <div className="stacked196-column">
+            <Deck.Root aria-label="Test deck" loop>
+              <Deck.Viewport className="stacked196-viewport" effect={effect}>
+                {Array.from({ length: 6 }, (_, i) => (
+                  <Deck.Slide key={i} className="stacked196-slide">
+                    Slide {i + 1}
+                  </Deck.Slide>
+                ))}
+              </Deck.Viewport>
+              <Profiler id={`probe-${name}-196`} onRender={() => renders++}>
+                <RenderProbeStacked />
+              </Profiler>
+            </Deck.Root>
+          </div>
+        </div>
+      );
+      await sleep(1000);
+
+      expect(
+        consoleError.mock.calls.some(([message]) =>
+          /maximum update depth exceeded/i.test(String(message))
+        )
+      ).toBe(false);
+      expect(renders).toBeLessThan(20);
+      const root = screen.getByRole('region', { name: 'Test deck' });
+      expect(root.dataset.index).toBe('0');
+    });
+  }
 });
 
 // ADR-0013, "The resize compensation" (#144): a resize that moves L, and
