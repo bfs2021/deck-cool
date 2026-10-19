@@ -2015,6 +2015,32 @@ main .docs-sidebar a {
   outline-offset: -3px;
 }
 
+/* Let slides extend past the viewport: the column's own width, repeated in
+   --bleed-inset, keeps the margin, the padding and the scroll padding in
+   step. */
+.example-viewport-bleed {
+  width: 100%;
+  container-type: inline-size;
+}
+
+.example-viewport-bleed-column {
+  width: min(90cqi, 960px);
+  margin-inline: auto;
+}
+
+.example-viewport-bleed-column [data-carouseldeck-viewport] {
+  --bleed-inset: max(0px, calc((100cqi - min(90cqi, 960px)) / 2));
+  gap: 16px;
+  margin-inline: calc(-1 * var(--bleed-inset));
+  padding-inline: var(--bleed-inset);
+  scroll-padding-inline: var(--bleed-inset);
+}
+
+.example-viewport-bleed-column [data-carouseldeck-slide] {
+  width: calc((100% - 2 * 16px) / 2.5);
+  scroll-snap-align: start;
+}
+
 /* Per breakpoint: three in view from 768px; below it, fade. */
 @media (min-width: 768px) {
   .example-per-breakpoint [data-carouseldeck-viewport] {

@@ -37,7 +37,8 @@ for (const id of [
   'bleed--fade',
   'bleed--stack',
   'bleed--curve',
-  'bleed--loop-shells'
+  'bleed--loop-shells',
+  'recipes--viewport-bleed'
 ]) {
   test(`${id}: passes axe`, async ({ page }) => {
     await openStory(page, id);
@@ -183,4 +184,32 @@ test('bleed--loop-shells: wraps around onto the column, not the page', async ({
   await expect
     .poll(() => slideLeft(page, 'data-current'))
     .toBe(Math.round(col));
+});
+
+// #177's recipe: `apps/storybook/stories/recipes/viewport-bleed.css`, quoted
+// byte for byte in `packages/docs/recipes/viewport-bleed.md`. Its snapping
+// is the same mechanic `bleed--plain`'s own "snaps to the column, not the
+// page" tests already cover, on the same CSS: no second test repeats that
+// here, only what is specific to this story, that the bleed actually makes
+// a slide past the column visible.
+
+test('recipes--viewport-bleed: a slide past the column is visible beyond it', async ({
+  page
+}) => {
+  await openStory(page, 'recipes--viewport-bleed');
+  const column = page.locator('.column');
+  const columnRight = await column.evaluate(
+    (el) => el.getBoundingClientRect().right
+  );
+  // At rest, 2.5 slides fit the column: the first two fill it and the third
+  // straddles its edge, so it is still partly inside the column, where
+  // toBeInViewport would pass on that unclipped half whether or not the
+  // bleed CSS is there. The fourth slide sits wholly past the column, in
+  // the bled padding: only the bleed keeps it from being clipped at the
+  // column's edge.
+  const fourth = page.locator('[data-carouseldeck-slide]').nth(3);
+  const fourthBox = await fourth.boundingBox();
+  if (!fourthBox) throw new Error('the fourth slide has no box');
+  expect(fourthBox.x).toBeGreaterThan(columnRight);
+  await expect(fourth).toBeInViewport();
 });
