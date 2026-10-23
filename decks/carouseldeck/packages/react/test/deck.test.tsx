@@ -553,3 +553,72 @@ describe('Prev and Next props from the consumer', () => {
     expect(prev.hasAttribute('disabled')).toBe(true);
   });
 });
+
+test('unmounting removes every listener the deck added to the viewport and the window', () => {
+  // Each listener added while the deck mounts, by its target, until a
+  // matching removeEventListener or its signal's abort takes it off.
+  const live = new Map<string, EventTarget>();
+  const ids = new WeakMap<object, number>();
+  let next = 0;
+  const id = (value: object) => {
+    if (!ids.has(value)) ids.set(value, ++next);
+    return ids.get(value);
+  };
+  const key = (
+    target: EventTarget,
+    type: string,
+    listener: object,
+    options?: boolean | EventListenerOptions
+  ) =>
+    [
+      id(target),
+      type,
+      id(listener),
+      typeof options === 'boolean' ? options : Boolean(options?.capture)
+    ].join(' ');
+  // Vitest's browser runner wraps the window's own addEventListener and
+  // removeEventListener, which bypass EventTarget.prototype's: both are spied.
+  const spies = [EventTarget.prototype, window].flatMap((owner) => {
+    const add = owner.addEventListener;
+    const remove = owner.removeEventListener;
+    return [
+      vi.spyOn(owner, 'addEventListener').mockImplementation(function (
+        this: EventTarget,
+        type: string,
+        listener: EventListenerOrEventListenerObject | null,
+        options?: boolean | AddEventListenerOptions
+      ) {
+        add.call(this, type, listener, options);
+        const signal = typeof options === 'object' ? options.signal : undefined;
+        if (!listener || signal?.aborted) return;
+        const added = key(this, type, listener, options);
+        live.set(added, this);
+        signal?.addEventListener('abort', () => live.delete(added));
+      }),
+      vi.spyOn(owner, 'removeEventListener').mockImplementation(function (
+        this: EventTarget,
+        type: string,
+        listener: EventListenerOrEventListenerObject | null,
+        options?: boolean | EventListenerOptions
+      ) {
+        remove.call(this, type, listener, options);
+        if (listener) live.delete(key(this, type, listener, options));
+      })
+    ];
+  });
+  try {
+    const { unmount } = render(<TestDeck />);
+    const viewport = viewportOf(screen.getByRole('region'));
+    const deck = () =>
+      [...live]
+        .filter(([, target]) => target === window || target === viewport)
+        .map(([added]) => added);
+    expect(deck().length).toBeGreaterThan(0);
+
+    unmount();
+
+    expect(deck()).toEqual([]);
+  } finally {
+    for (const spy of spies) spy.mockRestore();
+  }
+});

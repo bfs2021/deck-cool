@@ -1676,17 +1676,21 @@ export function createDeck(
     subtree: true
   });
 
+  // Every listener the deck adds for its whole life goes with this one
+  // abort, in `destroy`.
+  const listening = new AbortController();
+  const { signal } = listening;
   // `scrollsnapchange` reports a settled snap target where it exists, no
   // later than `scrollend`; `publish` drops whichever report comes second.
-  viewport.addEventListener('scroll', onScroll, { passive: true });
-  viewport.addEventListener('scrollsnapchange', onEnd);
-  viewport.addEventListener('scrollend', onEnd);
-  viewport.addEventListener('wheel', onWheel, { passive: true });
-  viewport.addEventListener('keydown', onKeyDown);
-  viewport.addEventListener('focusin', onFocusIn);
+  viewport.addEventListener('scroll', onScroll, { passive: true, signal });
+  viewport.addEventListener('scrollsnapchange', onEnd, { signal });
+  viewport.addEventListener('scrollend', onEnd, { signal });
+  viewport.addEventListener('wheel', onWheel, { passive: true, signal });
+  viewport.addEventListener('keydown', onKeyDown, { signal });
+  viewport.addEventListener('focusin', onFocusIn, { signal });
   // A media query can change which slides snap, as when a breakpoint changes
   // the page size, without resizing the viewport at all.
-  window.addEventListener('resize', refresh);
+  window.addEventListener('resize', refresh, { signal });
 
   // Mouse drag (ADR-0006). Touch, pen and trackpad scroll natively. While
   // the primary button drags, snapping is off and the pointer moves the
@@ -1835,18 +1839,18 @@ export function createDeck(
     if (pointer !== -1) event.preventDefault();
   };
 
-  viewport.addEventListener('pointerdown', onPointerDown);
-  viewport.addEventListener('pointermove', onPointerMove);
-  viewport.addEventListener('pointerup', onPointerUp);
-  viewport.addEventListener('pointercancel', onPointerCancel);
+  viewport.addEventListener('pointerdown', onPointerDown, { signal });
+  viewport.addEventListener('pointermove', onPointerMove, { signal });
+  viewport.addEventListener('pointerup', onPointerUp, { signal });
+  viewport.addEventListener('pointercancel', onPointerCancel, { signal });
   for (const type of WINDOW_POINTER) {
-    window.addEventListener(type, onWindowPointer, { capture: true });
+    window.addEventListener(type, onWindowPointer, { capture: true, signal });
   }
-  window.addEventListener('blur', onBlur);
-  window.addEventListener('touchend', onTouchEnd, { capture: true });
-  window.addEventListener('touchcancel', onTouchEnd, { capture: true });
-  viewport.addEventListener('lostpointercapture', onLostCapture);
-  viewport.addEventListener('dragstart', onDragStart);
+  window.addEventListener('blur', onBlur, { signal });
+  window.addEventListener('touchend', onTouchEnd, { capture: true, signal });
+  window.addEventListener('touchcancel', onTouchEnd, { capture: true, signal });
+  viewport.addEventListener('lostpointercapture', onLostCapture, { signal });
+  viewport.addEventListener('dragstart', onDragStart, { signal });
 
   let clickToFocus = false;
   // A bubbling listener: the click ending a drag is swallowed before it.
@@ -1891,7 +1895,7 @@ export function createDeck(
     const owner = pageOwner(viewport, along, slides, index);
     if (owner !== -1) scrollTo(slides[owner] + set * points.length, true);
   };
-  viewport.addEventListener('click', onClick);
+  viewport.addEventListener('click', onClick, { signal });
 
   // From the snap point a scroll in flight is heading to, if any. With loop,
   // a step from the last snap point goes on across the seam to the first.
@@ -1987,29 +1991,10 @@ export function createDeck(
       // any placer and its pin, on the CSS path (`forgetPlaced`).
       if (atDestroy.sets === 2) clearShells(atDestroy.slides, placedAt);
       if (timelines) forgetPlaced();
+      listening.abort();
       resizes.disconnect();
       dirs.disconnect();
-      window.removeEventListener('resize', refresh);
-      viewport.removeEventListener('scroll', onScroll);
-      viewport.removeEventListener('scrollsnapchange', onEnd);
-      viewport.removeEventListener('scrollend', onEnd);
-      viewport.removeEventListener('wheel', onWheel);
-      viewport.removeEventListener('keydown', onKeyDown);
-      viewport.removeEventListener('focusin', onFocusIn);
-      viewport.removeEventListener('pointerdown', onPointerDown);
-      viewport.removeEventListener('pointermove', onPointerMove);
-      viewport.removeEventListener('pointerup', onPointerUp);
-      viewport.removeEventListener('pointercancel', onPointerCancel);
-      for (const type of WINDOW_POINTER) {
-        window.removeEventListener(type, onWindowPointer, { capture: true });
-      }
-      window.removeEventListener('blur', onBlur);
-      window.removeEventListener('touchend', onTouchEnd, { capture: true });
-      window.removeEventListener('touchcancel', onTouchEnd, { capture: true });
       unholdTouch();
-      viewport.removeEventListener('lostpointercapture', onLostCapture);
-      viewport.removeEventListener('dragstart', onDragStart);
-      viewport.removeEventListener('click', onClick);
       restoreSnap();
     }
   };
