@@ -1,5 +1,11 @@
 # @carouseldeck/react-18
 
+## 1.5.3
+
+### Patch Changes
+
+- @carouseldeck/core@1.5.3
+
 ## 1.5.2
 
 ### Patch Changes

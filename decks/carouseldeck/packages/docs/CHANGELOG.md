@@ -1,5 +1,11 @@
 # @slidedeck/docs
 
+## 1.5.3
+
+### Patch Changes
+
+- d40ac98: The Compare page explains why carouseldeck is bigger than Embla and Keen: it ships the accessibility, controls and server HTML they leave to you, and lets the browser scroll.
+
 ## 1.5.2
 
 No changes in this release.
