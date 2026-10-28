@@ -262,7 +262,7 @@ Made by the maintainer on 2026-10-08.
 Made by the maintainer on 2026-10-09, in the #33 grilling. It covers deck.cool's home page and each package site's home page.
 
 - **Three audiences, equally.** Developers who install a deck, designers who decide how it looks, and AI coders: people building with coding agents, and the agents themselves. The hero speaks to all three in one sentence, with no line or tab per audience.
-- **The family line:** "It looks like you. It works like the browser." The sentence under it: "Unstyled React packages for carousels, video and sites. Bring your tokens, your CSS, or your agent. The hard parts are already done."
+- **The family line:** "Built on native elements. Works with the browser, not against it." The sentence under it: "React packages for carousels, video, drawers and sites, built on the browser's own scroll snap, <video> and <dialog>. The browser does the heavy lifting, so each deck ships little JavaScript, and none on a page with nothing interactive. No styles ship either: bring your tokens, your CSS, or your agent." The maintainer replaced the 2026-10-09 line ("It looks like you. It works like the browser.") on 2026-10-28, to say plainly that the decks are fast, built on native elements and unstyled.
 - **Voice.** Warmer marketing copy on the landing pages. The docs stay plain.
 - **Sections by quality, not by audience.** Every home page has four: unstyled, your look; small, leans on the browser; built for agents; accessible by default.
 - **Accessibility claims need a test.** Each claim points to a test in that deck's repo. A claim with no test stays off the page, and the gap is filed in the deck's repo.
