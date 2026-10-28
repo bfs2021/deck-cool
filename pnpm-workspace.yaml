@@ -11,6 +11,7 @@ packages:
   - decks/carouseldeck/apps/*
   - decks/carouseldeck/tests/compare
   - decks/carouseldeck/prototypes/scroll-snap
+  - decks/carouseldeck/prototypes/drawer-bench
 # wrangler deploy runs without esbuild's and workerd's install scripts: the
 # Worker has no code to bundle or run, only static assets.
 allowBuilds:
