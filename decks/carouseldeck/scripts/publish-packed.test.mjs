@@ -56,7 +56,7 @@ test('releasesFromTarballs orders a dependency before what depends on it', () =>
 });
 
 test('releasesFromTarballs throws on a dependency cycle', () => {
-  /** @param {string} name @param {Record<string, string>} dependencies */
+  /** @param {string} name @param {string} dependencies */
   const tarball = (name, dependencies) => ({
     path: `packages/${name}.tgz`,
     readManifest: () => ({ name, version: '1.0.0', dependencies })
@@ -68,6 +68,28 @@ test('releasesFromTarballs throws on a dependency cycle', () => {
         tarball('b', { a: '1.0.0' })
       ]),
     /dependency cycle/
+  );
+});
+
+// The CLI `--tag` overrides the tarball's own `publishConfig.tag`, so the
+// release has to name it: a beta declaring `tag: "beta"` that published under
+// `--tag latest` would take `latest` away from every stable user.
+test('releasesFromTarballs publishes under the manifest publishConfig tag', () => {
+  /** @param {string} name @param {{ publishConfig?: { tag?: string } }} [publishConfig] */
+  const tarball = (name, publishConfig) => ({
+    path: `packages/${name.replace('@carouseldeck/', '')}.tgz`,
+    readManifest: () => ({ name, version: '0.1.0-beta.0', publishConfig })
+  });
+  const result = releasesFromTarballs([
+    tarball('@carouseldeck/beta-only', { tag: 'beta' }),
+    tarball('@carouseldeck/no-config')
+  ]);
+  assert.deepEqual(
+    result.map((r) => [r.name, r.tag]),
+    [
+      ['@carouseldeck/beta-only', 'beta'],
+      ['@carouseldeck/no-config', 'latest']
+    ]
   );
 });
 

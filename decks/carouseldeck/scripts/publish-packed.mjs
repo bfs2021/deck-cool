@@ -5,6 +5,10 @@
 // name@version npm already has (an idempotent re-run), stops at the first
 // failure, and sends `--access public --provenance` explicitly on every
 // publish -- npm does not read a tarball's own `publishConfig` on its own.
+// The dist-tag is the tarball's own `publishConfig.tag`, defaulting to
+// `latest`: the CLI `--tag` overrides whatever the package.json declares, so
+// a `--tag latest` sent over a tarball declaring `beta` would put a
+// prerelease on `latest` for every user.
 //
 // pnpm 11 publishes natively instead of spawning npm, and its own OIDC
 // exchange fails only as a warning, after which it falls back to an
@@ -86,7 +90,7 @@ export const releasesFromTarballs = (tarballs) => {
         name: manifest.name,
         version: manifest.version,
         access: 'public',
-        tag: 'latest',
+        tag: manifest.publishConfig?.tag || 'latest',
         tarball: { path: tarball.path }
       });
       remaining.delete(manifest.name);
@@ -161,6 +165,12 @@ const isOnNpm = async (name, version) => {
  */
 const npmPublish = async (packDir, release) => {
   const tarballPath = join(packDir, release.tarball.path);
+  // The plan carries no tag; the tarball's own `publishConfig.tag` does, and
+  // the CLI `--tag latest` would override it.
+  let tag = release.tag;
+  if (tag === undefined) {
+    tag = tarballManifest(tarballPath).publishConfig?.tag || 'latest';
+  }
   try {
     execFileSync(
       'npm',
@@ -170,7 +180,7 @@ const npmPublish = async (packDir, release) => {
         '--access',
         release.access || 'public',
         '--tag',
-        release.tag || 'latest',
+        tag,
         '--provenance',
         '--loglevel',
         'verbose'
@@ -187,6 +197,17 @@ const npmPublish = async (packDir, release) => {
 };
 
 /**
+ * The `package/package.json` a packed tarball carries.
+ * @param {string} tarballPath
+ */
+const tarballManifest = (tarballPath) =>
+  JSON.parse(
+    execFileSync('tar', ['-xOf', tarballPath, 'package/package.json'], {
+      encoding: 'utf8'
+    })
+  );
+
+/**
  * The tarballs in `<packDir>/packages/`, for `releasesFromTarballs`.
  * @param {string} packDir
  */
@@ -196,14 +217,7 @@ const tarballsIn = (packDir) => {
     .filter((name) => name.endsWith('.tgz'))
     .map((name) => ({
       path: join('packages', name),
-      readManifest: () =>
-        JSON.parse(
-          execFileSync(
-            'tar',
-            ['-xOf', join(packagesDir, name), 'package/package.json'],
-            { encoding: 'utf8' }
-          )
-        )
+      readManifest: () => tarballManifest(join(packagesDir, name))
     }));
 };
 
