@@ -41,12 +41,12 @@ below.
 | Sides (bottom/top/left/right) | Bottom only. | All four (`direction` prop, default `'bottom'`). | All four (`swipeDirection` prop, default `'down'`). |
 | Non-modal | No. Modal only. | Yes (`modal` prop: `true` or `false`). | Yes (`modal` prop: `true`, `false`, or `'trap-focus'`). |
 | Nested drawers | No. | Yes (`nested` prop). | Yes. Dedicated `data-nested-drawer-open`/`data-nested-drawer-swiping` attributes and `--nested-drawers`/`--drawer-frontmost-height` CSS variables. |
-| Background indent/scale | No. [ADR 0001](https://github.com/pedrosousa13/deck-cool/blob/main/decks/drawerdeck/docs/adr/0001-native-scrolling-is-the-engine.md) found that a scroll-driven animation does not resolve across the top layer, so "a background indent needs JS, or a different structure" — not built yet. | Yes (`shouldScaleBackground` prop). | Yes. `Drawer.Provider`, `Drawer.IndentBackground` and `Drawer.Indent` scale the background when a drawer opens. |
+| Background indent/scale | No. [ADR 0001](https://github.com/pedrosousa13/deck-cool/blob/main/decks/drawerdeck/docs/adr/0001-native-scrolling-is-the-engine.md) found that a scroll-driven animation does not resolve across the top layer, so "a background indent needs JS, or a different structure", not built yet. | Yes (`shouldScaleBackground` prop). | Yes. `Drawer.Provider`, `Drawer.IndentBackground` and `Drawer.Indent` scale the background when a drawer opens. |
 | On-screen keyboard handling | Not yet. Listed as still open in [#230](https://github.com/pedrosousa13/deck-cool/issues/230) and the "Why native scrolling" guide. | Yes. Repositions the drawer on `visualViewport` resize (`repositionInputs`, on by default once `snapPoints` is set). | Yes. `Drawer.VirtualKeyboardProvider` gives keyboard-aware focus and scroll handling, and sets `--drawer-keyboard-inset`. |
-| Uses `<dialog>`/top layer | Yes. `Drawer.Popup` renders a `<dialog>`, opened with `showModal()`: the top layer, focus trap and Escape for free. | No. Built on `@radix-ui/react-dialog` — a `<div>`, not the native element. | No. A custom `<div>`-based implementation. |
+| Uses `<dialog>`/top layer | Yes. `Drawer.Popup` renders a `<dialog>`, opened with `showModal()`: the top layer, focus trap and Escape for free. | No. Built on `@radix-ui/react-dialog`: a `<div>`, not the native element. | No. A custom `<div>`-based implementation. |
 | Drag engine | Native CSS scroll-snap drives touch, wheel and trackpad. Mouse alone gets a JS pointer handler, because a mouse cannot drag a scroll container. | JS pointer and touch events throughout: writes `translate3d` on every move. | JS pointer and touch events throughout: writes `--drawer-swipe-movement-x`/`-y` CSS variables that drive a transform. |
 | Headless/unstyled | Yes. | Yes. | Yes. |
-| Bundle size (min+gzip, React external) | 2.34 KB — measured as plain JS/TS with no React wrapper (the beta had none yet when this ran). See "numbers we don't trust" below: the quiet re-run measures the real `@drawerdeck/react` package instead. | 22.48 KB (`vaul` 1.1.2). | 30.47 KB (`@base-ui/react` 1.9.0, the `Drawer` export). |
+| Bundle size (min+gzip, React external) | 2.34 KB: measured as plain JS/TS with no React wrapper (the beta had none yet when this ran). See "numbers we don't trust" below: the quiet re-run measures the real `@drawerdeck/react` package instead. | 22.48 KB (`vaul` 1.1.2). | 30.47 KB (`@base-ui/react` 1.9.0, the `Drawer` export). |
 
 ## The benchmark
 
@@ -60,8 +60,8 @@ drawerdeck map ([#230](https://github.com/pedrosousa13/deck-cool/issues/230)).
 **Method.** A Chromium trace scores each run's longest visual stall, its
 hitch ratio and its percent of dropped frames. Touch gestures use Chrome
 DevTools Protocol's trusted touch input, not simulated events. Every
-scenario runs at three main-thread loads — none, a 100ms busy-loop tick,
-and a 200ms tick — 5 reps each. Tables below are the median, with the
+scenario runs at three main-thread loads: none, a 100ms busy-loop tick,
+and a 200ms tick, 5 reps each. Tables below are the median, with the
 min–max spread in parentheses. All three drawers render the same 50-row
 content, the same snap points (half and full), and the same bench-owned
 probe for "openness," so a native-scroll drawer, a `translate3d` drawer
@@ -74,7 +74,7 @@ scenario) ranged from 2.2 to 6.1 across the run, shared with other work.
 Read the comparison across drawers at the same load as the trustworthy
 signal, not any single absolute number. A quiet re-run, against the real
 `@drawerdeck/react` package, is in progress
-([#245](https://github.com/pedrosousa13/deck-cool/issues/245)) — its
+([#245](https://github.com/pedrosousa13/deck-cool/issues/245)): its
 tables go in the spot marked below once they land.
 
 **Touch drag half → full → back: longest stall (ms)**
@@ -160,12 +160,12 @@ history, not the number to trust for loaded scenarios.
   Base UI also beats drawerdeck here (450–500ms). drawerdeck does not win
   this metric at any load.
 - **Settle time for a mouse-drag throw, and for opening to half.** Base
-  UI is faster at both, at every load tested — roughly 1.5x on the mouse
+  UI is faster at both, at every load tested: roughly 1.5x on the mouse
   throw (690ms against 1053ms at load=0) and on opening (592ms against
   931ms at load=0). vaul is slower than drawerdeck at both of these, so
   this is a Base UI difference, not a two-rivals-beat-drawerdeck pattern.
 - **Settle time for the touch-flick dismiss.** Base UI is fastest here
-  too (889ms against drawerdeck's 1151ms at load=0) — though see "where
+  too (889ms against drawerdeck's 1151ms at load=0), though see "where
   drawerdeck wins": Base UI's dismiss stopped landing reliably at higher
   load, so its speed advantage here comes with a reliability cost
   drawerdeck and vaul do not have.
@@ -184,7 +184,7 @@ history, not the number to trust for loaded scenarios.
   drawerdeck's dropped-frame percentage rises from 6% (load=0) to 49%
   (load=200), roughly 8x; vaul's rises from 0% to 68%, and Base UI's from
   2% to 58%. drawerdeck is not the least-dropped unloaded, but degrades
-  the least steeply and ends up least-dropped at load=200 — though the
+  the least steeply and ends up least-dropped at load=200, though the
   margin (49% against 58%/68%) is not large, and this run's machine was
   not quiet.
 
@@ -200,7 +200,7 @@ history, not the number to trust for loaded scenarios.
   be genuine idle time as much as a real stall. Read the within-deck,
   across-load comparison, not the absolute figure.
 - **Script time per frame (LoAF) at load=100/200 is dominated by the
-  injected load, not by a library's own cost** — the same finding
+  injected load, not by a library's own cost**. The same finding
   carouseldeck's own bench made. The load=0 column, where all three show
   zero, is the real, comparable figure.
 - **drawerdeck's bundle size has no React wrapper**, so it is a
@@ -235,5 +235,5 @@ The numbers above come from the bench at commit `5216788` on
 `prototype/drawer-bench`, not from this page's own claims. They are
 re-run before every drawerdeck release, against whatever `@drawerdeck/react`
 ships that release, not just drawerdeck's first beta. A loss stays on this
-page until a re-run says otherwise — this page does not drop a losing row
+page until a re-run says otherwise: this page does not drop a losing row
 to look better.
