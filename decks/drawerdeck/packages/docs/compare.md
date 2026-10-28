@@ -4,17 +4,25 @@ label: Compare
 description: 'How drawerdeck compares with vaul and Base UI''s Drawer today: native scrolling against pointer-driven JavaScript, a feature table sourced from each project''s own docs, and bench numbers with their caveats.'
 ---
 
-drawerdeck is a beta today: bottom only, modal only, no nested drawers, no
-background indent. vaul and Base UI's Drawer already support all four. vaul
-has had no release since December 2024, and its own README calls it
-unmaintained. Base UI's Drawer is actively maintained, and it settles faster
-than drawerdeck at every load a first bench run tested. drawerdeck's touch
-dismiss stayed reliable under heavy load where Base UI's did not, and its
-dropped-frame rate degraded less steeply than either rival's as load rose —
-but the margin was not large, and that first run's machine was not quiet. A
-quiet re-run against the real `@drawerdeck/react` package is in progress;
-this page will carry its numbers once they land. Nothing here tests Safari,
-iOS, Firefox or the on-screen keyboard.
+**Verdict today:** Base UI's Drawer is the most complete and settles fastest. drawerdeck is the smallest and stays smoothest under heavy load, but it is a beta with fewer features. vaul is unmaintained. drawerdeck's numbers below come from a first bench run on a busy machine, so treat them as provisional until the quiet re-run lands.
+
+## At a glance
+
+| Question | drawerdeck | vaul | Base UI Drawer | Winner |
+| --- | --- | --- | --- | --- |
+| Maintained? | Beta | No, last release Dec 2024 | Yes | **Base UI** |
+| Features: all sides, non-modal, nesting, background indent, keyboard | Bottom, modal only | All | All | **Base UI**, **vaul** |
+| Bundle size (min+gzip) | 2.3 KB* | 22.5 KB | 30.5 KB | **drawerdeck*** |
+| Dropped frames while dragging, heavy load | 49% | 68% | 58% | **drawerdeck*** |
+| Dropped frames while dragging, no load | 6% | 0% | 2% | **vaul** |
+| Longest stall while dragging, no load | 517 ms | 167 ms | 450 ms | **vaul** |
+| Flick down closes it, under heavy load | Always | Always | Failed 5 of 5 | **drawerdeck**, **vaul** |
+| Open to half | 931 ms | 1059 ms | 592 ms | **Base UI** |
+| Mouse throw to settled | 1053 ms | 1105 ms | 690 ms | **Base UI** |
+| Built on native `<dialog>` and native scrolling | Yes | No | No | **drawerdeck** |
+| React versions | 19 | 16.8 to 19 | 17 to 19 | **vaul** |
+
+\* Provisional. drawerdeck's size was measured without its React wrapper, and its bench runs shared the machine with other work (load 5 to 6 on 4 cores against the rivals' 3 to 4). The quiet re-run against the real package replaces these. Medians of 5 runs in Chromium; the details and every caveat are below.
 
 ## Feature table
 
